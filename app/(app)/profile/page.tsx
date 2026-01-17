@@ -37,6 +37,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -58,10 +59,6 @@ export default function ProfilePage() {
   }, []);
 
   const onDeleteAccount = async () => {
-    const confirmed = window.confirm(
-      t("profile_delete_confirm")
-    );
-    if (!confirmed) return;
     setDeleting(true);
     setDeleteError("");
     try {
@@ -142,9 +139,29 @@ export default function ProfilePage() {
         <div className={styles.dangerTitle}>{t("profile_delete_title")}</div>
         <div className={styles.dangerText}>{t("profile_delete_text")}</div>
         {deleteError ? <div className={styles.dangerError}>{deleteError}</div> : null}
-        <button className={styles.deleteBtn} type="button" onClick={onDeleteAccount} disabled={deleting}>
-          {deleting ? t("profile_deleting") : t("profile_delete_button")}
-        </button>
+        {!confirmDelete ? (
+          <button className={styles.deleteBtn} type="button" onClick={() => setConfirmDelete(true)}>
+            {t("profile_delete_button")}
+          </button>
+        ) : (
+          <div className={styles.confirmBox}>
+            <div className={styles.confirmTitle}>{t("profile_delete_confirm_title")}</div>
+            <div className={styles.confirmText}>{t("profile_delete_confirm_text")}</div>
+            <div className={styles.confirmActions}>
+              <button
+                className={styles.deleteBtn}
+                type="button"
+                onClick={onDeleteAccount}
+                disabled={deleting}
+              >
+                {deleting ? t("profile_deleting") : t("profile_delete_confirm_button")}
+              </button>
+              <button className={styles.cancelBtn} type="button" onClick={() => setConfirmDelete(false)}>
+                {t("profile_delete_cancel")}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

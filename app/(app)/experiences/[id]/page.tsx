@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/lang-context";
@@ -50,6 +50,7 @@ type ChatMessage = {
 export default function ExperienceDetailPage() {
   const { id } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { lang } = useLang();
   const { user } = useAuth();
   const t = useT();
@@ -90,6 +91,21 @@ export default function ExperienceDetailPage() {
         return;
       }
       setBookingLoading(true);
+      const bookingId = searchParams?.get("bookingId");
+      if (bookingId) {
+        try {
+          const direct = await apiGet<Booking>(`/bookings/${bookingId}`);
+          const exp = direct?.experience;
+          const expId = typeof exp === "string" ? exp : exp?._id;
+          if (expId === item._id && active) {
+            setBookingInfo(direct);
+            setBookingLoading(false);
+            return;
+          }
+        } catch {
+          // fallback to list search
+        }
+      }
       const candidates: Booking[] = [];
       const role = user.role || "EXPLORER";
       if (role === "HOST" || role === "BOTH") {
@@ -128,7 +144,7 @@ export default function ExperienceDetailPage() {
     return () => {
       active = false;
     };
-  }, [item?._id, user]);
+  }, [item?._id, user, searchParams]);
 
   const chatAllowed = useMemo(() => {
     if (!bookingInfo?.status) return false;

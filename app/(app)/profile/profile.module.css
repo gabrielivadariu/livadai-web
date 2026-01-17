@@ -115,3 +115,36 @@
   opacity: 0.7;
   cursor: not-allowed;
 }
+
+.confirmBox {
+  background: #fff;
+  border: 1px solid #fecdd3;
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.confirmTitle {
+  font-weight: 700;
+  color: #991b1b;
+}
+
+.confirmText {
+  color: #7f1d1d;
+  font-size: 14px;
+}
+
+.confirmActions {
+  display: grid;
+  gap: 8px;
+}
+
+.cancelBtn {
+  border-radius: 12px;
+  padding: 10px 16px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}

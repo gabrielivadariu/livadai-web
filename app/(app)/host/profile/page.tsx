@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiGet, apiPut } from "@/lib/api";
+import { useAuth } from "@/context/auth-context";
 import { useT } from "@/lib/i18n";
 import styles from "./host-profile.module.css";
 
@@ -33,20 +34,39 @@ type HostProfile = {
   languages?: string[];
   experience?: string;
   avatar?: string;
+  rating_avg?: number;
+  rating_count?: number;
+  total_participants?: number;
+  total_events?: number;
+};
+
+type HostReview = {
+  _id: string;
+  rating?: number;
+  comment?: string;
+  createdAt?: string;
+  author?: { name?: string };
 };
 
 export default function HostProfilePage() {
   const t = useT();
+  const { user } = useAuth();
   const [form, setForm] = useState<HostProfile>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
+  const [reviews, setReviews] = useState<HostReview[]>([]);
 
   useEffect(() => {
     let active = true;
-    apiGet<HostProfile>("/hosts/me/profile")
-      .then((data) => {
-        if (active) setForm(data || {});
+    Promise.all([
+      apiGet<HostProfile>("/hosts/me/profile"),
+      user?._id ? apiGet<HostReview[]>(`/hosts/${user._id}/reviews`).catch(() => []) : Promise.resolve([]),
+    ])
+      .then(([profileRes, reviewRes]) => {
+        if (!active) return;
+        setForm(profileRes || {});
+        setReviews(reviewRes || []);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -54,7 +74,7 @@ export default function HostProfilePage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [user?._id]);
 
   const onChange = (key: keyof HostProfile, value: HostProfile[keyof HostProfile]) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -98,9 +118,26 @@ export default function HostProfilePage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
-          <div className={styles.kicker}>Host</div>
+          <div className={styles.kicker}>{t("host_kicker")}</div>
           <h1>{t("host_profile_title")}</h1>
           <p>{t("host_profile_subtitle")}</p>
+        </div>
+        <div className={styles.statsRow}>
+          <div className={styles.statCard}>
+            <div className={styles.statLabel}>{t("host_rating_title")}</div>
+            <div className={styles.statValue}>
+              ⭐ {Number(form.rating_avg || 0).toFixed(1)}
+              <span className={styles.statHint}>({form.rating_count || 0})</span>
+            </div>
+          </div>
+          <div className={styles.statCard}>
+            <div className={styles.statLabel}>{t("host_stats_total_events")}</div>
+            <div className={styles.statValue}>{form.total_events || 0}</div>
+          </div>
+          <div className={styles.statCard}>
+            <div className={styles.statLabel}>{t("host_stats_total_participants")}</div>
+            <div className={styles.statValue}>{form.total_participants || 0}</div>
+          </div>
         </div>
       </div>
 
@@ -172,6 +209,25 @@ export default function HostProfilePage() {
         <button className="button" type="button" onClick={onSave} disabled={saving}>
           {saving ? t("common_saving") : t("host_profile_save")}
         </button>
+      </div>
+
+      <div className={styles.card}>
+        <h3 style={{ margin: 0 }}>{t("host_reviews_title")}</h3>
+        {reviews.length ? (
+          <div className={styles.reviewsList}>
+            {reviews.map((r) => (
+              <div key={r._id} className={styles.reviewCard}>
+                <div className={styles.reviewHeader}>
+                  <div className={styles.reviewAuthor}>{r.author?.name || t("experience_host_fallback")}</div>
+                  <div className={styles.reviewRating}>⭐ {Number(r.rating || 0).toFixed(1)}</div>
+                </div>
+                {r.comment ? <div className={styles.reviewComment}>{r.comment}</div> : null}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="muted">{t("host_reviews_empty")}</div>
+        )}
       </div>
     </div>
   );

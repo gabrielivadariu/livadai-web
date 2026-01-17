@@ -135,6 +135,12 @@
   color: var(--muted);
 }
 
+.langChip.chipActive {
+  background: #e6fbfe;
+  color: var(--primary-dark);
+  border-color: #bfeef4;
+}
+
 .suggestions {
   margin-top: 8px;
   border: 1px solid #e2e8f0;

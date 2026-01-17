@@ -335,5 +335,8 @@ a {
 
   .app-main {
     padding: 36px 64px 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
   }
 }

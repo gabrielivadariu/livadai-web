@@ -27,6 +27,8 @@ const languageOptions = [
 type Profile = {
   name?: string;
   displayName?: string;
+  city?: string;
+  country?: string;
   profilePhoto?: string;
   age?: number;
   languages?: string[];
@@ -141,6 +143,8 @@ export default function ProfilePage() {
     try {
       const updated = await apiPut<Profile>("/users/me/profile", {
         displayName: form.displayName,
+        city: form.city,
+        country: form.country,
         age: form.age,
         languages: form.languages,
         shortBio: form.shortBio,
@@ -216,6 +220,22 @@ export default function ProfilePage() {
                 onChange={(e) => onChange("age", Number(e.target.value))}
               />
             </div>
+            <div>
+              <label>{t("profile_city")}</label>
+              <input
+                className="input"
+                value={form.city || ""}
+                onChange={(e) => onChange("city", e.target.value)}
+              />
+            </div>
+            <div>
+              <label>{t("profile_country")}</label>
+              <input
+                className="input"
+                value={form.country || ""}
+                onChange={(e) => onChange("country", e.target.value)}
+              />
+            </div>
             <div className={styles.full}>
               <label>{t("profile_bio")}</label>
               <textarea
@@ -274,6 +294,11 @@ export default function ProfilePage() {
       <div className={styles.section}>
         {profile?.languages?.length ? (
           <div className={styles.row}>🗣 {profile.languages.map((l) => l.toUpperCase()).join(", ")}</div>
+        ) : null}
+        {profile?.city || profile?.country ? (
+          <div className={styles.row}>
+            📍 {profile.city || ""} {profile.country || ""}
+          </div>
         ) : null}
         {profile?.shortBio ? <div className={styles.row}>📖 {profile.shortBio}</div> : null}
         {profile?.experiencesCount !== undefined ? (

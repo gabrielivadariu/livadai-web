@@ -175,7 +175,7 @@ export default function CreateExperiencePage() {
     setUploading(true);
     setError("");
     try {
-      const uploaded = [];
+      const uploaded: string[] = [];
       for (const file of files) {
         const url = await uploadFile(file);
         if (url) uploaded.push(url);

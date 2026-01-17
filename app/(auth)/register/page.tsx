@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
+import { apiPost } from "@/lib/api";
 import styles from "../auth.module.css";
 
 const countryCodes = [
@@ -22,7 +22,6 @@ const countryCodes = [
 ];
 
 export default function RegisterPage() {
-  const router = useRouter();
   const { register } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -34,6 +33,8 @@ export default function RegisterPage() {
   const [termsChecked, setTermsChecked] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [step, setStep] = useState<"register" | "verify">("register");
+  const [code, setCode] = useState("");
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,12 +61,39 @@ export default function RegisterPage() {
         termsAcceptedAt: new Date().toISOString(),
         termsVersion: "v1",
       });
-      if (res?.message) {
+      if (res?.requiresEmailVerification) {
+        setStep("verify");
+        setSuccess("Introdu codul primit pe email");
+      } else {
         setSuccess("Check your email to verify your account");
       }
-      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
       const message = (err as Error).message || "Register failed";
+      setError(message);
+    }
+  };
+
+  const onVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    try {
+      await apiPost("/auth/verify-email-code", { email: email.trim(), code: code.trim() });
+      setSuccess("Cont verificat cu succes");
+    } catch (err) {
+      const message = (err as Error).message || "Verificarea a eșuat";
+      setError(message);
+    }
+  };
+
+  const onResend = async () => {
+    setError("");
+    setSuccess("");
+    try {
+      await apiPost("/auth/resend-email-verification", { email: email.trim() });
+      setSuccess("Ți-am retrimis codul de verificare");
+    } catch (err) {
+      const message = (err as Error).message || "Retrimiterea a eșuat";
       setError(message);
     }
   };
@@ -75,7 +103,8 @@ export default function RegisterPage() {
       <div className={styles.card}>
         <div className={styles.title}>LIVADAI</div>
         <div className={styles.subtitle}>Explorers & Hosts</div>
-        <form onSubmit={onSubmit}>
+        {step === "register" ? (
+          <form onSubmit={onSubmit}>
           <div className={styles.label}>Rol</div>
           <div className={styles.roleRow}>
             <button
@@ -149,14 +178,44 @@ export default function RegisterPage() {
             </span>
           </label>
 
-          {success ? (
-            <div style={{ color: "#0f766e", marginBottom: 8, textAlign: "center" }}>{success}</div>
-          ) : null}
-          {error ? <div className={styles.error}>{error}</div> : null}
-          <button className="button" type="submit">
-            Înregistrează-te
-          </button>
-        </form>
+            {success ? (
+              <div style={{ color: "#0f766e", marginBottom: 8, textAlign: "center" }}>{success}</div>
+            ) : null}
+            {error ? <div className={styles.error}>{error}</div> : null}
+            <button className="button" type="submit">
+              Înregistrează-te
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={onVerify}>
+            <div className={styles.label}>Introdu codul primit pe email</div>
+            <div className={styles.field}>
+              <label className={styles.label}>Cod de 6 cifre</label>
+              <input
+                className="input"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="123456"
+                required
+              />
+            </div>
+            {success ? (
+              <div style={{ color: "#0f766e", marginBottom: 8, textAlign: "center" }}>{success}</div>
+            ) : null}
+            {error ? <div className={styles.error}>{error}</div> : null}
+            <button className="button" type="submit">
+              Verifică
+            </button>
+            <div className={styles.link} style={{ marginTop: 10 }}>
+              Nu ai primit codul?{" "}
+              <button type="button" onClick={onResend} className={styles.linkPrimary} style={{ background: "none", border: "none" }}>
+                Retrimite cod
+              </button>
+            </div>
+          </form>
+        )}
         <div className={styles.link}>
           Ai deja cont?{" "}
           <Link className={styles.linkPrimary} href="/login">

@@ -119,6 +119,9 @@ export default function HostWalletPage() {
               <button className="button" type="button" onClick={onOpenDashboard}>
                 Deschide Stripe Dashboard
               </button>
+              <button className="button secondary" type="button" onClick={loadWallet}>
+                Reîmprospătează status
+              </button>
             </div>
 
             <div className={styles.section}>
@@ -151,6 +154,9 @@ export default function HostWalletPage() {
             <div className={styles.emptyText}>Finalizează onboarding-ul Stripe pentru a primi plăți.</div>
             <button className="button" type="button" onClick={onCompleteOnboarding}>
               Continuă onboarding
+            </button>
+            <button className="button secondary" type="button" onClick={loadWallet}>
+              Reîmprospătează status
             </button>
           </div>
         )

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { apiGet } from "@/lib/api";
 import styles from "./experiences.module.css";
 
@@ -100,7 +101,7 @@ export default function ExperiencesPage() {
             const start = item.startsAt || item.startDate;
             const dateLabel = start ? new Date(start).toLocaleDateString("ro-RO", { day: "numeric", month: "short" }) : "";
             return (
-              <article key={item._id} className={styles.card}>
+              <Link key={item._id} href={`/experiences/${item._id}`} className={styles.card}>
                 {item.coverImageUrl ? (
                   <img src={item.coverImageUrl} alt={item.title} className={styles.cover} />
                 ) : (
@@ -125,7 +126,7 @@ export default function ExperiencesPage() {
                     {item.rating_avg ? <span className={styles.rating}>⭐ {Number(item.rating_avg).toFixed(1)}</span> : null}
                   </div>
                 </div>
-              </article>
+              </Link>
             );
           })}
         </div>

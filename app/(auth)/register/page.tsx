@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import styles from "../auth.module.css";
 
@@ -21,6 +22,7 @@ const countryCodes = [
 ];
 
 export default function RegisterPage() {
+  const router = useRouter();
   const { register } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -46,7 +48,7 @@ export default function RegisterPage() {
       return;
     }
     try {
-      await register({
+      const res = await register({
         name,
         email,
         password,
@@ -58,7 +60,10 @@ export default function RegisterPage() {
         termsAcceptedAt: new Date().toISOString(),
         termsVersion: "v1",
       });
-      setSuccess("Check your email to verify your account");
+      if (res?.message) {
+        setSuccess("Check your email to verify your account");
+      }
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
       const message = (err as Error).message || "Register failed";
       setError(message);

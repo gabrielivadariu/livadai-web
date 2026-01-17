@@ -15,6 +15,12 @@ type MapPoint = {
   category?: string;
   latitude: number;
   longitude: number;
+  host?: {
+    profileImage?: string;
+    avatar?: string;
+    profilePhoto?: string;
+    name?: string;
+  };
 };
 
 export default function MapPage() {

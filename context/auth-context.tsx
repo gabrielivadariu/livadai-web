@@ -16,7 +16,7 @@ type AuthContextValue = {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (payload: Record<string, unknown>) => Promise<{ message?: string }>;
+  register: (payload: Record<string, unknown>) => Promise<{ message?: string; requiresEmailVerification?: boolean }>;
   logout: () => void;
   refresh: () => Promise<void>;
 };
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const register = useCallback(async (payload: Record<string, unknown>) => {
-    return apiPost<{ message?: string }>("/auth/register", payload);
+    return apiPost<{ message?: string; requiresEmailVerification?: boolean }>("/auth/register", payload);
   }, []);
 
   const logout = useCallback(() => {

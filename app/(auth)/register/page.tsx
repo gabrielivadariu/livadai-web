@@ -61,12 +61,15 @@ export default function RegisterPage() {
         termsAcceptedAt: new Date().toISOString(),
         termsVersion: "v1",
       });
-      if (res?.requiresEmailVerification) {
+      console.log("REGISTER RESPONSE", res);
+      const needsVerification = res?.requiresEmailVerification !== false;
+      if (needsVerification) {
+        setCode("");
         setStep("verify");
         setSuccess("Introdu codul primit pe email");
-      } else {
-        setSuccess("Check your email to verify your account");
+        return;
       }
+      setSuccess("Check your email to verify your account");
     } catch (err) {
       const message = (err as Error).message || "Register failed";
       setError(message);

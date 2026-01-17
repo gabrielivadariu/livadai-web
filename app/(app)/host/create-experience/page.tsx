@@ -312,14 +312,14 @@ export default function CreateExperiencePage() {
               <label>Mediu</label>
               <div className={styles.chips}>
                 {environmentOptions.map((o) => (
-                  <button
-                    type="button"
-                    key={o.key}
-                    className={`${styles.chip} ${form.environment === o.key ? styles.chipActive : ""}`}
-                    onClick={() => onChange("environment", o.key)}
-                  >
-                    {o.label}
-                  </button>
+                    <button
+                      type="button"
+                      key={o.key}
+                      className={`${styles.chip} ${form.environment === o.key ? styles.chipActive : ""}`}
+                      onClick={() => onChange("environment", o.key as FormState["environment"])}
+                    >
+                      {o.label}
+                    </button>
                 ))}
               </div>
             </div>

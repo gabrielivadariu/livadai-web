@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import styles from "../auth.module.css";
 
@@ -22,7 +21,6 @@ const countryCodes = [
 ];
 
 export default function RegisterPage() {
-  const router = useRouter();
   const { register } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -33,10 +31,12 @@ export default function RegisterPage() {
   const [role, setRole] = useState<"EXPLORER" | "HOST">("EXPLORER");
   const [termsChecked, setTermsChecked] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
     if (!termsChecked) {
       setError("Trebuie să accepți Termenii și Politica de Confidențialitate.");
       return;
@@ -58,7 +58,7 @@ export default function RegisterPage() {
         termsAcceptedAt: new Date().toISOString(),
         termsVersion: "v1",
       });
-      router.push("/login");
+      setSuccess("Check your email to verify your account");
     } catch (err) {
       const message = (err as Error).message || "Register failed";
       setError(message);
@@ -144,6 +144,9 @@ export default function RegisterPage() {
             </span>
           </label>
 
+          {success ? (
+            <div style={{ color: "#0f766e", marginBottom: 8, textAlign: "center" }}>{success}</div>
+          ) : null}
           {error ? <div className={styles.error}>{error}</div> : null}
           <button className="button" type="submit">
             Înregistrează-te

@@ -35,7 +35,7 @@ const languages = [
   { code: "hi", label: "हिन्दी" },
 ].sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
 
-const environmentOptions = [
+const environmentOptions: { key: "OUTDOOR" | "INDOOR" | "BOTH"; label: string }[] = [
   { key: "OUTDOOR", label: "Outdoor" },
   { key: "INDOOR", label: "Indoor" },
   { key: "BOTH", label: "Both" },

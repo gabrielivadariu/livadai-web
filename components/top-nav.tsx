@@ -63,6 +63,7 @@ export default function TopNav({ pathname }: Props) {
             <span>{name}</span>
           </summary>
           <div className="profile-dropdown">
+            <Link href="/menu">Meniu</Link>
             <Link href="/profile">Profil</Link>
             <Link href="/settings">Setări</Link>
             <Link href="/my-activities">Activitatea mea</Link>

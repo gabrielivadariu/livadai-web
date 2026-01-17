@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { apiGet, apiPost } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import styles from "./create-experience.module.css";
+
+const EXPERIENCE_CREATED_KEY = "livadai-experience-created";
 
 const languages = [
   { code: "ro", label: "Română" },
@@ -110,6 +113,7 @@ const initialForm: FormState = {
 
 export default function CreateExperiencePage() {
   const t = useT();
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>(initialForm);
   const [images, setImages] = useState<string[]>([]);
@@ -232,11 +236,8 @@ export default function CreateExperiencePage() {
         durationMinutes: form.durationMinutes ? Number(form.durationMinutes) : undefined,
       };
       await apiPost("/experiences", payload);
-      setSuccess(t("create_experience_created"));
-      setStep(1);
-      setForm(initialForm);
-      setImages([]);
-      setAddressQuery("");
+      window.localStorage.setItem(EXPERIENCE_CREATED_KEY, "1");
+      router.replace("/experiences");
     } catch (err) {
       setError((err as Error).message || t("create_experience_error"));
     } finally {

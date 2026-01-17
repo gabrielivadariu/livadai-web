@@ -7,6 +7,8 @@ import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
 import styles from "./experiences.module.css";
 
+const EXPERIENCE_CREATED_KEY = "livadai-experience-created";
+
 type Experience = {
   _id: string;
   title: string;
@@ -32,6 +34,7 @@ export default function ExperiencesPage() {
   const [items, setItems] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [showCreated, setShowCreated] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -50,6 +53,14 @@ export default function ExperiencesPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const created = window.localStorage.getItem(EXPERIENCE_CREATED_KEY);
+    if (created) {
+      setShowCreated(true);
+      window.localStorage.removeItem(EXPERIENCE_CREATED_KEY);
+    }
+  }, []);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return items;
@@ -63,6 +74,17 @@ export default function ExperiencesPage() {
 
   return (
     <div className={styles.page}>
+      {showCreated ? (
+        <div className={styles.banner}>
+          <div>
+            <strong>{t("experience_created_title")}</strong>
+            <div>{t("experience_created_text")}</div>
+          </div>
+          <button className={styles.bannerClose} type="button" onClick={() => setShowCreated(false)}>
+            ✕
+          </button>
+        </div>
+      ) : null}
       <section className={styles.hero}>
         <div>
           <div className={styles.kicker}>{t("experiences_kicker")}</div>

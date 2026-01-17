@@ -3,6 +3,28 @@
   gap: 32px;
 }
 
+.banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: #ecfdf3;
+  border: 1px solid #bbf7d0;
+  color: #065f46;
+  padding: 14px 18px;
+  border-radius: 16px;
+  font-weight: 600;
+  box-shadow: var(--shadow-soft);
+}
+
+.bannerClose {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  color: #047857;
+}
+
 .hero {
   display: grid;
   gap: 24px;

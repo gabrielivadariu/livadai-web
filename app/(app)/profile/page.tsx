@@ -2,13 +2,31 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiDelete, apiGet } from "@/lib/api";
+import { apiDelete, apiGet, apiPut } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { useAuth } from "@/context/auth-context";
 import styles from "./profile.module.css";
 
+const languageOptions = [
+  "Română",
+  "English",
+  "Français",
+  "Deutsch",
+  "Español",
+  "Italiano",
+  "Português",
+  "Nederlands",
+  "Polski",
+  "Magyar",
+  "Ελληνικά",
+  "Türkçe",
+  "Русский",
+  "Українська",
+];
+
 type Profile = {
   name?: string;
+  displayName?: string;
   profilePhoto?: string;
   age?: number;
   languages?: string[];
@@ -28,27 +46,46 @@ type Favorite = {
   images?: string[];
 };
 
+type HostStats = {
+  rating_avg?: number;
+  rating_count?: number;
+};
+
 export default function ProfilePage() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const t = useT();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [hostStats, setHostStats] = useState<HostStats | null>(null);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [form, setForm] = useState<Profile>({});
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     let active = true;
     Promise.all([
       apiGet<Profile>("/users/me/profile"),
       apiGet<Favorite[]>("/users/me/favorites").catch(() => []),
+      user?.role === "HOST" || user?.role === "BOTH"
+        ? apiGet<HostStats>("/hosts/me/profile").catch(() => null)
+        : Promise.resolve(null),
     ])
-      .then(([profileRes, favRes]) => {
+      .then(([profileRes, favRes, hostRes]) => {
         if (!active) return;
+        const normalized = profileRes
+          ? { ...profileRes, displayName: profileRes.displayName || profileRes.name }
+          : {};
         setProfile(profileRes || null);
+        setForm(normalized);
         setFavorites(favRes || []);
+        setHostStats(hostRes || null);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -56,7 +93,71 @@ export default function ProfilePage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [user?.role]);
+
+  const onChange = (key: keyof Profile, value: Profile[keyof Profile]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const toggleLanguage = (lang: string) => {
+    setForm((prev) => {
+      const list = prev.languages || [];
+      const exists = list.includes(lang);
+      return { ...prev, languages: exists ? list.filter((l) => l !== lang) : [...list, lang] };
+    });
+  };
+
+  const uploadAvatar = async (file: File) => {
+    setUploading(true);
+    setSaveError("");
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "https://livadai-backend-production.up.railway.app"}/media/upload`,
+        {
+          method: "POST",
+          body: (() => {
+            const data = new FormData();
+            data.append("file", file);
+            return data;
+          })(),
+        }
+      );
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      const url = data?.url || data?.secure_url;
+      if (url) {
+        setForm((prev) => ({ ...prev, profilePhoto: url }));
+      }
+    } catch (err) {
+      setSaveError((err as Error).message || t("profile_update_error"));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const onSave = async () => {
+    setSaving(true);
+    setSaveError("");
+    try {
+      const updated = await apiPut<Profile>("/users/me/profile", {
+        displayName: form.displayName,
+        age: form.age,
+        languages: form.languages,
+        shortBio: form.shortBio,
+        profilePhoto: form.profilePhoto,
+      });
+      const normalized = updated
+        ? { ...updated, displayName: updated.displayName || updated.name }
+        : form;
+      setProfile(updated || form);
+      setForm(normalized);
+      setEditing(false);
+    } catch (err) {
+      setSaveError((err as Error).message || t("profile_update_error"));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const onDeleteAccount = async () => {
     setDeleting(true);
@@ -80,8 +181,94 @@ export default function ProfilePage() {
         <div className={styles.avatar}>
           {profile?.profilePhoto ? <img src={profile.profilePhoto} alt="avatar" style={{ width: "100%", height: "100%" }} /> : "👤"}
         </div>
-        <div style={{ fontWeight: 800, fontSize: 18 }}>{profile?.name || t("nav_profile_fallback")}</div>
+        <div style={{ fontWeight: 800, fontSize: 18 }}>{profile?.displayName || profile?.name || t("nav_profile_fallback")}</div>
         {profile?.age ? <div className={styles.stats}>{profile.age} {t("profile_years")}</div> : null}
+        {hostStats ? (
+          <div className={styles.rating}>
+            ⭐ {Number(hostStats.rating_avg || 0).toFixed(1)} ({hostStats.rating_count || 0})
+          </div>
+        ) : null}
+      </div>
+
+      <div className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <div style={{ fontWeight: 800 }}>{t("profile_edit_title")}</div>
+          <button className="button secondary" type="button" onClick={() => setEditing((prev) => !prev)}>
+            {editing ? t("profile_edit_cancel") : t("profile_edit")}
+          </button>
+        </div>
+        {editing ? (
+          <div className={styles.editGrid}>
+            <div>
+              <label>{t("profile_display_name")}</label>
+              <input
+                className="input"
+                value={form.displayName || ""}
+                onChange={(e) => onChange("displayName", e.target.value)}
+              />
+            </div>
+            <div>
+              <label>{t("profile_age")}</label>
+              <input
+                className="input"
+                type="number"
+                value={form.age || ""}
+                onChange={(e) => onChange("age", Number(e.target.value))}
+              />
+            </div>
+            <div className={styles.full}>
+              <label>{t("profile_bio")}</label>
+              <textarea
+                className={styles.textarea}
+                value={form.shortBio || ""}
+                onChange={(e) => onChange("shortBio", e.target.value)}
+              />
+            </div>
+            <div className={styles.full}>
+              <label>{t("profile_avatar")}</label>
+              <div className={styles.avatarRow}>
+                <label className={styles.avatarPicker}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadAvatar(file);
+                    }}
+                  />
+                  <span>{uploading ? t("profile_avatar_uploading") : t("profile_avatar_upload")}</span>
+                </label>
+                <input
+                  className="input"
+                  value={form.profilePhoto || ""}
+                  onChange={(e) => onChange("profilePhoto", e.target.value)}
+                  placeholder={t("profile_avatar_placeholder")}
+                />
+              </div>
+            </div>
+            <div className={styles.full}>
+              <label>{t("profile_languages")}</label>
+              <div className={styles.langGrid}>
+                {languageOptions.map((lang) => (
+                  <button
+                    key={lang}
+                    type="button"
+                    className={`${styles.langChip} ${(form.languages || []).includes(lang) ? styles.langActive : ""}`}
+                    onClick={() => toggleLanguage(lang)}
+                  >
+                    {lang}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {saveError ? <div className={styles.saveError}>{saveError}</div> : null}
+            <button className="button" type="button" onClick={onSave} disabled={saving}>
+              {saving ? t("common_saving") : t("profile_save")}
+            </button>
+          </div>
+        ) : (
+          <div className="muted">{t("profile_edit_hint")}</div>
+        )}
       </div>
 
       <div className={styles.section}>

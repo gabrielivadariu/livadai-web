@@ -1,22 +1,46 @@
 "use client";
 
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
-import L from "leaflet";
+import dynamic from "next/dynamic";
 import "leaflet/dist/leaflet.css";
+
+const MapContainer = dynamic(
+  () => import("react-leaflet").then(m => m.MapContainer),
+  { ssr: false }
+);
+
+const TileLayer = dynamic(
+  () => import("react-leaflet").then(m => m.TileLayer),
+  { ssr: false }
+);
+
+const Marker = dynamic(
+  () => import("react-leaflet").then(m => m.Marker),
+  { ssr: false }
+);
+
+const Popup = dynamic(
+  () => import("react-leaflet").then(m => m.Popup),
+  { ssr: false }
+);
 
 const iconUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png";
 const iconRetinaUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png";
 const shadowUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png";
 
-const DefaultIcon = new L.Icon({
-  iconUrl,
-  iconRetinaUrl,
-  shadowUrl,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
+const getDefaultIcon = () => {
+  if (typeof window === "undefined") return undefined;
+  const L = window.L;
+  if (!L?.Icon) return undefined;
+  return new L.Icon({
+    iconUrl,
+    iconRetinaUrl,
+    shadowUrl,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+  });
+};
 
 type MapPoint = {
   _id: string;
@@ -29,6 +53,7 @@ type MapPoint = {
 };
 
 export default function MapClient({ points }: { points: MapPoint[] }) {
+  const defaultIcon = getDefaultIcon();
   return (
     <MapContainer
       center={[45.9432, 24.9668]}
@@ -41,7 +66,7 @@ export default function MapClient({ points }: { points: MapPoint[] }) {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       {points.map((p) => (
-        <Marker key={p._id} position={[p.latitude, p.longitude]} icon={DefaultIcon}>
+        <Marker key={p._id} position={[p.latitude, p.longitude]} icon={defaultIcon}>
           <Popup>
             <strong>{p.title}</strong>
             <div style={{ fontSize: "12px", marginTop: 4 }}>

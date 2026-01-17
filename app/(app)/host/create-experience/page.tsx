@@ -46,7 +46,43 @@ const activityOptions = [
   { key: "GROUP", label: "Group" },
 ];
 
-const initialForm = {
+type GeoSuggestion = {
+  label?: string;
+  countryCode?: string;
+  country?: string;
+  city?: string;
+  street?: string;
+  streetNumber?: string;
+  lat?: number;
+  lng?: number;
+};
+
+type FormState = {
+  title: string;
+  shortDescription: string;
+  longDescription: string;
+  price: string;
+  currencyCode: string;
+  activityType: "INDIVIDUAL" | "GROUP";
+  maxParticipants: number;
+  environment: "OUTDOOR" | "INDOOR" | "BOTH";
+  startsAt: string;
+  endsAt: string;
+  country: string;
+  countryCode: string;
+  city: string;
+  street: string;
+  streetNumber: string;
+  postalCode: string;
+  languages: string[];
+  locationLat: number | null;
+  locationLng: number | null;
+  coverImageUrl: string;
+  images: string[];
+  durationMinutes: string;
+};
+
+const initialForm: FormState = {
   title: "",
   shortDescription: "",
   longDescription: "",
@@ -73,23 +109,24 @@ const initialForm = {
 
 export default function CreateExperiencePage() {
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState(initialForm);
-  const [images, setImages] = useState([]);
+  const [form, setForm] = useState<FormState>(initialForm);
+  const [images, setImages] = useState<string[]>([]);
   const [addressQuery, setAddressQuery] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
+  const [suggestions, setSuggestions] = useState<GeoSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const toggleLanguage = (code) => {
+  const toggleLanguage = (code: string) => {
     setForm((f) => {
       const exists = f.languages.includes(code);
       return { ...f, languages: exists ? f.languages.filter((l) => l !== code) : [...f.languages, code] };
     });
   };
 
-  const onChange = (key, value) => setForm((f) => ({ ...f, [key]: value }));
+  const onChange = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+    setForm((f) => ({ ...f, [key]: value }));
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -97,14 +134,14 @@ export default function CreateExperiencePage() {
         setSuggestions([]);
         return;
       }
-      apiGet(`/geo/search?query=${encodeURIComponent(addressQuery)}`)
+      apiGet<GeoSuggestion[]>(`/geo/search?query=${encodeURIComponent(addressQuery)}`)
         .then((data) => setSuggestions(data || []))
         .catch(() => setSuggestions([]));
     }, 250);
     return () => clearTimeout(timer);
   }, [addressQuery]);
 
-  const selectSuggestion = (s) => {
+  const selectSuggestion = (s: GeoSuggestion) => {
     setAddressQuery(s.label || "");
     setSuggestions([]);
     const isRomania = s.countryCode === "RO" || (s.country || "").toLowerCase().includes("rom");
@@ -121,7 +158,7 @@ export default function CreateExperiencePage() {
     }));
   };
 
-  const uploadFile = async (file) => {
+  const uploadFile = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "https://livadai-backend-production.up.railway.app"}/media/upload`, {
@@ -133,7 +170,7 @@ export default function CreateExperiencePage() {
     return data.url;
   };
 
-  const onPickImages = async (files) => {
+  const onPickImages = async (files: File[]) => {
     if (!files?.length) return;
     setUploading(true);
     setError("");

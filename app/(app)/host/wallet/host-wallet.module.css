@@ -1,0 +1,117 @@
+.page {
+  display: grid;
+  gap: 20px;
+}
+
+.header {
+  background: #fff;
+  border-radius: 22px;
+  padding: 22px;
+  border: 1px solid #e6eff2;
+  box-shadow: var(--shadow-soft);
+}
+
+.kicker {
+  font-size: 12px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.balanceGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.balanceCard {
+  background: #fff;
+  border-radius: 18px;
+  padding: 18px;
+  border: 1px solid #e6eff2;
+  box-shadow: var(--shadow-soft);
+}
+
+.balanceLabel {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.balanceValue {
+  font-size: 24px;
+  font-weight: 800;
+  margin-top: 10px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.section {
+  background: #fff;
+  border-radius: 22px;
+  padding: 22px;
+  border: 1px solid #e6eff2;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 12px;
+}
+
+.txList {
+  display: grid;
+  gap: 12px;
+}
+
+.txRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid #e6eff2;
+}
+
+.txType {
+  font-weight: 700;
+}
+
+.txDate {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.txAmount {
+  font-weight: 800;
+}
+
+.empty {
+  background: #fff;
+  border-radius: 24px;
+  border: 1px dashed #cbd5f5;
+  padding: 32px;
+  text-align: center;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.emptyIcon {
+  font-size: 34px;
+}
+
+.emptyTitle {
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.emptyText {
+  color: var(--muted);
+}
+
+.error {
+  color: #ef4444;
+  font-weight: 600;
+}

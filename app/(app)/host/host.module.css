@@ -41,6 +41,81 @@
   gap: 16px;
 }
 
+.menuSection {
+  display: grid;
+  gap: 16px;
+}
+
+.menuSection h2 {
+  margin: 0;
+}
+
+.menuGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.menuCard {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid #e6eff2;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.menuCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.menuCardAlt {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  background: #f0fcff;
+  border: 1px solid #bfeef4;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.menuCardAlt:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.menuIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #e6fbfe;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+}
+
+.menuTitle {
+  font-weight: 800;
+}
+
+.menuText {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.chev {
+  font-size: 20px;
+  color: var(--muted);
+}
+
 .statCard {
   background: #fff;
   border-radius: 20px;

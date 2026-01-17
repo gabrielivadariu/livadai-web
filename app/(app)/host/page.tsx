@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
@@ -66,9 +67,9 @@ export default function HostDashboardPage() {
           <h1 className={styles.title}>Host Dashboard</h1>
           <p className={styles.subtitle}>Gestionează experiențele tale și construiește o comunitate de exploratori fideli.</p>
         </div>
-        <button className="button" type="button">
+        <Link className="button" href="/host/create-experience">
           ➕ Creează experiență
-        </button>
+        </Link>
       </div>
 
       <div className={styles.stats}>
@@ -110,16 +111,16 @@ export default function HostDashboardPage() {
         ) : (
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>🚀</div>
-            <div className={styles.emptyTitle}>E timpul să publici prima ta experiență</div>
-            <p className={styles.emptyText}>
-              Transformă pasiunea ta în experiențe memorabile. Creează o ofertă premium și începe să primești rezervări.
-            </p>
-            <button className="button" type="button">
-              Creează prima experiență
-            </button>
-          </div>
-        )}
-      </section>
+          <div className={styles.emptyTitle}>E timpul să publici prima ta experiență</div>
+          <p className={styles.emptyText}>
+            Transformă pasiunea ta în experiențe memorabile. Creează o ofertă premium și începe să primești rezervări.
+          </p>
+          <Link className="button" href="/host/create-experience">
+            Creează prima experiență
+          </Link>
+        </div>
+      )}
+    </section>
     </div>
   );
 }

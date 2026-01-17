@@ -41,7 +41,7 @@ const environmentOptions = [
   { key: "BOTH", label: "Both" },
 ];
 
-const activityOptions = [
+const activityOptions: { key: "INDIVIDUAL" | "GROUP"; label: string }[] = [
   { key: "INDIVIDUAL", label: "Individual" },
   { key: "GROUP", label: "Group" },
 ];

@@ -163,6 +163,52 @@
   background: #f8fafc;
 }
 
+.coverRow {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+.coverPicker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: #e6fbfe;
+  border: 1px solid #bfeef4;
+  color: var(--primary-dark);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.coverPicker input {
+  display: none;
+}
+
+.coverPreview {
+  background: #f8fafc;
+  border-radius: 18px;
+  border: 1px solid #e2e8f0;
+  padding: 10px;
+  min-height: 140px;
+  display: grid;
+  place-items: center;
+}
+
+.coverPreview img {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.coverPlaceholder {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .imageGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));

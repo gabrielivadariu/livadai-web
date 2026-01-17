@@ -410,6 +410,29 @@ export default function CreateExperiencePage() {
               <input className="input" value={form.coverImageUrl} onChange={(e) => onChange("coverImageUrl", e.target.value)} />
             </div>
             <div className={styles.full}>
+              <label>Cover photo (recomandat)</label>
+              <div className={styles.coverRow}>
+                <label className={styles.coverPicker}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) onPickImages([file]);
+                    }}
+                  />
+                  <span>Încarcă cover</span>
+                </label>
+                <div className={styles.coverPreview}>
+                  {form.coverImageUrl || images[0] ? (
+                    <img src={form.coverImageUrl || images[0]} alt="cover" />
+                  ) : (
+                    <div className={styles.coverPlaceholder}>Nicio imagine selectată</div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className={styles.full}>
               <label>Încarcă imagini</label>
               <input
                 className={styles.file}

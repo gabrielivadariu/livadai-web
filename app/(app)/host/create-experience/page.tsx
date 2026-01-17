@@ -117,6 +117,7 @@ export default function CreateExperiencePage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [dragActive, setDragActive] = useState(false);
 
   const toggleLanguage = (code: string) => {
     setForm((f) => {
@@ -434,13 +435,32 @@ export default function CreateExperiencePage() {
             </div>
             <div className={styles.full}>
               <label>Încarcă imagini</label>
-              <input
-                className={styles.file}
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={(e) => onPickImages(Array.from(e.target.files || []))}
-              />
+              <div
+                className={`${styles.dropzone} ${dragActive ? styles.dropzoneActive : ""}`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragActive(true);
+                }}
+                onDragLeave={() => setDragActive(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragActive(false);
+                  const files = Array.from(e.dataTransfer.files || []).filter((file) => file.type.startsWith("image/"));
+                  onPickImages(files);
+                }}
+              >
+                <input
+                  className={styles.file}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={(e) => onPickImages(Array.from(e.target.files || []))}
+                />
+                <div className={styles.dropzoneText}>
+                  <strong>Trage & plasează imagini aici</strong>
+                  <span>sau apasă pentru a selecta fișiere</span>
+                </div>
+              </div>
               {uploading ? <div className="muted">Se încarcă imaginile…</div> : null}
               {images.length ? (
                 <div className={styles.imageGrid}>

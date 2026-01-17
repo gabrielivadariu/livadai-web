@@ -156,11 +156,40 @@
 }
 
 .file {
-  width: 100%;
-  padding: 10px;
-  border-radius: 14px;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.dropzone {
+  position: relative;
+  border-radius: 18px;
   border: 1px dashed #cbd5f5;
   background: #f8fafc;
+  padding: 26px;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.dropzoneActive {
+  border-color: var(--primary);
+  background: #e6fbfe;
+}
+
+.dropzoneText {
+  display: grid;
+  gap: 6px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.dropzoneText strong {
+  color: var(--text);
+  font-size: 15px;
 }
 
 .coverRow {

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { apiGet, apiPost } from "@/lib/api";
+import { useLang } from "@/context/lang-context";
+import { useT } from "@/lib/i18n";
 import styles from "./host-wallet.module.css";
 
 type StripeStatus = {
@@ -26,6 +28,8 @@ type Transaction = {
 };
 
 export default function HostWalletPage() {
+  const { lang } = useLang();
+  const t = useT();
   const [status, setStatus] = useState<StripeStatus | null>(null);
   const [balance, setBalance] = useState<WalletBalance | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -45,7 +49,7 @@ export default function HostWalletPage() {
         setTransactions(txRes || []);
       }
     } catch (err) {
-      setError((err as Error).message || "Nu am putut încărca portofelul.");
+      setError((err as Error).message || t("host_wallet_load_error"));
     } finally {
       setLoading(false);
     }
@@ -61,7 +65,7 @@ export default function HostWalletPage() {
       const data = await apiPost<{ url: string }>("/stripe/create-host-account");
       if (data?.url) window.location.href = data.url;
     } catch (err) {
-      setError((err as Error).message || "Nu s-a putut iniția conectarea Stripe.");
+      setError((err as Error).message || t("host_wallet_connect_error"));
     }
   };
 
@@ -71,7 +75,7 @@ export default function HostWalletPage() {
       const data = await apiPost<{ url: string }>("/stripe/create-onboarding-link");
       if (data?.url) window.location.href = data.url;
     } catch (err) {
-      setError((err as Error).message || "Nu s-a putut deschide onboarding-ul Stripe.");
+      setError((err as Error).message || t("host_wallet_onboarding_error"));
     }
   };
 
@@ -81,7 +85,7 @@ export default function HostWalletPage() {
       const data = await apiGet<{ url: string }>("/stripe/host-dashboard");
       if (data?.url) window.location.href = data.url;
     } catch (err) {
-      setError((err as Error).message || "Nu s-a putut deschide dashboard-ul Stripe.");
+      setError((err as Error).message || t("host_wallet_dashboard_error"));
     }
   };
 
@@ -94,38 +98,38 @@ export default function HostWalletPage() {
       <div className={styles.header}>
         <div>
           <div className={styles.kicker}>Host</div>
-          <h1>Portofel / Plăți</h1>
-          <p>Gestionează Stripe, balanța și tranzacțiile.</p>
+          <h1>{t("host_wallet_title")}</h1>
+          <p>{t("host_wallet_subtitle")}</p>
         </div>
       </div>
 
       {loading ? (
-        <div className="muted">Se încarcă portofelul…</div>
+        <div className="muted">{t("common_loading_wallet")}</div>
       ) : status?.stripeAccountId ? (
         status.isStripeChargesEnabled ? (
           <>
             <div className={styles.balanceGrid}>
               <div className={styles.balanceCard}>
-                <div className={styles.balanceLabel}>Disponibil</div>
+                <div className={styles.balanceLabel}>{t("host_wallet_available")}</div>
                 <div className={styles.balanceValue}>{available} {currency}</div>
               </div>
               <div className={styles.balanceCard}>
-                <div className={styles.balanceLabel}>În așteptare</div>
+                <div className={styles.balanceLabel}>{t("host_wallet_pending")}</div>
                 <div className={styles.balanceValue}>{pending} {currency}</div>
               </div>
             </div>
 
             <div className={styles.actions}>
               <button className="button" type="button" onClick={onOpenDashboard}>
-                Deschide Stripe Dashboard
+                {t("host_wallet_dashboard")}
               </button>
               <button className="button secondary" type="button" onClick={loadWallet}>
-                Reîmprospătează status
+                {t("host_wallet_refresh")}
               </button>
             </div>
 
             <div className={styles.section}>
-              <h2>Tranzacții recente</h2>
+              <h2>{t("host_wallet_transactions")}</h2>
               {transactions.length ? (
                 <div className={styles.txList}>
                   {transactions.map((tx) => (
@@ -133,7 +137,7 @@ export default function HostWalletPage() {
                       <div>
                         <div className={styles.txType}>{tx.type || "payment"}</div>
                         <div className={styles.txDate}>
-                          {tx.createdAt ? new Date(tx.createdAt).toLocaleString("ro-RO") : ""}
+                          {tx.createdAt ? new Date(tx.createdAt).toLocaleString(lang === "en" ? "en-US" : "ro-RO") : ""}
                         </div>
                       </div>
                       <div className={styles.txAmount}>
@@ -143,30 +147,30 @@ export default function HostWalletPage() {
                   ))}
                 </div>
               ) : (
-                <div className="muted">Nu există tranzacții încă.</div>
+                <div className="muted">{t("host_wallet_no_transactions")}</div>
               )}
             </div>
           </>
         ) : (
           <div className={styles.empty}>
             <div className={styles.emptyIcon}>🔒</div>
-            <div className={styles.emptyTitle}>Completează activarea Stripe</div>
-            <div className={styles.emptyText}>Finalizează onboarding-ul Stripe pentru a primi plăți.</div>
+            <div className={styles.emptyTitle}>{t("host_wallet_activate_title")}</div>
+            <div className={styles.emptyText}>{t("host_wallet_activate_text")}</div>
             <button className="button" type="button" onClick={onCompleteOnboarding}>
-              Continuă onboarding
+              {t("host_wallet_continue")}
             </button>
             <button className="button secondary" type="button" onClick={loadWallet}>
-              Reîmprospătează status
+              {t("host_wallet_refresh")}
             </button>
           </div>
         )
       ) : (
         <div className={styles.empty}>
           <div className={styles.emptyIcon}>💳</div>
-          <div className={styles.emptyTitle}>Conectează portofelul Stripe</div>
-          <div className={styles.emptyText}>Ai nevoie de Stripe pentru a încasa plăți.</div>
+          <div className={styles.emptyTitle}>{t("host_wallet_connect_title")}</div>
+          <div className={styles.emptyText}>{t("host_wallet_connect_text")}</div>
           <button className="button" type="button" onClick={onConnectStripe}>
-            Conectează Stripe
+            {t("host_wallet_connect")}
           </button>
         </div>
       )}

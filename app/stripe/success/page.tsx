@@ -2,9 +2,11 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useT } from "@/lib/i18n";
 
 export default function StripeSuccessPage() {
   const router = useRouter();
+  const t = useT();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -16,10 +18,10 @@ export default function StripeSuccessPage() {
   return (
     <div className="page">
       <div className="card" style={{ maxWidth: 520, margin: "80px auto" }}>
-        <h2 style={{ marginTop: 0 }}>Stripe conectat</h2>
-        <p className="muted">Onboarding-ul a fost finalizat. Te redirecționăm către portofel.</p>
+        <h2 style={{ marginTop: 0 }}>{t("stripe_success_title")}</h2>
+        <p className="muted">{t("stripe_success_text")}</p>
         <button className="button" type="button" onClick={() => router.replace("/host/wallet")}>
-          Continuă către Portofel
+          {t("stripe_success_back")}
         </button>
       </div>
     </div>

@@ -74,3 +74,44 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+.dangerZone {
+  margin-top: 16px;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: 18px;
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.dangerTitle {
+  font-weight: 800;
+  color: #b91c1c;
+}
+
+.dangerText {
+  color: #7f1d1d;
+  font-size: 14px;
+}
+
+.dangerError {
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.deleteBtn {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: #ef4444;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.deleteBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

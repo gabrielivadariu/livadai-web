@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiGet } from "@/lib/api";
+import { useLang } from "@/context/lang-context";
+import { useT } from "@/lib/i18n";
 import styles from "./experiences.module.css";
 
 type Experience = {
@@ -25,6 +27,8 @@ type Experience = {
 };
 
 export default function ExperiencesPage() {
+  const { lang } = useLang();
+  const t = useT();
   const [items, setItems] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -61,45 +65,45 @@ export default function ExperiencesPage() {
     <div className={styles.page}>
       <section className={styles.hero}>
         <div>
-          <div className={styles.kicker}>LIVADAI · Experiențe autentice</div>
-          <h1 className={styles.title}>Explorează experiențe autentice</h1>
+          <div className={styles.kicker}>{t("experiences_kicker")}</div>
+          <h1 className={styles.title}>{t("experiences_title")}</h1>
           <p className={styles.subtitle}>
-            Trăiește momente reale alături de oameni pasionați. Descoperă experiențe locale curate, sigure și memorabile.
+            {t("experiences_subtitle")}
           </p>
           <div className={styles.searchWrap}>
             <input
               className={styles.searchInput}
-              placeholder="Caută orașe, activități sau gazde"
+              placeholder={t("experiences_search")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
         </div>
         <div className={styles.heroCard}>
-          <div className={styles.heroBadge}>Curated · Local · Trusted</div>
+          <div className={styles.heroBadge}>{t("experiences_badge")}</div>
           <div className={styles.heroStat}>
-            <span>Experiențe noi în fiecare săptămână</span>
+            <span>{t("experiences_stat_new")}</span>
             <strong>+24%</strong>
           </div>
           <div className={styles.heroStat}>
-            <span>Hosts verificați și recenzii reale</span>
+            <span>{t("experiences_stat_trusted")}</span>
             <strong>4.8/5</strong>
           </div>
           <button className="button" type="button">
-            Descoperă acum
+            {t("experiences_cta")}
           </button>
         </div>
       </section>
 
       {loading ? (
-        <div className="muted">Se încarcă experiențele…</div>
+        <div className="muted">{t("common_loading_experiences")}</div>
       ) : filtered.length ? (
         <div className={styles.grid}>
           {filtered.map((item) => {
             const isFree = !item.price || Number(item.price) <= 0;
-            const priceText = isFree ? "Gratuit" : `${item.price || 0} ${item.currencyCode || "RON"}`;
+            const priceText = isFree ? t("experiences_free") : `${item.price || 0} ${item.currencyCode || "RON"}`;
             const start = item.startsAt || item.startDate;
-            const dateLabel = start ? new Date(start).toLocaleDateString("ro-RO", { day: "numeric", month: "short" }) : "";
+            const dateLabel = start ? new Date(start).toLocaleDateString(lang === "en" ? "en-US" : "ro-RO", { day: "numeric", month: "short" }) : "";
             return (
               <Link key={item._id} href={`/experiences/${item._id}`} className={styles.card}>
                 {item.coverImageUrl ? (
@@ -133,10 +137,10 @@ export default function ExperiencesPage() {
       ) : (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>✨</div>
-          <div className={styles.emptyTitle}>Nicio experiență disponibilă încă</div>
-          <div className={styles.emptyText}>În curând vor apărea experiențe noi, selectate cu grijă pentru exploratori.</div>
+          <div className={styles.emptyTitle}>{t("experiences_empty_title")}</div>
+          <div className={styles.emptyText}>{t("experiences_empty_text")}</div>
           <button className="button" type="button">
-            Vezi harta
+            {t("experiences_view_map")}
           </button>
         </div>
       )}

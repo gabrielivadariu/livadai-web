@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useT } from "@/lib/i18n";
 
 type NavItem = {
   href: string;
-  label: string;
+  labelKey: string;
   icon: React.ReactNode;
 };
 
@@ -35,13 +36,14 @@ const IconProfile = () => (
 );
 
 const items: NavItem[] = [
-  { href: "/experiences", label: "Experiențe", icon: <IconList /> },
-  { href: "/map", label: "Harta", icon: <IconMap /> },
-  { href: "/my-activities", label: "Activitățile mele", icon: <IconBag /> },
-  { href: "/profile", label: "Profil", icon: <IconProfile /> },
+  { href: "/experiences", labelKey: "bottom_experiences", icon: <IconList /> },
+  { href: "/map", labelKey: "bottom_map", icon: <IconMap /> },
+  { href: "/my-activities", labelKey: "bottom_my_activities", icon: <IconBag /> },
+  { href: "/profile", labelKey: "bottom_profile", icon: <IconProfile /> },
 ];
 
 export default function BottomNav({ pathname }: { pathname: string | null }) {
+  const t = useT();
   return (
     <nav className="tab-bar">
       {items.map((item) => {
@@ -49,7 +51,7 @@ export default function BottomNav({ pathname }: { pathname: string | null }) {
         return (
           <Link key={item.href} href={item.href} className={`tab-item ${active ? "active" : ""}`}>
             {item.icon}
-            <span>{item.label}</span>
+            <span>{t(item.labelKey)}</span>
           </Link>
         );
       })}

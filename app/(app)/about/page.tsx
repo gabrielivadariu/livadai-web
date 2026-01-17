@@ -6,7 +6,7 @@ import { useLang } from "@/lib/use-lang";
 import styles from "../legal.module.css";
 
 export default function AboutPage() {
-  const lang = useLang();
+  const { lang } = useLang();
   const content = infoContent.about[lang];
 
   return (

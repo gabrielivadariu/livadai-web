@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiGet } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { apiDelete, apiGet } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 import { useAuth } from "@/context/auth-context";
 import styles from "./profile.module.css";
 
@@ -28,9 +30,13 @@ type Favorite = {
 
 export default function ProfilePage() {
   const { logout } = useAuth();
+  const t = useT();
+  const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -51,7 +57,25 @@ export default function ProfilePage() {
     };
   }, []);
 
-  if (loading) return <div className="muted">Se încarcă profilul…</div>;
+  const onDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      t("profile_delete_confirm")
+    );
+    if (!confirmed) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await apiDelete("/users/me");
+      logout();
+      router.replace("/login");
+    } catch (err) {
+      setDeleteError((err as Error).message || t("profile_delete_error"));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (loading) return <div className="muted">{t("common_loading_profile")}</div>;
 
   return (
     <>
@@ -59,8 +83,8 @@ export default function ProfilePage() {
         <div className={styles.avatar}>
           {profile?.profilePhoto ? <img src={profile.profilePhoto} alt="avatar" style={{ width: "100%", height: "100%" }} /> : "👤"}
         </div>
-        <div style={{ fontWeight: 800, fontSize: 18 }}>{profile?.name || "Profil"}</div>
-        {profile?.age ? <div className={styles.stats}>{profile.age} ani</div> : null}
+        <div style={{ fontWeight: 800, fontSize: 18 }}>{profile?.name || t("nav_profile_fallback")}</div>
+        {profile?.age ? <div className={styles.stats}>{profile.age} {t("profile_years")}</div> : null}
       </div>
 
       <div className={styles.section}>
@@ -69,14 +93,16 @@ export default function ProfilePage() {
         ) : null}
         {profile?.shortBio ? <div className={styles.row}>📖 {profile.shortBio}</div> : null}
         {profile?.experiencesCount !== undefined ? (
-          <div className={styles.row}>✅ {profile.experiencesCount} experiențe completate</div>
+          <div className={styles.row}>
+            ✅ {profile.experiencesCount} {t("profile_completed")}
+          </div>
         ) : null}
-        {profile?.phoneVerified ? <div className={styles.row}>🛡️ Telefon verificat</div> : null}
-        {profile?.isTrustedParticipant ? <div className={styles.row}>👍 Participant de încredere</div> : null}
+        {profile?.phoneVerified ? <div className={styles.row}>🛡️ {t("profile_phone_verified")}</div> : null}
+        {profile?.isTrustedParticipant ? <div className={styles.row}>👍 {t("profile_trusted")}</div> : null}
       </div>
 
       <div className={styles.section}>
-        <div style={{ fontWeight: 800 }}>Experiențe favorite</div>
+        <div style={{ fontWeight: 800 }}>{t("profile_favorites")}</div>
         {favorites.length ? (
           favorites.map((fav) => (
             <div key={fav._id} className={styles.favoriteRow}>
@@ -91,25 +117,34 @@ export default function ProfilePage() {
             </div>
           ))
         ) : (
-          <div className="muted">Nu ai favorite încă.</div>
+          <div className="muted">{t("profile_favorites_empty")}</div>
         )}
       </div>
 
       <div className={styles.section}>
-        <div style={{ fontWeight: 800 }}>Istoric</div>
+        <div style={{ fontWeight: 800 }}>{t("profile_history")}</div>
         {profile?.history?.length ? (
           profile.history.map((h, idx) => (
             <div key={idx} className={styles.row}>
-              {h.experienceTitle || "Experiență"} — {h.hostName || "-"}
+              {h.experienceTitle || t("common_experience")} — {h.hostName || "-"}
             </div>
           ))
         ) : (
-          <div className="muted">Nu există activitate recentă.</div>
+          <div className="muted">{t("profile_history_empty")}</div>
         )}
       </div>
 
       <div className={styles.logout} onClick={logout}>
-        Deconectare
+        {t("profile_logout")}
+      </div>
+
+      <div className={styles.dangerZone}>
+        <div className={styles.dangerTitle}>{t("profile_delete_title")}</div>
+        <div className={styles.dangerText}>{t("profile_delete_text")}</div>
+        {deleteError ? <div className={styles.dangerError}>{deleteError}</div> : null}
+        <button className={styles.deleteBtn} type="button" onClick={onDeleteAccount} disabled={deleting}>
+          {deleting ? t("profile_deleting") : t("profile_delete_button")}
+        </button>
       </div>
     </>
   );

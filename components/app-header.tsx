@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useT } from "@/lib/i18n";
 
 type Props = {
   searchValue?: string;
@@ -8,6 +9,7 @@ type Props = {
 };
 
 export default function AppHeader({ searchValue, onSearchChange }: Props) {
+  const t = useT();
   return (
     <div className="header">
       <div className="header-logo">LIVADAI</div>
@@ -24,7 +26,7 @@ export default function AppHeader({ searchValue, onSearchChange }: Props) {
           <input
             className="input"
             style={{ border: "none", padding: 0, background: "transparent" }}
-            placeholder="Caută experiențe"
+            placeholder={t("app_search_placeholder")}
             value={searchValue}
             onChange={(e) => onSearchChange(e.target.value)}
           />

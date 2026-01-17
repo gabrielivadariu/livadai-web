@@ -6,7 +6,7 @@ import { useLang } from "@/lib/use-lang";
 import styles from "../legal.module.css";
 
 export default function PrivacyPage() {
-  const lang = useLang();
+  const { lang } = useLang();
   const content = infoContent.privacy[lang];
 
   return (

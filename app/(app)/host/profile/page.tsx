@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiGet, apiPut } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 import styles from "./host-profile.module.css";
 
 const languageOptions = [
@@ -35,6 +36,7 @@ type HostProfile = {
 };
 
 export default function HostProfilePage() {
+  const t = useT();
   const [form, setForm] = useState<HostProfile>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -82,54 +84,54 @@ export default function HostProfilePage() {
         experience: form.experience,
         avatar: form.avatar,
       });
-      setStatus("Profil actualizat.");
+      setStatus(t("host_profile_saved"));
     } catch (err) {
-      setStatus((err as Error).message || "Nu s-a putut salva profilul.");
+      setStatus((err as Error).message || t("host_profile_save_error"));
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <div className="muted">Se încarcă profilul…</div>;
+  if (loading) return <div className="muted">{t("common_loading_profile")}</div>;
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
           <div className={styles.kicker}>Host</div>
-          <h1>Profilul meu de gazdă</h1>
-          <p>Completează profilul și crește încrederea exploratorilor.</p>
+          <h1>{t("host_profile_title")}</h1>
+          <p>{t("host_profile_subtitle")}</p>
         </div>
       </div>
 
       <div className={styles.card}>
         <div className={styles.grid}>
           <div>
-            <label>Nume</label>
+            <label>{t("host_profile_name")}</label>
             <input className="input" value={form.name || ""} onChange={(e) => onChange("name", e.target.value)} />
           </div>
           <div>
-            <label>Nume afișat</label>
+            <label>{t("host_profile_display_name")}</label>
             <input className="input" value={form.display_name || ""} onChange={(e) => onChange("display_name", e.target.value)} />
           </div>
           <div>
-            <label>Oraș</label>
+            <label>{t("host_profile_city")}</label>
             <input className="input" value={form.city || ""} onChange={(e) => onChange("city", e.target.value)} />
           </div>
           <div>
-            <label>Țară</label>
+            <label>{t("host_profile_country")}</label>
             <input className="input" value={form.country || ""} onChange={(e) => onChange("country", e.target.value)} />
           </div>
           <div>
-            <label>Telefon</label>
+            <label>{t("host_profile_phone")}</label>
             <input className="input" value={form.phone || ""} onChange={(e) => onChange("phone", e.target.value)} />
           </div>
           <div>
-            <label>Vârstă</label>
+            <label>{t("host_profile_age")}</label>
             <input className="input" type="number" value={form.age || ""} onChange={(e) => onChange("age", Number(e.target.value))} />
           </div>
           <div className={styles.full}>
-            <label>Despre tine</label>
+            <label>{t("host_profile_about")}</label>
             <textarea
               className={styles.textarea}
               value={form.about_me || ""}
@@ -137,7 +139,7 @@ export default function HostProfilePage() {
             />
           </div>
           <div className={styles.full}>
-            <label>Experiență profesională</label>
+            <label>{t("host_profile_experience")}</label>
             <textarea
               className={styles.textarea}
               value={form.experience || ""}
@@ -145,13 +147,13 @@ export default function HostProfilePage() {
             />
           </div>
           <div className={styles.full}>
-            <label>Avatar URL</label>
+            <label>{t("host_profile_avatar")}</label>
             <input className="input" value={form.avatar || ""} onChange={(e) => onChange("avatar", e.target.value)} />
           </div>
         </div>
 
         <div className={styles.languages}>
-          <label>Limbi vorbite</label>
+          <label>{t("host_profile_languages")}</label>
           <div className={styles.langGrid}>
             {languageOptions.map((lang) => (
               <button
@@ -168,7 +170,7 @@ export default function HostProfilePage() {
 
         {status ? <div className={styles.status}>{status}</div> : null}
         <button className="button" type="button" onClick={onSave} disabled={saving}>
-          {saving ? "Se salvează…" : "Salvează profilul"}
+          {saving ? t("common_saving") : t("host_profile_save")}
         </button>
       </div>
     </div>

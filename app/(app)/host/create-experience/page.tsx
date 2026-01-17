@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { apiGet, apiPost } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 import styles from "./create-experience.module.css";
 
 const languages = [
@@ -35,15 +36,15 @@ const languages = [
   { code: "hi", label: "हिन्दी" },
 ].sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
 
-const environmentOptions: { key: "OUTDOOR" | "INDOOR" | "BOTH"; label: string }[] = [
-  { key: "OUTDOOR", label: "Outdoor" },
-  { key: "INDOOR", label: "Indoor" },
-  { key: "BOTH", label: "Both" },
+const environmentOptions: { key: "OUTDOOR" | "INDOOR" | "BOTH"; labelKey: string }[] = [
+  { key: "OUTDOOR", labelKey: "environment_outdoor" },
+  { key: "INDOOR", labelKey: "environment_indoor" },
+  { key: "BOTH", labelKey: "environment_both" },
 ];
 
-const activityOptions: { key: "INDIVIDUAL" | "GROUP"; label: string }[] = [
-  { key: "INDIVIDUAL", label: "Individual" },
-  { key: "GROUP", label: "Group" },
+const activityOptions: { key: "INDIVIDUAL" | "GROUP"; labelKey: string }[] = [
+  { key: "INDIVIDUAL", labelKey: "activity_individual" },
+  { key: "GROUP", labelKey: "activity_group" },
 ];
 
 type GeoSuggestion = {
@@ -108,6 +109,7 @@ const initialForm: FormState = {
 };
 
 export default function CreateExperiencePage() {
+  const t = useT();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>(initialForm);
   const [images, setImages] = useState<string[]>([]);
@@ -186,7 +188,7 @@ export default function CreateExperiencePage() {
         setForm((f) => ({ ...f, coverImageUrl: uploaded[0] }));
       }
     } catch (err) {
-      setError("Nu s-au putut încărca imaginile.");
+      setError(t("create_experience_upload_error"));
     } finally {
       setUploading(false);
     }
@@ -230,13 +232,13 @@ export default function CreateExperiencePage() {
         durationMinutes: form.durationMinutes ? Number(form.durationMinutes) : undefined,
       };
       await apiPost("/experiences", payload);
-      setSuccess("Experiența a fost creată cu succes.");
+      setSuccess(t("create_experience_created"));
       setStep(1);
       setForm(initialForm);
       setImages([]);
       setAddressQuery("");
     } catch (err) {
-      setError((err as Error).message || "Nu s-a putut crea experiența.");
+      setError((err as Error).message || t("create_experience_error"));
     } finally {
       setLoading(false);
     }
@@ -246,9 +248,9 @@ export default function CreateExperiencePage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
-          <div className={styles.kicker}>Host · Create</div>
-          <h1>Creează o experiență</h1>
-          <p>Construiește o experiență premium, exact ca în app, dar optimizată pentru web.</p>
+          <div className={styles.kicker}>{t("create_experience_kicker")}</div>
+          <h1>{t("create_experience_title")}</h1>
+          <p>{t("create_experience_subtitle")}</p>
         </div>
         <div className={styles.steps}>
           {[1, 2, 3].map((s) => (
@@ -261,18 +263,18 @@ export default function CreateExperiencePage() {
 
       {step === 1 ? (
         <div className={styles.card}>
-          <h2>Detalii esențiale</h2>
+          <h2>{t("create_experience_step_1")}</h2>
           <div className={styles.grid}>
             <div>
-              <label>Titlu</label>
+              <label>{t("create_experience_label_title")}</label>
               <input className="input" value={form.title} onChange={(e) => onChange("title", e.target.value)} />
             </div>
             <div>
-              <label>Descriere scurtă</label>
+              <label>{t("create_experience_label_short")}</label>
               <input className="input" value={form.shortDescription} onChange={(e) => onChange("shortDescription", e.target.value)} />
             </div>
             <div className={styles.full}>
-              <label>Descriere completă</label>
+              <label>{t("create_experience_label_long")}</label>
               <textarea
                 className={styles.textarea}
                 value={form.longDescription}
@@ -283,7 +285,7 @@ export default function CreateExperiencePage() {
 
           <div className={styles.optionsRow}>
             <div>
-              <label>Tip activitate</label>
+              <label>{t("create_experience_activity")}</label>
               <div className={styles.chips}>
                 {activityOptions.map((o) => (
                   <button
@@ -292,14 +294,14 @@ export default function CreateExperiencePage() {
                     className={`${styles.chip} ${form.activityType === o.key ? styles.chipActive : ""}`}
                     onClick={() => onChange("activityType", o.key)}
                   >
-                    {o.label}
+                    {t(o.labelKey)}
                   </button>
                 ))}
               </div>
             </div>
             {form.activityType === "GROUP" ? (
               <div>
-                <label>Participanți max.</label>
+                <label>{t("create_experience_group_max")}</label>
                 <input
                   className="input"
                   type="number"
@@ -310,7 +312,7 @@ export default function CreateExperiencePage() {
               </div>
             ) : null}
             <div>
-              <label>Mediu</label>
+              <label>{t("create_experience_environment")}</label>
               <div className={styles.chips}>
                 {environmentOptions.map((o) => (
                     <button
@@ -319,7 +321,7 @@ export default function CreateExperiencePage() {
                       className={`${styles.chip} ${form.environment === o.key ? styles.chipActive : ""}`}
                       onClick={() => onChange("environment", o.key as FormState["environment"])}
                     >
-                      {o.label}
+                      {t(o.labelKey)}
                     </button>
                 ))}
               </div>
@@ -327,7 +329,7 @@ export default function CreateExperiencePage() {
           </div>
 
           <div className={styles.languages}>
-            <label>Limbi vorbite</label>
+            <label>{t("create_experience_languages")}</label>
             <div className={styles.langGrid}>
               {languages.map((lang) => (
                 <button
@@ -346,27 +348,27 @@ export default function CreateExperiencePage() {
 
       {step === 2 ? (
         <div className={styles.card}>
-          <h2>Program & Locație</h2>
+          <h2>{t("create_experience_step_2")}</h2>
           <div className={styles.grid}>
             <div>
-              <label>Începe la</label>
+              <label>{t("create_experience_starts")}</label>
               <input className="input" type="datetime-local" value={form.startsAt} onChange={(e) => onChange("startsAt", e.target.value)} />
             </div>
             <div>
-              <label>Se termină la</label>
+              <label>{t("create_experience_ends")}</label>
               <input className="input" type="datetime-local" value={form.endsAt} onChange={(e) => onChange("endsAt", e.target.value)} />
             </div>
             <div>
-              <label>Durată (minute)</label>
+              <label>{t("create_experience_duration")}</label>
               <input className="input" type="number" value={form.durationMinutes} onChange={(e) => onChange("durationMinutes", e.target.value)} />
             </div>
             <div className={styles.full}>
-              <label>Caută adresă</label>
+              <label>{t("create_experience_search_address")}</label>
               <input
                 className="input"
                 value={addressQuery}
                 onChange={(e) => setAddressQuery(e.target.value)}
-                placeholder="Start typing an address"
+                placeholder={t("create_experience_address_placeholder")}
               />
               {suggestions.length ? (
                 <div className={styles.suggestions}>
@@ -379,19 +381,19 @@ export default function CreateExperiencePage() {
               ) : null}
             </div>
             <div>
-              <label>Oraș</label>
+              <label>{t("create_experience_city")}</label>
               <input className="input" value={form.city} onChange={(e) => onChange("city", e.target.value)} />
             </div>
             <div>
-              <label>Stradă</label>
+              <label>{t("create_experience_street")}</label>
               <input className="input" value={form.street} onChange={(e) => onChange("street", e.target.value)} />
             </div>
             <div>
-              <label>Număr</label>
+              <label>{t("create_experience_number")}</label>
               <input className="input" value={form.streetNumber} onChange={(e) => onChange("streetNumber", e.target.value)} />
             </div>
             <div>
-              <label>Cod poștal</label>
+              <label>{t("create_experience_postal")}</label>
               <input className="input" value={form.postalCode} onChange={(e) => onChange("postalCode", e.target.value)} />
             </div>
           </div>
@@ -400,18 +402,18 @@ export default function CreateExperiencePage() {
 
       {step === 3 ? (
         <div className={styles.card}>
-          <h2>Pricing & Media</h2>
+          <h2>{t("create_experience_step_3")}</h2>
           <div className={styles.grid}>
             <div>
-              <label>Preț (RON)</label>
+              <label>{t("create_experience_price")}</label>
               <input className="input" type="number" value={form.price} onChange={(e) => onChange("price", e.target.value)} />
             </div>
             <div>
-              <label>Cover image URL (opțional)</label>
+              <label>{t("create_experience_cover_url")}</label>
               <input className="input" value={form.coverImageUrl} onChange={(e) => onChange("coverImageUrl", e.target.value)} />
             </div>
             <div className={styles.full}>
-              <label>Cover photo (recomandat)</label>
+              <label>{t("create_experience_cover_photo")}</label>
               <div className={styles.coverRow}>
                 <label className={styles.coverPicker}>
                   <input
@@ -422,19 +424,19 @@ export default function CreateExperiencePage() {
                       if (file) onPickImages([file]);
                     }}
                   />
-                  <span>Încarcă cover</span>
+                  <span>{t("create_experience_cover_upload")}</span>
                 </label>
                 <div className={styles.coverPreview}>
                   {form.coverImageUrl || images[0] ? (
                     <img src={form.coverImageUrl || images[0]} alt="cover" />
                   ) : (
-                    <div className={styles.coverPlaceholder}>Nicio imagine selectată</div>
+                    <div className={styles.coverPlaceholder}>{t("create_experience_cover_empty")}</div>
                   )}
                 </div>
               </div>
             </div>
             <div className={styles.full}>
-              <label>Încarcă imagini</label>
+              <label>{t("create_experience_upload_images")}</label>
               <div
                 className={`${styles.dropzone} ${dragActive ? styles.dropzoneActive : ""}`}
                 onDragOver={(e) => {
@@ -457,11 +459,11 @@ export default function CreateExperiencePage() {
                   onChange={(e) => onPickImages(Array.from(e.target.files || []))}
                 />
                 <div className={styles.dropzoneText}>
-                  <strong>Trage & plasează imagini aici</strong>
-                  <span>sau apasă pentru a selecta fișiere</span>
+                  <strong>{t("create_experience_drop_title")}</strong>
+                  <span>{t("create_experience_drop_sub")}</span>
                 </div>
               </div>
-              {uploading ? <div className="muted">Se încarcă imaginile…</div> : null}
+              {uploading ? <div className="muted">{t("create_experience_uploading")}</div> : null}
               {images.length ? (
                 <div className={styles.imageGrid}>
                   {images.map((img) => (
@@ -482,16 +484,16 @@ export default function CreateExperiencePage() {
         <div className={styles.footerActions}>
           {step > 1 ? (
             <button className="button secondary" type="button" onClick={() => setStep(step - 1)}>
-              Înapoi
+              {t("create_experience_back")}
             </button>
           ) : null}
           {step < 3 ? (
             <button className="button" type="button" onClick={() => setStep(step + 1)} disabled={!canProceed}>
-              Continuă
+              {t("create_experience_continue")}
             </button>
           ) : (
             <button className="button" type="button" onClick={onSubmit} disabled={loading}>
-              {loading ? "Se publică…" : "Publică experiența"}
+              {loading ? t("common_publishing") : t("create_experience_publish")}
             </button>
           )}
         </div>

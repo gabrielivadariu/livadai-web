@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { apiPost } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 import styles from "../auth.module.css";
 
 function VerifyEmailContent() {
@@ -14,6 +15,7 @@ function VerifyEmailContent() {
   const [code, setCode] = useState("");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const t = useT();
 
   const onVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,9 +23,9 @@ function VerifyEmailContent() {
     setStatus("");
     try {
       await apiPost("/auth/verify-email-code", { email: email.trim(), code: code.trim() });
-      setStatus("Cont verificat cu succes");
+      setStatus(t("register_verify_success"));
     } catch (err) {
-      const message = (err as Error).message || "Verificarea a eșuat";
+      const message = (err as Error).message || t("verify_error");
       setError(message);
     }
   };
@@ -33,9 +35,9 @@ function VerifyEmailContent() {
     setStatus("");
     try {
       await apiPost("/auth/resend-email-verification", { email: email.trim() });
-      setStatus("Ți-am retrimis codul de verificare");
+      setStatus(t("verify_resend_success"));
     } catch (err) {
-      const message = (err as Error).message || "Retrimiterea a eșuat";
+      const message = (err as Error).message || t("verify_resend_error");
       setError(message);
     }
   };
@@ -44,10 +46,10 @@ function VerifyEmailContent() {
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.title}>LIVADAI</div>
-        <div className={styles.subtitle}>Verifică emailul</div>
+        <div className={styles.subtitle}>{t("verify_title")}</div>
         <form onSubmit={onVerify}>
           <div className={styles.field}>
-            <label className={styles.label}>Email</label>
+            <label className={styles.label}>{t("login_email_label")}</label>
             <input
               className="input"
               value={email}
@@ -58,7 +60,7 @@ function VerifyEmailContent() {
             />
           </div>
           <div className={styles.field}>
-            <label className={styles.label}>Cod de 6 cifre</label>
+            <label className={styles.label}>{t("register_code_label")}</label>
             <input
               className="input"
               value={code}
@@ -72,19 +74,19 @@ function VerifyEmailContent() {
           {status ? <div style={{ color: "#0f766e", marginBottom: 8, textAlign: "center" }}>{status}</div> : null}
           {error ? <div className={styles.error}>{error}</div> : null}
           <button className="button" type="submit">
-            Verifică
+            {t("verify_button")}
           </button>
         </form>
         <div className={styles.link} style={{ marginTop: 10 }}>
-          Nu ai primit codul?{" "}
+          {t("verify_no_code")}{" "}
           <button type="button" onClick={onResend} className={styles.linkPrimary} style={{ background: "none", border: "none" }}>
-            Retrimite cod
+            {t("verify_resend")}
           </button>
         </div>
         <div className={styles.link}>
-          Ai verificat?{" "}
+          {t("verify_checked")}{" "}
           <Link className={styles.linkPrimary} href="/login">
-            Login
+            {t("login_button")}
           </Link>
         </div>
       </div>
@@ -93,8 +95,9 @@ function VerifyEmailContent() {
 }
 
 export default function VerifyEmailPage() {
+  const t = useT();
   return (
-    <Suspense fallback={<div className={styles.container}>Se încarcă…</div>}>
+    <Suspense fallback={<div className={styles.container}>{t("verify_loading")}</div>}>
       <VerifyEmailContent />
     </Suspense>
   );

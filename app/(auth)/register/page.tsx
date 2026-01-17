@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { apiPost } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 import styles from "../auth.module.css";
 
 const countryCodes = [
@@ -23,6 +24,7 @@ const countryCodes = [
 
 export default function RegisterPage() {
   const { register } = useAuth();
+  const t = useT();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,11 +43,11 @@ export default function RegisterPage() {
     setError("");
     setSuccess("");
     if (!termsChecked) {
-      setError("Trebuie să accepți Termenii și Politica de Confidențialitate.");
+      setError(t("register_terms_error"));
       return;
     }
     if (password !== confirmPassword) {
-      setError("Parolele nu coincid.");
+      setError(t("register_password_mismatch"));
       return;
     }
     try {
@@ -66,12 +68,12 @@ export default function RegisterPage() {
       if (needsVerification) {
         setCode("");
         setStep("verify");
-        setSuccess("Introdu codul primit pe email");
+        setSuccess(t("register_verify_subtitle"));
         return;
       }
-      setSuccess("Check your email to verify your account");
+      setSuccess(t("register_check_email"));
     } catch (err) {
-      const message = (err as Error).message || "Register failed";
+      const message = (err as Error).message || t("register_error");
       setError(message);
     }
   };
@@ -82,9 +84,9 @@ export default function RegisterPage() {
     setSuccess("");
     try {
       await apiPost("/auth/verify-email-code", { email: email.trim(), code: code.trim() });
-      setSuccess("Cont verificat cu succes");
+      setSuccess(t("register_verify_success"));
     } catch (err) {
-      const message = (err as Error).message || "Verificarea a eșuat";
+      const message = (err as Error).message || t("register_verify_error");
       setError(message);
     }
   };
@@ -94,9 +96,9 @@ export default function RegisterPage() {
     setSuccess("");
     try {
       await apiPost("/auth/resend-email-verification", { email: email.trim() });
-      setSuccess("Ți-am retrimis codul de verificare");
+      setSuccess(t("register_resend_success"));
     } catch (err) {
-      const message = (err as Error).message || "Retrimiterea a eșuat";
+      const message = (err as Error).message || t("register_resend_error");
       setError(message);
     }
   };
@@ -104,42 +106,42 @@ export default function RegisterPage() {
   return (
     <div className={styles.container}>
       <div className={styles.card}>
-        <div className={styles.title}>LIVADAI</div>
-        <div className={styles.subtitle}>Explorers & Hosts</div>
+        <div className={styles.title}>{t("register_title")}</div>
+        <div className={styles.subtitle}>{t("register_subtitle")}</div>
         {step === "register" ? (
           <form onSubmit={onSubmit}>
-          <div className={styles.label}>Rol</div>
+          <div className={styles.label}>{t("register_role")}</div>
           <div className={styles.roleRow}>
             <button
               type="button"
               className={`${styles.roleButton} ${role === "EXPLORER" ? styles.roleSelected : ""}`}
               onClick={() => setRole("EXPLORER")}
             >
-              Explorer
+              {t("register_role_explorer")}
             </button>
             <button
               type="button"
               className={`${styles.roleButton} ${role === "HOST" ? styles.roleSelected : ""}`}
               onClick={() => setRole("HOST")}
             >
-              Host
+              {t("register_role_host")}
             </button>
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Nume</label>
+            <label className={styles.label}>{t("register_first_name")}</label>
             <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div className={styles.field}>
-            <label className={styles.label}>Email</label>
+            <label className={styles.label}>{t("register_email")}</label>
             <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <div className={styles.field}>
-            <label className={styles.label}>Parolă</label>
+            <label className={styles.label}>{t("register_password")}</label>
             <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
           <div className={styles.field}>
-            <label className={styles.label}>Confirmă parola</label>
+            <label className={styles.label}>{t("register_password_confirm")}</label>
             <input
               className="input"
               type="password"
@@ -149,7 +151,7 @@ export default function RegisterPage() {
             />
           </div>
 
-          <div className={styles.label}>Telefon</div>
+          <div className={styles.label}>{t("register_phone")}</div>
           <div className={styles.phoneRow}>
             <select className={styles.prefix} value={phoneCode} onChange={(e) => setPhoneCode(e.target.value)}>
               {countryCodes.map((c) => (
@@ -170,13 +172,13 @@ export default function RegisterPage() {
           <label className={styles.termsRow}>
             <input type="checkbox" checked={termsChecked} onChange={(e) => setTermsChecked(e.target.checked)} />
             <span>
-              Accept{" "}
+              {t("register_terms_prefix")}{" "}
               <a href="https://sites.google.com/view/terms-conditions-livadai/pagina-de-pornire" target="_blank">
-                Termenii
+                {t("register_terms")}
               </a>{" "}
-              și{" "}
+              {t("register_terms_and")}{" "}
               <a href="https://sites.google.com/view/privacypolicylivadai/pagina-de-pornire" target="_blank">
-                Politica de Confidențialitate
+                {t("register_privacy")}
               </a>
             </span>
           </label>
@@ -186,14 +188,14 @@ export default function RegisterPage() {
             ) : null}
             {error ? <div className={styles.error}>{error}</div> : null}
             <button className="button" type="submit">
-              Înregistrează-te
+              {t("register_button")}
             </button>
           </form>
         ) : (
           <form onSubmit={onVerify}>
-            <div className={styles.label}>Introdu codul primit pe email</div>
+            <div className={styles.label}>{t("register_verify_subtitle")}</div>
             <div className={styles.field}>
-              <label className={styles.label}>Cod de 6 cifre</label>
+              <label className={styles.label}>{t("register_code_label")}</label>
               <input
                 className="input"
                 value={code}
@@ -209,20 +211,20 @@ export default function RegisterPage() {
             ) : null}
             {error ? <div className={styles.error}>{error}</div> : null}
             <button className="button" type="submit">
-              Verifică
+              {t("register_verify_button")}
             </button>
             <div className={styles.link} style={{ marginTop: 10 }}>
-              Nu ai primit codul?{" "}
+              {t("register_no_code")}{" "}
               <button type="button" onClick={onResend} className={styles.linkPrimary} style={{ background: "none", border: "none" }}>
-                Retrimite cod
+                {t("register_resend")}
               </button>
             </div>
           </form>
         )}
         <div className={styles.link}>
-          Ai deja cont?{" "}
+          {t("register_have_account")}{" "}
           <Link className={styles.linkPrimary} href="/login">
-            Login
+            {t("login_button")}
           </Link>
         </div>
       </div>

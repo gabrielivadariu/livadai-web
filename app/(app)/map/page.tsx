@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { apiGet } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 import styles from "./map.module.css";
 
 const MapClient = dynamic(() => import("./MapClient"), { ssr: false });
@@ -24,6 +25,7 @@ type MapPoint = {
 };
 
 export default function MapPage() {
+  const t = useT();
   const [points, setPoints] = useState<MapPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -63,13 +65,13 @@ export default function MapPage() {
         </svg>
         <input
           className={styles.searchInput}
-          placeholder="Caută locuri sau experiențe"
+          placeholder={t("map_search")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
       {loading ? (
-        <div className="muted">Se încarcă harta…</div>
+        <div className="muted">{t("common_loading_map")}</div>
       ) : (
         <div className={styles.mapWrap}>
           <MapClient points={filtered} />

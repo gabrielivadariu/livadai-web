@@ -37,9 +37,11 @@ const apiRequest = async <T>(path: string, options: ApiOptions = {}) => {
     throw error;
   }
 
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 };
 
 export const apiGet = <T>(path: string) => apiRequest<T>(path);
 export const apiPost = <T>(path: string, json?: unknown) => apiRequest<T>(path, { method: "POST", json });
 export const apiPut = <T>(path: string, json?: unknown) => apiRequest<T>(path, { method: "PUT", json });
+export const apiDelete = <T>(path: string) => apiRequest<T>(path, { method: "DELETE" });

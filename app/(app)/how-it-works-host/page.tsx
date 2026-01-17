@@ -5,7 +5,7 @@ import { useLang } from "@/lib/use-lang";
 import styles from "./how-it-works-host.module.css";
 
 export default function HowItWorksHostPage() {
-  const lang = useLang();
+  const { lang } = useLang();
   const content = hostHowItWorks[lang];
 
   return (

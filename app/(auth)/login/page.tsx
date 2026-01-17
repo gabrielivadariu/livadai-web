@@ -4,11 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
+import { useT } from "@/lib/i18n";
 import styles from "../auth.module.css";
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
+  const t = useT();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,7 +22,7 @@ export default function LoginPage() {
       await login(email, password);
       router.push("/experiences");
     } catch (err) {
-      const message = (err as Error).message || "Login failed";
+      const message = (err as Error).message || t("login_error");
       setError(message);
     }
   };
@@ -28,42 +30,42 @@ export default function LoginPage() {
   return (
     <div className={styles.container}>
       <div className={styles.card}>
-        <div className={styles.title}>LIVADAI</div>
-        <div className={styles.subtitle}>Explorers & Hosts</div>
+        <div className={styles.title}>{t("login_title")}</div>
+        <div className={styles.subtitle}>{t("login_subtitle")}</div>
         <form onSubmit={onSubmit}>
           <div className={styles.field}>
-            <label className={styles.label}>Email</label>
+            <label className={styles.label}>{t("login_email_label")}</label>
             <input
               className="input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               autoComplete="email"
-              placeholder="email@exemplu.com"
+              placeholder={t("login_email_placeholder")}
               required
             />
           </div>
           <div className={styles.field}>
-            <label className={styles.label}>Parolă</label>
+            <label className={styles.label}>{t("login_password_label")}</label>
             <input
               className="input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               type="password"
               autoComplete="current-password"
-              placeholder="Parola ta"
+              placeholder={t("login_password_placeholder")}
               required
             />
           </div>
           {error ? <div className={styles.error}>{error}</div> : null}
           <button className="button" type="submit">
-            Login
+            {t("login_button")}
           </button>
         </form>
         <div className={styles.link}>
-          Nu ai cont?{" "}
+          {t("login_no_account")}{" "}
           <Link className={styles.linkPrimary} href="/register">
-            Înregistrează-te
+            {t("login_register")}
           </Link>
         </div>
       </div>

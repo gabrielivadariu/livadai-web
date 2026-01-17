@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiGet, apiPost } from "@/lib/api";
+import { useLang } from "@/context/lang-context";
+import { useT } from "@/lib/i18n";
 import styles from "./experience-detail.module.css";
 
 type Experience = {
@@ -30,6 +32,8 @@ type Experience = {
 export default function ExperienceDetailPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { lang } = useLang();
+  const t = useT();
   const [item, setItem] = useState<Experience | null>(null);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
@@ -64,33 +68,33 @@ export default function ExperienceDetailPage() {
       if (res?.checkoutUrl) {
         window.location.href = res.checkoutUrl;
       } else {
-        setError("Nu am putut iniția plata.");
+        setError(t("experience_payment_error"));
       }
     } catch (err) {
-      setError((err as Error).message || "Nu am putut iniția plata.");
+      setError((err as Error).message || t("experience_payment_error"));
     } finally {
       setBooking(false);
     }
   };
 
   if (loading) {
-    return <div className="muted">Se încarcă experiența…</div>;
+    return <div className="muted">{t("common_loading_experiences")}</div>;
   }
 
   if (!item) {
     return (
       <div className={styles.empty}>
-        <h2>Experiența nu a fost găsită</h2>
+        <h2>{t("experience_missing_title")}</h2>
         <button className="button" type="button" onClick={() => router.replace("/experiences")}>
-          Înapoi la experiențe
+          {t("experience_back")}
         </button>
       </div>
     );
   }
 
   const start = item.startsAt || item.startDate;
-  const dateLabel = start ? new Date(start).toLocaleDateString("ro-RO", { day: "numeric", month: "long", year: "numeric" }) : "";
-  const priceText = !item.price || Number(item.price) <= 0 ? "Gratuit" : `${item.price} ${item.currencyCode || "RON"}`;
+  const dateLabel = start ? new Date(start).toLocaleDateString(lang === "en" ? "en-US" : "ro-RO", { day: "numeric", month: "long", year: "numeric" }) : "";
+  const priceText = !item.price || Number(item.price) <= 0 ? t("experiences_free") : `${item.price} ${item.currencyCode || "RON"}`;
 
   return (
     <div className={styles.page}>
@@ -108,24 +112,24 @@ export default function ExperienceDetailPage() {
           </div>
         </div>
         <div className={styles.summary}>
-          <div className={styles.kicker}>Experiență autentică</div>
+          <div className={styles.kicker}>{t("experience_kicker")}</div>
           <h1>{item.title}</h1>
           <p className={styles.subtitle}>{item.shortDescription || item.description}</p>
           <div className={styles.metaGrid}>
             <div>
-              <span>Locație</span>
+              <span>{t("experience_location")}</span>
               <strong>{item.city || ""} {item.country || item.address || ""}</strong>
             </div>
             <div>
-              <span>Data</span>
-              <strong>{dateLabel || "Program flexibil"}</strong>
+              <span>{t("experience_date")}</span>
+              <strong>{dateLabel || t("experience_flexible")}</strong>
             </div>
             <div>
-              <span>Durată</span>
-              <strong>{item.durationMinutes ? `${item.durationMinutes} min` : "—"}</strong>
+              <span>{t("experience_duration")}</span>
+              <strong>{item.durationMinutes ? `${item.durationMinutes} ${t("experience_minutes")}` : "—"}</strong>
             </div>
             <div>
-              <span>Tip</span>
+              <span>{t("experience_type")}</span>
               <strong>{item.activityType || "INDIVIDUAL"}</strong>
             </div>
           </div>
@@ -135,22 +139,22 @@ export default function ExperienceDetailPage() {
           </div>
           {error ? <div className={styles.error}>{error}</div> : null}
           <button className="button" type="button" onClick={onBook} disabled={booking}>
-            {booking ? "Se inițiază plata…" : "Rezervă acum"}
+            {booking ? t("experience_booking") : t("experience_book")}
           </button>
         </div>
       </div>
 
       <div className={styles.details}>
         <section>
-          <h2>Despre experiență</h2>
-          <p>{item.description || item.shortDescription || "Detalii în curând."}</p>
+          <h2>{t("experience_about")}</h2>
+          <p>{item.description || item.shortDescription || t("experience_details_fallback")}</p>
         </section>
         <section>
-          <h2>Gazdă</h2>
-          <p>{item.host?.name || "Gazdă verificată LIVADAI"}</p>
+          <h2>{t("experience_host")}</h2>
+          <p>{item.host?.name || t("experience_host_fallback")}</p>
         </section>
         <section>
-          <h2>Limbi</h2>
+          <h2>{t("experience_languages")}</h2>
           <div className={styles.badges}>
             {(item.languages || []).length ? (item.languages || []).map((lang) => (
               <span key={lang} className={styles.badge}>{lang.toUpperCase()}</span>

@@ -3,21 +3,23 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
+import { useT } from "@/lib/i18n";
 
 type Props = {
   pathname: string | null;
 };
 
 const navItems = [
-  { href: "/experiences", label: "Explorers" },
-  { href: "/host", label: "Hosts" },
-  { href: "/map", label: "Hartă" },
+  { href: "/experiences", labelKey: "nav_explorers" },
+  { href: "/host", labelKey: "nav_hosts" },
+  { href: "/map", labelKey: "nav_map" },
 ];
 
 export default function TopNav({ pathname }: Props) {
   const router = useRouter();
+  const t = useT();
   const { user, logout } = useAuth();
-  const name = user?.name || user?.displayName || "Profil";
+  const name = user?.name || user?.displayName || t("nav_profile_fallback");
 
   const onLogout = () => {
     logout();
@@ -30,7 +32,7 @@ export default function TopNav({ pathname }: Props) {
         <Link href="/experiences" className="brand">
           LIVADAI
         </Link>
-        <span className="brand-tag">Authentic local experiences</span>
+        <span className="brand-tag">{t("nav_tagline")}</span>
       </div>
 
       <div className="nav-search">
@@ -42,7 +44,7 @@ export default function TopNav({ pathname }: Props) {
             strokeLinecap="round"
           />
         </svg>
-        <input className="nav-search-input" placeholder="Caută experiențe, locuri, gazde" />
+        <input className="nav-search-input" placeholder={t("nav_search_placeholder")} />
       </div>
 
       <nav className="nav-links">
@@ -50,7 +52,7 @@ export default function TopNav({ pathname }: Props) {
           const active = pathname === item.href;
           return (
             <Link key={item.href} href={item.href} className={`nav-link ${active ? "active" : ""}`}>
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           );
         })}
@@ -63,12 +65,12 @@ export default function TopNav({ pathname }: Props) {
             <span>{name}</span>
           </summary>
           <div className="profile-dropdown">
-            <Link href="/menu">Meniu</Link>
-            <Link href="/profile">Profil</Link>
-            <Link href="/settings">Setări</Link>
-            <Link href="/my-activities">Activitatea mea</Link>
+            <Link href="/menu">{t("nav_menu")}</Link>
+            <Link href="/profile">{t("nav_profile")}</Link>
+            <Link href="/settings">{t("nav_settings")}</Link>
+            <Link href="/my-activities">{t("nav_my_activities")}</Link>
             <button type="button" onClick={onLogout}>
-              Deconectare
+              {t("nav_logout")}
             </button>
           </div>
         </details>

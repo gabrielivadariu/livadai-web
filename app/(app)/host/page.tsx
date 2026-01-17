@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
+import { useLang } from "@/context/lang-context";
+import { useT } from "@/lib/i18n";
 import styles from "./host.module.css";
 
 type HostProfile = {
@@ -21,6 +23,8 @@ type Experience = {
 
 export default function HostDashboardPage() {
   const { user } = useAuth();
+  const { lang } = useLang();
+  const t = useT();
   const [profile, setProfile] = useState<HostProfile | null>(null);
   const [items, setItems] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,11 +56,11 @@ export default function HostDashboardPage() {
 
   const stats = useMemo(
     () => [
-      { label: "Experiențe active", value: items.length || 0 },
-      { label: "Rezervări", value: profile?.total_participants || 0 },
-      { label: "Venituri", value: "—" },
+      { label: t("host_stats_active"), value: items.length || 0 },
+      { label: t("host_stats_bookings"), value: profile?.total_participants || 0 },
+      { label: t("host_stats_revenue"), value: "—" },
     ],
-    [items.length, profile?.total_participants]
+    [items.length, profile?.total_participants, t]
   );
 
   return (
@@ -64,11 +68,11 @@ export default function HostDashboardPage() {
       <div className={styles.headerRow}>
         <div>
           <div className={styles.kicker}>HOST</div>
-          <h1 className={styles.title}>Host Dashboard</h1>
-          <p className={styles.subtitle}>Tot ce ai nevoie ca să creezi, gestionezi și monetizezi experiențele tale.</p>
+          <h1 className={styles.title}>{t("host_dashboard_title")}</h1>
+          <p className={styles.subtitle}>{t("host_dashboard_subtitle")}</p>
         </div>
         <Link className="button" href="/host/create-experience">
-          ➕ Creează experiență
+          {t("host_dashboard_cta")}
         </Link>
       </div>
 
@@ -82,45 +86,45 @@ export default function HostDashboardPage() {
       </div>
 
       <section className={styles.menuSection}>
-        <h2>Administrează</h2>
+        <h2>{t("host_manage")}</h2>
         <div className={styles.menuGrid}>
           <Link href="/host/profile" className={styles.menuCard}>
             <div className={styles.menuIcon}>👤</div>
             <div>
-              <div className={styles.menuTitle}>Profilul meu de gazdă</div>
-              <div className={styles.menuText}>Vezi și editează profilul de gazdă</div>
+              <div className={styles.menuTitle}>{t("host_menu_profile")}</div>
+              <div className={styles.menuText}>{t("host_menu_profile_text")}</div>
             </div>
             <span className={styles.chev}>›</span>
           </Link>
           <Link href="/host/experiences" className={styles.menuCard}>
             <div className={styles.menuIcon}>📅</div>
             <div>
-              <div className={styles.menuTitle}>Experiențe</div>
-              <div className={styles.menuText}>Vezi și administrează experiențele găzduite</div>
+              <div className={styles.menuTitle}>{t("host_menu_experiences")}</div>
+              <div className={styles.menuText}>{t("host_menu_experiences_text")}</div>
             </div>
             <span className={styles.chev}>›</span>
           </Link>
           <Link href="/host/bookings" className={styles.menuCard}>
             <div className={styles.menuIcon}>🧾</div>
             <div>
-              <div className={styles.menuTitle}>Booking-uri</div>
-              <div className={styles.menuText}>Solicitări și booking-uri confirmate</div>
+              <div className={styles.menuTitle}>{t("host_menu_bookings")}</div>
+              <div className={styles.menuText}>{t("host_menu_bookings_text")}</div>
             </div>
             <span className={styles.chev}>›</span>
           </Link>
           <Link href="/host/wallet" className={styles.menuCard}>
             <div className={styles.menuIcon}>💳</div>
             <div>
-              <div className={styles.menuTitle}>Portofel / Plăți</div>
-              <div className={styles.menuText}>Balanță, tranzacții și plăți</div>
+              <div className={styles.menuTitle}>{t("host_menu_wallet")}</div>
+              <div className={styles.menuText}>{t("host_menu_wallet_text")}</div>
             </div>
             <span className={styles.chev}>›</span>
           </Link>
           <Link href="/host/create-experience" className={styles.menuCardAlt}>
             <div className={styles.menuIcon}>➕</div>
             <div>
-              <div className={styles.menuTitle}>Creează experiență</div>
-              <div className={styles.menuText}>Publică o nouă experiență găzduită</div>
+              <div className={styles.menuTitle}>{t("host_menu_create")}</div>
+              <div className={styles.menuText}>{t("host_menu_create_text")}</div>
             </div>
             <span className={styles.chev}>›</span>
           </Link>
@@ -129,12 +133,12 @@ export default function HostDashboardPage() {
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
-          <h2>Experiențele tale</h2>
-          <span className={styles.sectionMeta}>Ultimele publicate</span>
+          <h2>{t("host_your_experiences")}</h2>
+          <span className={styles.sectionMeta}>{t("host_latest_published")}</span>
         </div>
 
         {loading ? (
-          <div className="muted">Se încarcă experiențele…</div>
+          <div className="muted">{t("common_loading_experiences")}</div>
         ) : items.length ? (
           <div className={styles.grid}>
             {items.map((exp) => (
@@ -145,9 +149,9 @@ export default function HostDashboardPage() {
                   <div className={styles.coverPlaceholder} />
                 )}
                 <div className={styles.cardBody}>
-                  <div className={styles.cardTitle}>{exp.title || "Experiență"}</div>
+                  <div className={styles.cardTitle}>{exp.title || t("common_experience")}</div>
                   <div className={styles.cardMeta}>
-                    {exp.startsAt ? new Date(exp.startsAt).toLocaleDateString("ro-RO") : "Program flexibil"}
+                    {exp.startsAt ? new Date(exp.startsAt).toLocaleDateString(lang === "en" ? "en-US" : "ro-RO") : t("host_schedule_flexible")}
                     <span>{exp.status || "PUBLISHED"}</span>
                   </div>
                 </div>
@@ -157,12 +161,10 @@ export default function HostDashboardPage() {
         ) : (
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>🚀</div>
-            <div className={styles.emptyTitle}>E timpul să publici prima ta experiență</div>
-            <p className={styles.emptyText}>
-              Transformă pasiunea ta în experiențe memorabile. Creează o ofertă premium și începe să primești rezervări.
-            </p>
+            <div className={styles.emptyTitle}>{t("host_empty_title")}</div>
+            <p className={styles.emptyText}>{t("host_empty_text")}</p>
             <Link className="button" href="/host/create-experience">
-              Creează prima experiență
+              {t("host_empty_cta")}
             </Link>
           </div>
         )}

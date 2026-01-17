@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/api";
+import { useLang } from "@/context/lang-context";
+import { useT } from "@/lib/i18n";
 import styles from "./host-bookings.module.css";
 
 type Booking = {
@@ -14,6 +16,8 @@ type Booking = {
 };
 
 export default function HostBookingsPage() {
+  const { lang } = useLang();
+  const t = useT();
   const [items, setItems] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,13 +43,13 @@ export default function HostBookingsPage() {
       <div className={styles.header}>
         <div>
           <div className={styles.kicker}>Host</div>
-          <h1>Booking-uri</h1>
-          <p>Solicitări și rezervări confirmate pentru experiențele tale.</p>
+          <h1>{t("host_bookings_title")}</h1>
+          <p>{t("host_bookings_subtitle")}</p>
         </div>
       </div>
 
       {loading ? (
-        <div className="muted">Se încarcă booking-urile…</div>
+        <div className="muted">{t("common_loading_bookings")}</div>
       ) : items.length ? (
         <div className={styles.list}>
           {items.map((b) => {
@@ -53,11 +57,11 @@ export default function HostBookingsPage() {
             return (
               <div key={b._id} className={styles.card}>
                 <div>
-                  <div className={styles.title}>{b.experience?.title || "Experiență"}</div>
+                  <div className={styles.title}>{b.experience?.title || t("common_experience")}</div>
                   <div className={styles.meta}>
-                    {dateLabel ? new Date(dateLabel).toLocaleString("ro-RO") : "Data neconfirmată"}
+                    {dateLabel ? new Date(dateLabel).toLocaleString(lang === "en" ? "en-US" : "ro-RO") : t("host_bookings_date_fallback")}
                   </div>
-                  <div className={styles.meta}>Explorer: {b.explorer?.name || b.explorer?.email || "—"}</div>
+                  <div className={styles.meta}>{t("host_bookings_explorer")}: {b.explorer?.name || b.explorer?.email || "—"}</div>
                 </div>
                 <div className={styles.status}>{b.status || "STATUS"}</div>
               </div>
@@ -67,8 +71,8 @@ export default function HostBookingsPage() {
       ) : (
         <div className={styles.empty}>
           <div className={styles.emptyIcon}>📭</div>
-          <div className={styles.emptyTitle}>Nu ai booking-uri încă</div>
-          <div className={styles.emptyText}>Când cineva rezervă o experiență, o vei vedea aici.</div>
+          <div className={styles.emptyTitle}>{t("host_bookings_empty_title")}</div>
+          <div className={styles.emptyText}>{t("host_bookings_empty_text")}</div>
         </div>
       )}
     </div>

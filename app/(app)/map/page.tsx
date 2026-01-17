@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
-import AppHeader from "@/components/app-header";
 import { apiGet } from "@/lib/api";
 import styles from "./map.module.css";
 
@@ -52,7 +51,6 @@ export default function MapPage() {
 
   return (
     <>
-      <AppHeader />
       <div className={styles.searchBar}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
           <path d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-3.5-3.5" stroke="#64748b" strokeWidth="2" strokeLinecap="round" />

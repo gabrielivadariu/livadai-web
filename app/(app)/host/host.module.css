@@ -1,0 +1,164 @@
+.page {
+  display: grid;
+  gap: 28px;
+}
+
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px;
+  border-radius: 24px;
+  background: #fff;
+  border: 1px solid #e2edf0;
+  box-shadow: var(--shadow-soft);
+}
+
+.kicker {
+  font-size: 12px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.title {
+  font-family: "Fraunces", serif;
+  font-size: 36px;
+  margin: 10px 0 6px;
+}
+
+.subtitle {
+  color: var(--muted);
+  max-width: 520px;
+  line-height: 1.6;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.statCard {
+  background: #fff;
+  border-radius: 20px;
+  padding: 18px;
+  border: 1px solid #edf2f7;
+  box-shadow: var(--shadow-soft);
+}
+
+.statLabel {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.statValue {
+  font-size: 22px;
+  font-weight: 800;
+  margin-top: 10px;
+}
+
+.section {
+  display: grid;
+  gap: 16px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionHeader h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.sectionMeta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.card {
+  background: #fff;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid #edf2f7;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow);
+}
+
+.card img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+}
+
+.coverPlaceholder {
+  height: 160px;
+  background: linear-gradient(135deg, #e6fbfe, #f5fbfb);
+}
+
+.cardBody {
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.cardTitle {
+  font-weight: 800;
+}
+
+.cardMeta {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.emptyState {
+  background: #fff;
+  border-radius: 24px;
+  border: 1px dashed #cbd5f5;
+  padding: 36px;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 36px;
+}
+
+.emptyTitle {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.emptyText {
+  color: var(--muted);
+  max-width: 420px;
+}
+
+@media (max-width: 959px) {
+  .headerRow {
+    flex-direction: column;
+  }
+}

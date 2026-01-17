@@ -1,15 +1,16 @@
 .list {
   display: grid;
-  gap: 12px;
+  gap: 16px;
 }
 
 .row {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 12px;
+  border-radius: 18px;
+  padding: 16px;
   display: grid;
-  gap: 6px;
+  gap: 8px;
+  box-shadow: var(--shadow-soft);
 }
 
 .title {
@@ -25,5 +26,5 @@
 .status {
   font-size: 12px;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--accent);
 }

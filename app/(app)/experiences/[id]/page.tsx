@@ -232,6 +232,49 @@ export default function ExperienceDetailPage() {
       setReporting(false);
     }
   };
+  const mediaImages = useMemo(() => {
+    const list = [item?.coverImageUrl, ...((item?.images || []) as string[])].filter(Boolean) as string[];
+    return Array.from(new Set(list));
+  }, [item?.coverImageUrl, item?.images]);
+
+  const scrollToIndex = (index: number, ref: React.RefObject<HTMLDivElement | null>) => {
+    const container = ref.current;
+    if (!container) return;
+    const target = container.children[index] as HTMLElement | undefined;
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", inline: "center" });
+      setActiveIndex(index);
+    }
+  };
+
+  const handleScroll = (ref: React.RefObject<HTMLDivElement | null>) => {
+    const container = ref.current;
+    if (!container) return;
+    const width = container.clientWidth;
+    if (!width) return;
+    const idx = Math.round(container.scrollLeft / width);
+    setActiveIndex(Math.max(0, Math.min(idx, mediaImages.length - 1)));
+  };
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setLightboxOpen(false);
+      } else if (event.key === "ArrowRight") {
+        scrollToIndex(Math.min(activeIndex + 1, mediaImages.length - 1), lightboxRef);
+      } else if (event.key === "ArrowLeft") {
+        scrollToIndex(Math.max(activeIndex - 1, 0), lightboxRef);
+      }
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [activeIndex, lightboxOpen, mediaImages.length]);
+
   const onBook = async () => {
     if (!item?._id) return;
     setBooking(true);
@@ -284,49 +327,6 @@ export default function ExperienceDetailPage() {
   const otherUserName = isHost
     ? bookingInfo?.explorer?.name || bookingInfo?.explorer?.email
     : bookingInfo?.host?.name || bookingInfo?.host?.email;
-  const mediaImages = useMemo(() => {
-    const list = [item?.coverImageUrl, ...((item?.images || []) as string[])].filter(Boolean) as string[];
-    return Array.from(new Set(list));
-  }, [item?.coverImageUrl, item?.images]);
-
-  const scrollToIndex = (index: number, ref: React.RefObject<HTMLDivElement | null>) => {
-    const container = ref.current;
-    if (!container) return;
-    const target = container.children[index] as HTMLElement | undefined;
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth", inline: "center" });
-      setActiveIndex(index);
-    }
-  };
-
-  const handleScroll = (ref: React.RefObject<HTMLDivElement | null>) => {
-    const container = ref.current;
-    if (!container) return;
-    const width = container.clientWidth;
-    if (!width) return;
-    const idx = Math.round(container.scrollLeft / width);
-    setActiveIndex(Math.max(0, Math.min(idx, mediaImages.length - 1)));
-  };
-
-  useEffect(() => {
-    if (!lightboxOpen) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setLightboxOpen(false);
-      } else if (event.key === "ArrowRight") {
-        scrollToIndex(Math.min(activeIndex + 1, mediaImages.length - 1), lightboxRef);
-      } else if (event.key === "ArrowLeft") {
-        scrollToIndex(Math.max(activeIndex - 1, 0), lightboxRef);
-      }
-    };
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [activeIndex, lightboxOpen, mediaImages.length]);
-
   return (
     <div className={styles.page}>
       <div className={styles.hero}>

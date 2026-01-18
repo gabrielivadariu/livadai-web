@@ -289,7 +289,7 @@ export default function ExperienceDetailPage() {
     return Array.from(new Set(list));
   }, [item.coverImageUrl, item.images]);
 
-  const scrollToIndex = (index: number, ref: React.RefObject<HTMLDivElement>) => {
+  const scrollToIndex = (index: number, ref: React.RefObject<HTMLDivElement | null>) => {
     const container = ref.current;
     if (!container) return;
     const target = container.children[index] as HTMLElement | undefined;
@@ -299,7 +299,7 @@ export default function ExperienceDetailPage() {
     }
   };
 
-  const handleScroll = (ref: React.RefObject<HTMLDivElement>) => {
+  const handleScroll = (ref: React.RefObject<HTMLDivElement | null>) => {
     const container = ref.current;
     if (!container) return;
     const width = container.clientWidth;

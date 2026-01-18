@@ -285,9 +285,9 @@ export default function ExperienceDetailPage() {
     ? bookingInfo?.explorer?.name || bookingInfo?.explorer?.email
     : bookingInfo?.host?.name || bookingInfo?.host?.email;
   const mediaImages = useMemo(() => {
-    const list = [item.coverImageUrl, ...(item.images || [])].filter(Boolean) as string[];
+    const list = [item?.coverImageUrl, ...((item?.images || []) as string[])].filter(Boolean) as string[];
     return Array.from(new Set(list));
-  }, [item.coverImageUrl, item.images]);
+  }, [item?.coverImageUrl, item?.images]);
 
   const scrollToIndex = (index: number, ref: React.RefObject<HTMLDivElement | null>) => {
     const container = ref.current;

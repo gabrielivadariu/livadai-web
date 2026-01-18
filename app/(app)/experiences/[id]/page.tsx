@@ -30,7 +30,7 @@ type Experience = {
   durationMinutes?: number;
   environment?: string;
   activityType?: string;
-  host?: { _id?: string; name?: string };
+  host?: { _id?: string; name?: string; displayName?: string; profilePhoto?: string; avatar?: string };
 };
 
 type Booking = {
@@ -341,13 +341,28 @@ export default function ExperienceDetailPage() {
           </section>
           <section>
             <h2>{t("experience_host")}</h2>
-          <p>
             {item.host?._id ? (
-              <Link href={`/hosts/${item.host._id}`}>{item.host?.name || t("experience_host_fallback")}</Link>
+              <Link href={`/hosts/${item.host._id}`} className={styles.hostChip}>
+                <span className={styles.hostAvatar}>
+                  {item.host?.profilePhoto || item.host?.avatar ? (
+                    <img
+                      src={item.host.profilePhoto || item.host.avatar}
+                      alt={item.host.displayName || item.host.name || "host"}
+                    />
+                  ) : (
+                    (item.host?.displayName || item.host?.name || t("experience_host_fallback"))
+                      .slice(0, 1)
+                      .toUpperCase()
+                  )}
+                </span>
+                <span>{item.host?.displayName || item.host?.name || t("experience_host_fallback")}</span>
+              </Link>
             ) : (
-              item.host?.name || t("experience_host_fallback")
+              <div className={styles.hostChip}>
+                <span className={styles.hostAvatar}>?</span>
+                <span>{item.host?.name || t("experience_host_fallback")}</span>
+              </div>
             )}
-          </p>
           </section>
           <section>
             <h2>{t("experience_languages")}</h2>
@@ -435,6 +450,7 @@ export default function ExperienceDetailPage() {
 
       <div className={styles.reportRow}>
         <button className={styles.reportButton} type="button" onClick={() => setReportOpen(true)}>
+          <span className={styles.reportIcon}>⚠️</span>
           {t("report_experience")}
         </button>
         {reportSuccess ? <div className={styles.reportSuccess}>{reportSuccess}</div> : null}

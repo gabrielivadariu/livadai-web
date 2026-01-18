@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiGet, apiPost } from "@/lib/api";
@@ -71,6 +71,10 @@ export default function ExperienceDetailPage() {
   const [reporting, setReporting] = useState(false);
   const [reportError, setReportError] = useState("");
   const [reportSuccess, setReportSuccess] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const carouselRef = useRef<HTMLDivElement | null>(null);
+  const lightboxRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -280,20 +284,110 @@ export default function ExperienceDetailPage() {
   const otherUserName = isHost
     ? bookingInfo?.explorer?.name || bookingInfo?.explorer?.email
     : bookingInfo?.host?.name || bookingInfo?.host?.email;
+  const mediaImages = useMemo(() => {
+    const list = [item.coverImageUrl, ...(item.images || [])].filter(Boolean) as string[];
+    return Array.from(new Set(list));
+  }, [item.coverImageUrl, item.images]);
+
+  const scrollToIndex = (index: number, ref: React.RefObject<HTMLDivElement>) => {
+    const container = ref.current;
+    if (!container) return;
+    const target = container.children[index] as HTMLElement | undefined;
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", inline: "center" });
+      setActiveIndex(index);
+    }
+  };
+
+  const handleScroll = (ref: React.RefObject<HTMLDivElement>) => {
+    const container = ref.current;
+    if (!container) return;
+    const width = container.clientWidth;
+    if (!width) return;
+    const idx = Math.round(container.scrollLeft / width);
+    setActiveIndex(Math.max(0, Math.min(idx, mediaImages.length - 1)));
+  };
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setLightboxOpen(false);
+      } else if (event.key === "ArrowRight") {
+        scrollToIndex(Math.min(activeIndex + 1, mediaImages.length - 1), lightboxRef);
+      } else if (event.key === "ArrowLeft") {
+        scrollToIndex(Math.max(activeIndex - 1, 0), lightboxRef);
+      }
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [activeIndex, lightboxOpen, mediaImages.length]);
 
   return (
     <div className={styles.page}>
       <div className={styles.hero}>
         <div className={styles.media}>
-          {item.coverImageUrl ? (
-            <img src={item.coverImageUrl} alt={item.title} />
-          ) : (
-            <div className={styles.coverPlaceholder} />
-          )}
-          <div className={styles.gallery}>
-            {(item.images || []).slice(0, 4).map((img) => (
-              <img key={img} src={img} alt="gallery" />
-            ))}
+          <div className={styles.carousel}>
+            <div
+              className={styles.carouselTrack}
+              ref={carouselRef}
+              onScroll={() => handleScroll(carouselRef)}
+            >
+              {mediaImages.length ? (
+                mediaImages.map((img) => (
+                  <button
+                    key={img}
+                    className={styles.slide}
+                    type="button"
+                    onClick={() => {
+                      setLightboxOpen(true);
+                      setTimeout(() => scrollToIndex(activeIndex, lightboxRef), 0);
+                    }}
+                  >
+                    <img src={img} alt={item.title} />
+                  </button>
+                ))
+              ) : (
+                <div className={styles.coverPlaceholder} />
+              )}
+            </div>
+            {mediaImages.length > 1 ? (
+              <>
+                <button
+                  type="button"
+                  className={`${styles.arrow} ${styles.arrowLeft}`}
+                  onClick={() => scrollToIndex(Math.max(activeIndex - 1, 0), carouselRef)}
+                  aria-label="Previous"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.arrow} ${styles.arrowRight}`}
+                  onClick={() => scrollToIndex(Math.min(activeIndex + 1, mediaImages.length - 1), carouselRef)}
+                  aria-label="Next"
+                >
+                  ›
+                </button>
+              </>
+            ) : null}
+            {mediaImages.length > 1 ? (
+              <div className={styles.dots}>
+                {mediaImages.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className={`${styles.dot} ${idx === activeIndex ? styles.dotActive : ""}`}
+                    onClick={() => scrollToIndex(idx, carouselRef)}
+                    aria-label={`Go to slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
         <div className={styles.summary}>
@@ -471,6 +565,52 @@ export default function ExperienceDetailPage() {
         onClose={() => setReportOpen(false)}
         onSubmit={onReportExperience}
       />
+
+      {lightboxOpen ? (
+        <div className={styles.lightbox} onClick={() => setLightboxOpen(false)}>
+          <button className={styles.lightboxClose} type="button" onClick={() => setLightboxOpen(false)}>
+            ×
+          </button>
+          <div
+            className={styles.lightboxTrack}
+            ref={lightboxRef}
+            onScroll={() => handleScroll(lightboxRef)}
+            onClick={(event) => event.stopPropagation()}
+          >
+            {mediaImages.map((img) => (
+              <div key={img} className={styles.lightboxSlide}>
+                <img src={img} alt={item.title} />
+              </div>
+            ))}
+          </div>
+          {mediaImages.length > 1 ? (
+            <>
+              <button
+                type="button"
+                className={`${styles.arrow} ${styles.arrowLeft}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  scrollToIndex(Math.max(activeIndex - 1, 0), lightboxRef);
+                }}
+                aria-label="Previous"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                className={`${styles.arrow} ${styles.arrowRight}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  scrollToIndex(Math.min(activeIndex + 1, mediaImages.length - 1), lightboxRef);
+                }}
+                aria-label="Next"
+              >
+                ›
+              </button>
+            </>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -81,6 +81,20 @@
   width: fit-content;
 }
 
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.error {
+  color: #b91c1c;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  padding: 12px;
+  border-radius: 12px;
+}
+
 .empty {
   background: #fff;
   border-radius: 24px;

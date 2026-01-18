@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { apiGet, apiPost } from "@/lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
+import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import styles from "./create-experience.module.css";
 
@@ -114,16 +114,69 @@ const initialForm: FormState = {
 export default function CreateExperiencePage() {
   const t = useT();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>(initialForm);
   const [images, setImages] = useState<string[]>([]);
   const [addressQuery, setAddressQuery] = useState("");
   const [suggestions, setSuggestions] = useState<GeoSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingExperience, setLoadingExperience] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [dragActive, setDragActive] = useState(false);
+  const editId = searchParams?.get("edit");
+  const isEdit = Boolean(editId);
+
+  useEffect(() => {
+    let active = true;
+    const loadExperience = async () => {
+      if (!editId) return;
+      setLoadingExperience(true);
+      setError("");
+      try {
+        const exp = await apiGet<any>(`/experiences/${editId}`);
+        if (!active || !exp) return;
+        const startsAt = exp.startsAt || exp.startDate;
+        const endsAt = exp.endsAt || exp.endDate;
+        const toInput = (value?: string) => (value ? new Date(value).toISOString().slice(0, 16) : "");
+        setForm({
+          title: exp.title || "",
+          shortDescription: exp.shortDescription || "",
+          longDescription: exp.description || exp.longDescription || "",
+          price: exp.price ? String(exp.price) : "",
+          currencyCode: exp.currencyCode || "RON",
+          activityType: exp.activityType || "INDIVIDUAL",
+          maxParticipants: exp.maxParticipants || 1,
+          environment: exp.environment || "OUTDOOR",
+          startsAt: toInput(startsAt),
+          endsAt: toInput(endsAt),
+          country: exp.country || "",
+          countryCode: exp.countryCode || "RO",
+          city: exp.city || "",
+          street: exp.street || "",
+          streetNumber: exp.streetNumber || "",
+          postalCode: exp.postalCode || "",
+          languages: exp.languages || [],
+          locationLat: exp.locationLat ?? exp.latitude ?? null,
+          locationLng: exp.locationLng ?? exp.longitude ?? null,
+          coverImageUrl: exp.coverImageUrl || "",
+          images: exp.images || [],
+          durationMinutes: exp.durationMinutes ? String(exp.durationMinutes) : "",
+        });
+        setImages(exp.images || []);
+      } catch (err) {
+        setError((err as Error).message || t("create_experience_error"));
+      } finally {
+        if (active) setLoadingExperience(false);
+      }
+    };
+    loadExperience();
+    return () => {
+      active = false;
+    };
+  }, [editId, t]);
 
   const toggleLanguage = (code: string) => {
     setForm((f) => {
@@ -213,7 +266,7 @@ export default function CreateExperiencePage() {
       const payload = {
         title: form.title,
         shortDescription: form.shortDescription,
-        longDescription: form.longDescription,
+        description: form.longDescription,
         price: isFree ? 0 : Number(form.price),
         currencyCode: form.currencyCode,
         activityType: form.activityType,
@@ -235,9 +288,14 @@ export default function CreateExperiencePage() {
         images,
         durationMinutes: form.durationMinutes ? Number(form.durationMinutes) : undefined,
       };
-      await apiPost("/experiences", payload);
-      window.localStorage.setItem(EXPERIENCE_CREATED_KEY, "1");
-      router.replace("/experiences");
+      if (isEdit && editId) {
+        await apiPatch(`/experiences/${editId}`, payload);
+        router.replace("/host/experiences");
+      } else {
+        await apiPost("/experiences", payload);
+        window.localStorage.setItem(EXPERIENCE_CREATED_KEY, "1");
+        router.replace("/experiences");
+      }
     } catch (err) {
       setError((err as Error).message || t("create_experience_error"));
     } finally {
@@ -250,8 +308,8 @@ export default function CreateExperiencePage() {
       <div className={styles.header}>
         <div>
           <div className={styles.kicker}>{t("create_experience_kicker")}</div>
-          <h1>{t("create_experience_title")}</h1>
-          <p>{t("create_experience_subtitle")}</p>
+          <h1>{isEdit ? t("edit_experience_title") : t("create_experience_title")}</h1>
+          <p>{isEdit ? t("edit_experience_subtitle") : t("create_experience_subtitle")}</p>
         </div>
         <div className={styles.steps}>
           {[1, 2, 3].map((s) => (
@@ -262,7 +320,9 @@ export default function CreateExperiencePage() {
         </div>
       </div>
 
-      {step === 1 ? (
+      {loadingExperience ? (
+        <div className="muted">{t("common_loading_experiences")}</div>
+      ) : step === 1 ? (
         <div className={styles.card}>
           <h2>{t("create_experience_step_1")}</h2>
           <div className={styles.grid}>
@@ -494,7 +554,7 @@ export default function CreateExperiencePage() {
             </button>
           ) : (
             <button className="button" type="button" onClick={onSubmit} disabled={loading}>
-              {loading ? t("common_publishing") : t("create_experience_publish")}
+              {loading ? t("common_publishing") : isEdit ? t("edit_experience_save") : t("create_experience_publish")}
             </button>
           )}
         </div>

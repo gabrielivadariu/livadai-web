@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
+import ReportModal from "@/components/report-modal";
 import styles from "./experience-detail.module.css";
 
 type Experience = {
@@ -28,7 +30,7 @@ type Experience = {
   durationMinutes?: number;
   environment?: string;
   activityType?: string;
-  host?: { name?: string };
+  host?: { _id?: string; name?: string };
 };
 
 type Booking = {
@@ -65,6 +67,10 @@ export default function ExperienceDetailPage() {
   const [chatError, setChatError] = useState("");
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [reportError, setReportError] = useState("");
+  const [reportSuccess, setReportSuccess] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -202,6 +208,26 @@ export default function ExperienceDetailPage() {
       setSending(false);
     }
   };
+
+  const onReportExperience = async ({ reason, comment }: { reason: string; comment: string }) => {
+    if (!item?._id) return;
+    setReporting(true);
+    setReportError("");
+    setReportSuccess("");
+    try {
+      await apiPost("/bookings/report-content", {
+        experienceId: item._id,
+        reason,
+        comment,
+      });
+      setReportSuccess(t("report_sent"));
+      setReportOpen(false);
+    } catch (err) {
+      setReportError((err as Error).message || t("report_failed"));
+    } finally {
+      setReporting(false);
+    }
+  };
   const onBook = async () => {
     if (!item?._id) return;
     setBooking(true);
@@ -315,7 +341,13 @@ export default function ExperienceDetailPage() {
           </section>
           <section>
             <h2>{t("experience_host")}</h2>
-            <p>{item.host?.name || t("experience_host_fallback")}</p>
+          <p>
+            {item.host?._id ? (
+              <Link href={`/hosts/${item.host._id}`}>{item.host?.name || t("experience_host_fallback")}</Link>
+            ) : (
+              item.host?.name || t("experience_host_fallback")
+            )}
+          </p>
           </section>
           <section>
             <h2>{t("experience_languages")}</h2>
@@ -400,6 +432,29 @@ export default function ExperienceDetailPage() {
           </div>
         </aside>
       </div>
+
+      <div className={styles.reportRow}>
+        <button className={styles.reportButton} type="button" onClick={() => setReportOpen(true)}>
+          {t("report_experience")}
+        </button>
+        {reportSuccess ? <div className={styles.reportSuccess}>{reportSuccess}</div> : null}
+      </div>
+
+      <ReportModal
+        open={reportOpen}
+        title={t("report_experience_title")}
+        reasonLabel={t("report_reason")}
+        reasonPlaceholder={t("report_reason_placeholder")}
+        reasonType="text"
+        commentLabel={t("report_comment_optional")}
+        commentPlaceholder={t("report_comment_placeholder")}
+        submitLabel={t("report_submit")}
+        cancelLabel={t("report_cancel")}
+        submitting={reporting}
+        error={reportError}
+        onClose={() => setReportOpen(false)}
+        onSubmit={onReportExperience}
+      />
     </div>
   );
 }

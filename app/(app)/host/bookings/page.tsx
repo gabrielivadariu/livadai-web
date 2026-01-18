@@ -5,13 +5,14 @@ import { apiGet } from "@/lib/api";
 import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
 import styles from "./host-bookings.module.css";
+import Link from "next/link";
 
 type Booking = {
   _id: string;
   status?: string;
   date?: string;
   timeSlot?: string;
-  explorer?: { name?: string; email?: string };
+  explorer?: { _id?: string; name?: string; email?: string };
   experience?: { title?: string; startDate?: string; startsAt?: string };
 };
 
@@ -42,7 +43,7 @@ export default function HostBookingsPage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
-          <div className={styles.kicker}>Host</div>
+          <div className={styles.kicker}>{t("host_kicker")}</div>
           <h1>{t("host_bookings_title")}</h1>
           <p>{t("host_bookings_subtitle")}</p>
         </div>
@@ -61,7 +62,14 @@ export default function HostBookingsPage() {
                   <div className={styles.meta}>
                     {dateLabel ? new Date(dateLabel).toLocaleString(lang === "en" ? "en-US" : "ro-RO") : t("host_bookings_date_fallback")}
                   </div>
-                  <div className={styles.meta}>{t("host_bookings_explorer")}: {b.explorer?.name || b.explorer?.email || "—"}</div>
+                  <div className={styles.meta}>
+                    {t("host_bookings_explorer")}:{" "}
+                    {b.explorer?._id ? (
+                      <Link href={`/users/${b.explorer._id}`}>{b.explorer?.name || b.explorer?.email || "—"}</Link>
+                    ) : (
+                      b.explorer?.name || b.explorer?.email || "—"
+                    )}
+                  </div>
                 </div>
                 <div className={styles.status}>{b.status || "STATUS"}</div>
               </div>

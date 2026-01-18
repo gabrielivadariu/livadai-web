@@ -130,6 +130,26 @@
   margin-bottom: 8px;
 }
 
+.reportRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  align-items: center;
+}
+
+.reportButton {
+  border: none;
+  background: transparent;
+  color: #ef4444;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reportSuccess {
+  color: #15803d;
+  font-weight: 600;
+}
+
 .empty {
   background: #fff;
   border-radius: 24px;

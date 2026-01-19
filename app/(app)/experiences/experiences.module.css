@@ -10,7 +10,7 @@
   gap: 12px;
   background: #ecfdf3;
   border: 1px solid #bbf7d0;
-  color: #065f46;
+  color: var(--primary-dark);
   padding: 14px 18px;
   border-radius: 16px;
   font-weight: 600;
@@ -22,7 +22,7 @@
   background: transparent;
   cursor: pointer;
   font-size: 16px;
-  color: #047857;
+  color: var(--primary-dark);
 }
 
 .hero {

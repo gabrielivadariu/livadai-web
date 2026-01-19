@@ -282,7 +282,7 @@
 }
 
 .success {
-  color: #0f766e;
+  color: var(--primary-dark);
   font-weight: 600;
 }
 

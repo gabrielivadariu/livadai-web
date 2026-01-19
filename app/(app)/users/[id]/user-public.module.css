@@ -52,7 +52,7 @@
 }
 
 .reportSuccess {
-  color: #15803d;
+  color: var(--primary-dark);
   font-weight: 600;
 }
 

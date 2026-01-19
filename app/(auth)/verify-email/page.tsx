@@ -71,7 +71,7 @@ function VerifyEmailContent() {
               required
             />
           </div>
-          {status ? <div style={{ color: "#0f766e", marginBottom: 8, textAlign: "center" }}>{status}</div> : null}
+          {status ? <div style={{ color: "#0ba7bd", marginBottom: 8, textAlign: "center" }}>{status}</div> : null}
           {error ? <div className={styles.error}>{error}</div> : null}
           <button className="button" type="submit">
             {t("verify_button")}

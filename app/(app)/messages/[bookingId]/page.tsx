@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/lang-context";
-import { useT } from "@/lib/i18n";
+import { getMessage, useT } from "@/lib/i18n";
 import styles from "./chat.module.css";
 
 type Booking = {
@@ -45,6 +45,7 @@ export default function ChatPage() {
   const [chatError, setChatError] = useState("");
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const lastBookingFetchRef = useRef<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -54,6 +55,9 @@ export default function ChatPage() {
       setBookingLoading(false);
       return;
     }
+    const fetchKey = `${resolvedBookingId}:${token}`;
+    if (lastBookingFetchRef.current === fetchKey) return;
+    lastBookingFetchRef.current = fetchKey;
     setBookingLoading(true);
     setBookingError("");
     apiGet<Booking>(`/bookings/${resolvedBookingId}`)
@@ -61,7 +65,7 @@ export default function ChatPage() {
         if (active) setBooking(data || null);
       })
       .catch((err) => {
-        if (active) setBookingError((err as Error).message || t("messages_error"));
+        if (active) setBookingError((err as Error).message || getMessage(lang, "messages_error"));
       })
       .finally(() => {
         if (active) setBookingLoading(false);
@@ -69,7 +73,7 @@ export default function ChatPage() {
     return () => {
       active = false;
     };
-  }, [authLoading, resolvedBookingId, token, t]);
+  }, [authLoading, resolvedBookingId, token, lang]);
 
   useEffect(() => {
     let active = true;
@@ -126,9 +130,9 @@ export default function ChatPage() {
         if (!active) return;
         const status = (err as Error & { status?: number }).status;
         if (status === 403) {
-          setChatError(t("chat_requires_payment"));
+          setChatError(getMessage(lang, "chat_requires_payment"));
         } else {
-          setChatError(t("chat_load_error"));
+          setChatError(getMessage(lang, "chat_load_error"));
         }
       } finally {
         if (active && !silent) setChatLoading(false);
@@ -144,7 +148,7 @@ export default function ChatPage() {
       active = false;
       if (interval) clearInterval(interval);
     };
-  }, [booking?._id, chatAllowed, t]);
+  }, [booking?._id, chatAllowed, lang]);
 
   const onSendMessage = async () => {
     if (!booking?._id || !draft.trim()) return;
@@ -156,7 +160,9 @@ export default function ChatPage() {
       setChatError("");
     } catch (err) {
       const status = (err as Error & { status?: number }).status;
-      setChatError(status === 403 ? t("chat_requires_payment") : t("chat_send_error"));
+      setChatError(
+        status === 403 ? getMessage(lang, "chat_requires_payment") : getMessage(lang, "chat_send_error")
+      );
     } finally {
       setSending(false);
     }

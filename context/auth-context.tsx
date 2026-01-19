@@ -5,10 +5,9 @@ import { apiGet, apiPost, clearAuthToken, setAuthToken } from "@/lib/api";
 
 type User = {
   _id?: string;
-  name?: string;
-  displayName?: string;
   email?: string;
   role?: string;
+  avatar?: string;
 };
 
 type AuthContextValue = {

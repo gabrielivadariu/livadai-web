@@ -15,7 +15,8 @@ export default function TopNav({ pathname }: Props) {
   const router = useRouter();
   const t = useT();
   const { user, logout } = useAuth();
-  const name = user?.name || user?.displayName || t("nav_profile_fallback");
+  const [profileName, setProfileName] = useState("");
+  const name = profileName || t("nav_profile_fallback");
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const isHost = user?.role === "HOST" || user?.role === "BOTH";
@@ -31,6 +32,28 @@ export default function TopNav({ pathname }: Props) {
     logout();
     router.replace("/login");
   };
+
+  useEffect(() => {
+    let active = true;
+    const loadProfile = async () => {
+      if (!user) {
+        if (active) setProfileName("");
+        return;
+      }
+      try {
+        const data = await apiGet<{ displayName?: string; name?: string }>("/users/me/profile");
+        if (!active) return;
+        const resolvedName = data?.displayName || data?.name || "";
+        setProfileName(resolvedName);
+      } catch {
+        if (active) setProfileName("");
+      }
+    };
+    loadProfile();
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   useEffect(() => {
     let active = true;

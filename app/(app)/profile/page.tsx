@@ -73,15 +73,17 @@ export default function ProfilePage() {
 
   useEffect(() => {
     let active = true;
-    refresh().catch(() => undefined);
-    Promise.all([
-      apiGet<Profile>("/users/me/profile"),
-      apiGet<Favorite[]>("/users/me/favorites").catch(() => []),
-      user?.role === "HOST" || user?.role === "BOTH"
-        ? apiGet<HostStats>("/hosts/me/profile").catch(() => null)
-        : Promise.resolve(null),
-    ])
-      .then(([profileRes, favRes, hostRes]) => {
+    const loadProfile = async () => {
+      if (!active) return;
+      refresh().catch(() => undefined);
+      try {
+        const [profileRes, favRes, hostRes] = await Promise.all([
+          apiGet<Profile>("/users/me/profile"),
+          apiGet<Favorite[]>("/users/me/favorites").catch(() => []),
+          user?.role === "HOST" || user?.role === "BOTH"
+            ? apiGet<HostStats>("/hosts/me/profile").catch(() => null)
+            : Promise.resolve(null),
+        ]);
         if (!active) return;
         const normalized = profileRes
           ? { ...profileRes, displayName: profileRes.displayName || profileRes.name, avatar: profileRes.avatar || profileRes.profilePhoto }
@@ -90,12 +92,18 @@ export default function ProfilePage() {
         setForm(normalized);
         setFavorites(favRes || []);
         setHostStats(hostRes || null);
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoading(false);
-      });
+      }
+    };
+    loadProfile();
+    const onFocus = () => loadProfile();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
     return () => {
       active = false;
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
     };
   }, [refresh, user?.role]);
 

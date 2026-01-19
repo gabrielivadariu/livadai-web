@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiPost } from "@/lib/api";
 import { useT } from "@/lib/i18n";
@@ -23,7 +24,8 @@ const countryCodes = [
 ];
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const router = useRouter();
+  const { register, login } = useAuth();
   const t = useT();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -85,6 +87,13 @@ export default function RegisterPage() {
     try {
       await apiPost("/auth/verify-email-code", { email: email.trim(), code: code.trim() });
       setSuccess(t("register_verify_success"));
+      try {
+        await login(email.trim(), password);
+        router.replace("/experiences");
+      } catch (err) {
+        const message = (err as Error).message || t("login_error");
+        setError(message);
+      }
     } catch (err) {
       const message = (err as Error).message || t("register_verify_error");
       setError(message);

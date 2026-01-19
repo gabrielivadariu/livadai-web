@@ -35,7 +35,7 @@ export default function HostWalletPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const payoutsEnabled = !!(status?.isStripePayoutsEnabled ?? (status as { payouts_enabled?: boolean } | null)?.payouts_enabled);
+  const payoutsEnabled = !!(status?.isStripePayoutsEnabled || (status as { payouts_enabled?: boolean } | null)?.payouts_enabled);
 
   const loadWallet = async () => {
     setLoading(true);
@@ -43,7 +43,9 @@ export default function HostWalletPage() {
     try {
       const statusRes = await apiGet<StripeStatus>("/stripe/debug/host-status");
       setStatus(statusRes);
-      const statusPayoutsEnabled = !!(statusRes?.isStripePayoutsEnabled ?? (statusRes as { payouts_enabled?: boolean })?.payouts_enabled);
+      const statusPayoutsEnabled = !!(
+        statusRes?.isStripePayoutsEnabled || (statusRes as { payouts_enabled?: boolean })?.payouts_enabled
+      );
       if (statusRes?.stripeAccountId && statusPayoutsEnabled) {
         const balanceRes = await apiGet<WalletBalance>("/stripe/wallet/balance");
         const txRes = await apiGet<Transaction[]>("/stripe/wallet/transactions");

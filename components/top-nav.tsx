@@ -11,18 +11,20 @@ type Props = {
   pathname: string | null;
 };
 
-const navItems = [
-  { href: "/experiences", labelKey: "nav_explorers" },
-  { href: "/host", labelKey: "nav_hosts" },
-  { href: "/map", labelKey: "nav_map" },
-];
-
 export default function TopNav({ pathname }: Props) {
   const router = useRouter();
   const t = useT();
   const { user, logout } = useAuth();
   const name = user?.name || user?.displayName || t("nav_profile_fallback");
   const [unreadCount, setUnreadCount] = useState(0);
+  const isHost = user?.role === "HOST" || user?.role === "BOTH";
+  const navItems = [
+    { href: "/experiences", labelKey: "nav_explorers" },
+    isHost
+      ? { href: "/host", labelKey: "nav_hosts" }
+      : { href: "/profile", labelKey: "nav_profile" },
+    { href: "/map", labelKey: "nav_map" },
+  ];
 
   const onLogout = () => {
     logout();

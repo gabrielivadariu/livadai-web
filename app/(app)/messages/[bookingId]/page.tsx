@@ -24,15 +24,22 @@ type ChatMessage = {
   createdAt?: string;
 };
 
+type Conversation = {
+  bookingId: string;
+  experienceTitle?: string;
+  otherUser?: { _id?: string; name?: string; avatar?: string };
+};
+
 export default function ChatPage() {
   const { bookingId } = useParams();
   const resolvedBookingId = Array.isArray(bookingId) ? bookingId[0] : bookingId;
-  const { user } = useAuth();
+  const { user, loading: authLoading, token } = useAuth();
   const { lang } = useLang();
   const t = useT();
   const [booking, setBooking] = useState<Booking | null>(null);
-  const [bookingLoading, setBookingLoading] = useState(true);
+  const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState("");
+  const [conversation, setConversation] = useState<Conversation | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState("");
@@ -41,7 +48,12 @@ export default function ChatPage() {
 
   useEffect(() => {
     let active = true;
-    if (!resolvedBookingId) return;
+    if (authLoading) return;
+    if (!resolvedBookingId || !token) {
+      setBooking(null);
+      setBookingLoading(false);
+      return;
+    }
     setBookingLoading(true);
     setBookingError("");
     apiGet<Booking>(`/bookings/${resolvedBookingId}`)
@@ -57,7 +69,24 @@ export default function ChatPage() {
     return () => {
       active = false;
     };
-  }, [resolvedBookingId, t]);
+  }, [authLoading, resolvedBookingId, token, t]);
+
+  useEffect(() => {
+    let active = true;
+    if (authLoading || !token || !resolvedBookingId) return;
+    apiGet<Conversation[]>("/messages")
+      .then((data) => {
+        if (!active) return;
+        const match = (data || []).find((c) => c.bookingId === resolvedBookingId) || null;
+        setConversation(match);
+      })
+      .catch(() => {
+        if (active) setConversation(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [authLoading, resolvedBookingId, token]);
 
   const chatAllowed = useMemo(() => {
     if (!booking?.status) return false;
@@ -65,11 +94,21 @@ export default function ChatPage() {
   }, [booking?.status]);
 
   const otherUserName = useMemo(() => {
+    if (!booking && !conversation) return "";
+    if (conversation?.otherUser?.name) return conversation.otherUser.name;
     if (!booking) return "";
     const isHost = user?.role === "HOST" || user?.role === "BOTH";
     const other = isHost ? booking.explorer : booking.host;
     return other?.displayName || other?.name || "";
-  }, [booking, user?.role]);
+  }, [booking, conversation, user?.role]);
+
+  const otherUserAvatar = useMemo(() => {
+    if (conversation?.otherUser?.avatar) return conversation.otherUser.avatar;
+    if (!booking) return "";
+    const isHost = user?.role === "HOST" || user?.role === "BOTH";
+    const other = isHost ? booking.explorer : booking.host;
+    return other?.avatar || other?.profilePhoto || "";
+  }, [booking, conversation, user?.role]);
 
   useEffect(() => {
     let active = true;
@@ -123,7 +162,7 @@ export default function ChatPage() {
     }
   };
 
-  const experienceTitle = booking?.experience?.title;
+  const experienceTitle = booking?.experience?.title || conversation?.experienceTitle;
 
   return (
     <div className={styles.page}>
@@ -134,9 +173,22 @@ export default function ChatPage() {
 
       <div className={styles.chatPanel}>
         <div className={styles.chatHeader}>
-          <div className={styles.chatKicker}>{t("chat_kicker")}</div>
-          <div className={styles.chatTitle}>{otherUserName ? `${t("chat_with")} ${otherUserName}` : t("chat_title")}</div>
-          <div className={styles.chatSubtitle}>{experienceTitle || t("common_experience")}</div>
+          <div className={styles.chatBadge}>{t("chat_kicker")}</div>
+          <div className={styles.chatIdentity}>
+            <div className={styles.identityAvatar}>
+              {otherUserAvatar ? (
+                <img src={otherUserAvatar} alt={otherUserName || "avatar"} />
+              ) : (
+                <span>{(otherUserName || "?").slice(0, 1).toUpperCase()}</span>
+              )}
+            </div>
+            <div>
+              <div className={styles.chatTitle}>
+                {otherUserName ? `${t("chat_with")} ${otherUserName}` : t("chat_title")}
+              </div>
+              <div className={styles.chatSubtitle}>{experienceTitle || t("common_experience")}</div>
+            </div>
+          </div>
         </div>
 
         <div className={styles.chatBody}>
@@ -189,15 +241,17 @@ export default function ChatPage() {
         </div>
 
         <div className={styles.chatComposer}>
-          <input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={t("chat_placeholder")}
-            disabled={!user || !booking || !chatAllowed || sending}
-          />
-          <button type="button" onClick={onSendMessage} disabled={!draft.trim() || sending || !chatAllowed}>
-            {sending ? t("chat_sending") : t("chat_send")}
-          </button>
+          <div className={styles.composerRow}>
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={t("chat_placeholder")}
+              disabled={!user || !booking || !chatAllowed || sending}
+            />
+            <button type="button" onClick={onSendMessage} disabled={!draft.trim() || sending || !chatAllowed}>
+              {sending ? t("chat_sending") : t("chat_send")}
+            </button>
+          </div>
           {chatError ? <div className={styles.chatError}>{chatError}</div> : null}
         </div>
       </div>

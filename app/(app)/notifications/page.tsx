@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiGet, apiPost } from "@/lib/api";
+import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
 import styles from "./notifications.module.css";
@@ -17,6 +18,7 @@ type Notification = {
 export default function NotificationsPage() {
   const t = useT();
   const { lang } = useLang();
+  const { loading: authLoading, token } = useAuth();
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -48,8 +50,14 @@ export default function NotificationsPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!token) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
     loadNotifications();
-  }, [t]);
+  }, [authLoading, token]);
 
   return (
     <div className={styles.page}>

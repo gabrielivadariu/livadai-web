@@ -1,19 +1,19 @@
 .page {
-  --background: #fafafa;
+  --background: #f4f6fb;
   --foreground: #fff;
 
-  --text-primary: #000;
-  --text-secondary: #666;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
 
-  --button-primary-hover: #383838;
-  --button-secondary-hover: #f2f2f2;
-  --button-secondary-border: #ebebeb;
+  --button-primary-hover: #0ba7bd;
+  --button-secondary-hover: #ecfeff;
+  --button-secondary-border: #c9f3f6;
 
   display: flex;
   min-height: 100vh;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-geist-sans);
+  font-family: "Sora", "Segoe UI", sans-serif;
   background-color: var(--background);
 }
 
@@ -40,7 +40,7 @@
 .intro h1 {
   max-width: 320px;
   font-size: 40px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 48px;
   letter-spacing: -2.4px;
   text-wrap: balance;
@@ -84,8 +84,8 @@
 }
 
 a.primary {
-  background: var(--text-primary);
-  color: var(--background);
+  background: linear-gradient(135deg, #00bcd4, #16a34a);
+  color: #fff;
   gap: 8px;
 }
 
@@ -96,7 +96,7 @@ a.secondary {
 /* Enable hover only on non-touch devices */
 @media (hover: hover) and (pointer: fine) {
   a.primary:hover {
-    background: var(--button-primary-hover);
+  background: #0ba7bd;
     border-color: transparent;
   }
 

@@ -67,7 +67,7 @@ export default function HostDashboardPage() {
     <div className={styles.page}>
       <div className={styles.headerRow}>
         <div>
-          <div className={styles.kicker}>HOST</div>
+          <div className={styles.kicker}>{t("host_kicker")}</div>
           <h1 className={styles.title}>{t("host_dashboard_title")}</h1>
           <p className={styles.subtitle}>{t("host_dashboard_subtitle")}</p>
         </div>

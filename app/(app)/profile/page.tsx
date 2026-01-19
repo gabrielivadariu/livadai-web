@@ -314,7 +314,19 @@ export default function ProfilePage() {
         <div style={{ fontWeight: 800 }}>{t("profile_favorites")}</div>
         {favorites.length ? (
           favorites.map((fav) => (
-            <div key={fav._id} className={styles.favoriteRow}>
+            <div
+              key={fav._id}
+              className={styles.favoriteRow}
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push(`/experiences/${fav._id}`)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  router.push(`/experiences/${fav._id}`);
+                }
+              }}
+            >
               <img src={fav.images?.[0] || "https://via.placeholder.com/80x80?text=Exp"} className={styles.favoriteImage} alt={fav.title || ""} />
               <div>
                 <div className={styles.favoriteTitle}>{fav.title}</div>

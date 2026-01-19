@@ -97,7 +97,7 @@ export default function HostWalletPage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
-          <div className={styles.kicker}>Host</div>
+          <div className={styles.kicker}>{t("host_kicker")}</div>
           <h1>{t("host_wallet_title")}</h1>
           <p>{t("host_wallet_subtitle")}</p>
         </div>

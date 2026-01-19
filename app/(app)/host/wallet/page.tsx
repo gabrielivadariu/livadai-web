@@ -35,6 +35,7 @@ export default function HostWalletPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const payoutsEnabled = !!(status?.isStripePayoutsEnabled ?? (status as { payouts_enabled?: boolean } | null)?.payouts_enabled);
 
   const loadWallet = async () => {
     setLoading(true);
@@ -42,7 +43,8 @@ export default function HostWalletPage() {
     try {
       const statusRes = await apiGet<StripeStatus>("/stripe/debug/host-status");
       setStatus(statusRes);
-      if (statusRes?.stripeAccountId && statusRes?.isStripeChargesEnabled) {
+      const statusPayoutsEnabled = !!(statusRes?.isStripePayoutsEnabled ?? (statusRes as { payouts_enabled?: boolean })?.payouts_enabled);
+      if (statusRes?.stripeAccountId && statusPayoutsEnabled) {
         const balanceRes = await apiGet<WalletBalance>("/stripe/wallet/balance");
         const txRes = await apiGet<Transaction[]>("/stripe/wallet/transactions");
         setBalance(balanceRes);
@@ -106,7 +108,7 @@ export default function HostWalletPage() {
       {loading ? (
         <div className="muted">{t("common_loading_wallet")}</div>
       ) : status?.stripeAccountId ? (
-        status.isStripeChargesEnabled ? (
+        payoutsEnabled ? (
           <>
             <div className={styles.balanceGrid}>
               <div className={styles.balanceCard}>

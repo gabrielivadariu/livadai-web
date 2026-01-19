@@ -11,6 +11,7 @@ import styles from "./user-public.module.css";
 type Profile = {
   name?: string;
   displayName?: string;
+  avatar?: string;
   profilePhoto?: string;
   age?: number;
   languages?: string[];
@@ -37,7 +38,9 @@ export default function UserPublicProfilePage() {
     let active = true;
     apiGet<Profile>(`/users/${id}/public-profile`)
       .then((data) => {
-        if (active) setProfile(data || null);
+        if (!active) return;
+        const normalized = data ? { ...data, avatar: data.avatar || data.profilePhoto } : null;
+        setProfile(normalized);
       })
       .catch(() => {
         if (active) setProfile(null);
@@ -81,7 +84,7 @@ export default function UserPublicProfilePage() {
     <div className={styles.page}>
       <div className={styles.hero}>
         <div className={styles.avatar}>
-          {profile.profilePhoto ? <img src={profile.profilePhoto} alt={name} /> : "👤"}
+          {profile.avatar ? <img src={profile.avatar} alt={name} /> : "👤"}
         </div>
         <div className={styles.name}>{name}</div>
         {profile.city || profile.country ? (

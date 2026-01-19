@@ -29,6 +29,7 @@ type Profile = {
   displayName?: string;
   city?: string;
   country?: string;
+  avatar?: string;
   profilePhoto?: string;
   age?: number;
   languages?: string[];
@@ -54,7 +55,7 @@ type HostStats = {
 };
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, logout, refresh } = useAuth();
   const t = useT();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -72,6 +73,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     let active = true;
+    refresh().catch(() => undefined);
     Promise.all([
       apiGet<Profile>("/users/me/profile"),
       apiGet<Favorite[]>("/users/me/favorites").catch(() => []),
@@ -82,9 +84,9 @@ export default function ProfilePage() {
       .then(([profileRes, favRes, hostRes]) => {
         if (!active) return;
         const normalized = profileRes
-          ? { ...profileRes, displayName: profileRes.displayName || profileRes.name }
+          ? { ...profileRes, displayName: profileRes.displayName || profileRes.name, avatar: profileRes.avatar || profileRes.profilePhoto }
           : {};
-        setProfile(profileRes || null);
+        setProfile(Object.keys(normalized).length ? (normalized as Profile) : null);
         setForm(normalized);
         setFavorites(favRes || []);
         setHostStats(hostRes || null);
@@ -95,7 +97,7 @@ export default function ProfilePage() {
     return () => {
       active = false;
     };
-  }, [user?.role]);
+  }, [refresh, user?.role]);
 
   const onChange = (key: keyof Profile, value: Profile[keyof Profile]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -128,7 +130,7 @@ export default function ProfilePage() {
       const data = await res.json();
       const url = data?.url || data?.secure_url;
       if (url) {
-        setForm((prev) => ({ ...prev, profilePhoto: url }));
+        setForm((prev) => ({ ...prev, avatar: url }));
       }
     } catch (err) {
       setSaveError((err as Error).message || t("profile_update_error"));
@@ -148,14 +150,15 @@ export default function ProfilePage() {
         age: form.age,
         languages: form.languages,
         shortBio: form.shortBio,
-        profilePhoto: form.profilePhoto,
+        avatar: form.avatar,
       });
       const normalized = updated
-        ? { ...updated, displayName: updated.displayName || updated.name }
+        ? { ...updated, displayName: updated.displayName || updated.name, avatar: updated.avatar || updated.profilePhoto }
         : form;
-      setProfile(updated || form);
+      setProfile(normalized as Profile);
       setForm(normalized);
       setEditing(false);
+      await refresh();
     } catch (err) {
       setSaveError((err as Error).message || t("profile_update_error"));
     } finally {
@@ -183,7 +186,7 @@ export default function ProfilePage() {
     <>
       <div className={styles.hero}>
         <div className={styles.avatar}>
-          {profile?.profilePhoto ? <img src={profile.profilePhoto} alt="avatar" style={{ width: "100%", height: "100%" }} /> : "👤"}
+          {profile?.avatar ? <img src={profile.avatar} alt="avatar" style={{ width: "100%", height: "100%" }} /> : "👤"}
         </div>
         <div style={{ fontWeight: 800, fontSize: 18 }}>{profile?.displayName || profile?.name || t("nav_profile_fallback")}</div>
         {profile?.age ? <div className={styles.stats}>{profile.age} {t("profile_years")}</div> : null}
@@ -260,8 +263,8 @@ export default function ProfilePage() {
                 </label>
                 <input
                   className="input"
-                  value={form.profilePhoto || ""}
-                  onChange={(e) => onChange("profilePhoto", e.target.value)}
+                  value={form.avatar || ""}
+                  onChange={(e) => onChange("avatar", e.target.value)}
                   placeholder={t("profile_avatar_placeholder")}
                 />
               </div>

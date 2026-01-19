@@ -48,9 +48,7 @@ export default function NotificationsPage() {
   };
 
   useEffect(() => {
-    loadNotifications().then(() => {
-      apiPost("/notifications/mark-all-read", {}).catch(() => undefined);
-    });
+    loadNotifications();
   }, [t]);
 
   return (

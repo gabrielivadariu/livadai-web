@@ -1,0 +1,161 @@
+.page {
+  display: grid;
+  gap: 20px;
+}
+
+.header {
+  background: #fff;
+  border-radius: 22px;
+  padding: 22px;
+  border: 1px solid #e6eff2;
+  box-shadow: var(--shadow-soft);
+}
+
+.header h1 {
+  margin: 0 0 6px 0;
+}
+
+.header p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.chatPanel {
+  background: #fff;
+  border-radius: 24px;
+  border: 1px solid #e6eff2;
+  box-shadow: var(--shadow-soft);
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.chatHeader {
+  display: grid;
+  gap: 6px;
+}
+
+.chatKicker {
+  font-size: 11px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.chatTitle {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.chatSubtitle {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.chatBody {
+  border: 1px solid #edf4f6;
+  border-radius: 16px;
+  padding: 12px;
+  background: #f7fbfc;
+  min-height: 220px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.chatMessages {
+  display: grid;
+  gap: 12px;
+}
+
+.chatRow {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.chatRowMine {
+  justify-content: flex-end;
+}
+
+.chatAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #e6f4f6;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #0f6d77;
+  overflow: hidden;
+}
+
+.chatAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.chatBubble {
+  max-width: 220px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 20px rgba(15, 68, 79, 0.08);
+}
+
+.chatRowMine .chatBubble {
+  background: #0aa9b7;
+  color: #fff;
+}
+
+.chatText {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.chatTime {
+  margin-top: 6px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.chatHint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.chatComposer {
+  display: grid;
+  gap: 10px;
+}
+
+.chatComposer input {
+  width: 100%;
+  border: 1px solid #d9e9ec;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.chatComposer button {
+  width: 100%;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: linear-gradient(120deg, #17b5c0, #0a8e99);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chatComposer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.chatError {
+  font-size: 12px;
+  color: #ef4444;
+}

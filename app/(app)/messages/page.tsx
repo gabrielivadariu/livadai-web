@@ -15,11 +15,6 @@ type Conversation = {
   otherUser?: { _id?: string; name?: string; avatar?: string };
 };
 
-type Booking = {
-  _id: string;
-  experience?: { _id?: string };
-};
-
 export default function MessagesPage() {
   const t = useT();
   const router = useRouter();
@@ -50,13 +45,7 @@ export default function MessagesPage() {
     setOpeningId(bookingId);
     setError("");
     try {
-      const booking = await apiGet<Booking>(`/bookings/${bookingId}`);
-      const expId = booking?.experience?._id;
-      if (expId) {
-        router.push(`/experiences/${expId}?bookingId=${bookingId}`);
-      } else {
-        setError(t("messages_error"));
-      }
+      router.push(`/messages/${bookingId}`);
     } catch (err) {
       setError((err as Error).message || t("messages_error"));
     } finally {

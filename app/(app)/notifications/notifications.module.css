@@ -38,6 +38,21 @@
   grid-template-columns: auto 1fr;
   gap: 12px;
   box-shadow: var(--shadow-soft);
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  appearance: none;
+}
+
+.cardClickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.cardClickable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+  border-color: #d7eef2;
 }
 
 .read {

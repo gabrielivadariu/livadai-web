@@ -17,6 +17,7 @@ export default function TopNav({ pathname }: Props) {
   const { user, logout } = useAuth();
   const name = user?.name || user?.displayName || t("nav_profile_fallback");
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const isHost = user?.role === "HOST" || user?.role === "BOTH";
   const navItems = [
     { href: "/experiences", labelKey: "nav_explorers" },
@@ -36,18 +37,24 @@ export default function TopNav({ pathname }: Props) {
     const loadUnread = async () => {
       if (!user) {
         if (active) setUnreadCount(0);
+        if (active) setUnreadMessages(0);
         return;
       }
       try {
         const data = await apiGet<{ count?: number }>("/notifications/unread-count");
         if (active) setUnreadCount(Number(data?.count || 0));
+        const messagesData = await apiGet<{ count?: number }>("/messages/unread-count");
+        if (active) setUnreadMessages(Number(messagesData?.count || 0));
       } catch {
         if (active) setUnreadCount(0);
+        if (active) setUnreadMessages(0);
       }
     };
     loadUnread();
+    const interval = setInterval(loadUnread, 15000);
     return () => {
       active = false;
+      clearInterval(interval);
     };
   }, [user]);
 
@@ -93,6 +100,7 @@ export default function TopNav({ pathname }: Props) {
               strokeLinejoin="round"
             />
           </svg>
+          {unreadMessages > 0 ? <span className="nav-badge">{unreadMessages}</span> : null}
         </Link>
         <Link className="nav-icon" href="/notifications" aria-label={t("nav_notifications")}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">

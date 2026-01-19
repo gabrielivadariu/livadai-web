@@ -76,6 +76,11 @@ export default function ChatPage() {
   }, [authLoading, resolvedBookingId, token, lang]);
 
   useEffect(() => {
+    if (authLoading || !token || !resolvedBookingId) return;
+    apiPost("/messages/mark-read", { bookingId: resolvedBookingId }).catch(() => undefined);
+  }, [authLoading, resolvedBookingId, token]);
+
+  useEffect(() => {
     let active = true;
     if (authLoading || !token || !resolvedBookingId) return;
     apiGet<Conversation[]>("/messages")

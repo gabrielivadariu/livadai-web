@@ -40,9 +40,9 @@ export default function HostWalletPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const payoutsEnabled =
-    status?.isStripePayoutsEnabled === undefined ? !!status?.payouts_enabled : !!status?.isStripePayoutsEnabled;
+    status?.payouts_enabled === undefined ? !!status?.isStripePayoutsEnabled : !!status?.payouts_enabled;
   const chargesEnabled =
-    status?.isStripeChargesEnabled === undefined ? !!status?.charges_enabled : !!status?.isStripeChargesEnabled;
+    status?.charges_enabled === undefined ? !!status?.isStripeChargesEnabled : !!status?.charges_enabled;
 
   const loadWallet = async () => {
     setLoading(true);
@@ -51,9 +51,9 @@ export default function HostWalletPage() {
       const statusRes = await apiGet<StripeStatus>("/stripe/debug/host-status");
       setStatus(statusRes);
       const statusPayoutsEnabled =
-        statusRes?.isStripePayoutsEnabled === undefined ? !!statusRes?.payouts_enabled : !!statusRes?.isStripePayoutsEnabled;
+        statusRes?.payouts_enabled === undefined ? !!statusRes?.isStripePayoutsEnabled : !!statusRes?.payouts_enabled;
       const statusChargesEnabled =
-        statusRes?.isStripeChargesEnabled === undefined ? !!statusRes?.charges_enabled : !!statusRes?.isStripeChargesEnabled;
+        statusRes?.charges_enabled === undefined ? !!statusRes?.isStripeChargesEnabled : !!statusRes?.charges_enabled;
       if (statusRes?.stripeAccountId && statusPayoutsEnabled) {
         const balanceRes = await apiGet<WalletBalance>("/wallet/summary");
         setBalance(balanceRes);

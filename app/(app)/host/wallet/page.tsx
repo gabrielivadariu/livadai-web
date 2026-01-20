@@ -11,11 +11,15 @@ type StripeStatus = {
   isStripeChargesEnabled?: boolean;
   isStripePayoutsEnabled?: boolean;
   isStripeDetailsSubmitted?: boolean;
+  charges_enabled?: boolean;
+  payouts_enabled?: boolean;
+  details_submitted?: boolean;
 };
 
 type WalletBalance = {
   available?: number;
   pending?: number;
+  blocked?: number;
   currency?: string;
 };
 
@@ -35,7 +39,8 @@ export default function HostWalletPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const payoutsEnabled = !!(status?.isStripePayoutsEnabled || (status as { payouts_enabled?: boolean } | null)?.payouts_enabled);
+  const payoutsEnabled = !!(status?.isStripePayoutsEnabled || status?.payouts_enabled);
+  const chargesEnabled = !!(status?.isStripeChargesEnabled || status?.charges_enabled);
 
   const loadWallet = async () => {
     setLoading(true);
@@ -43,14 +48,17 @@ export default function HostWalletPage() {
     try {
       const statusRes = await apiGet<StripeStatus>("/stripe/debug/host-status");
       setStatus(statusRes);
-      const statusPayoutsEnabled = !!(
-        statusRes?.isStripePayoutsEnabled || (statusRes as { payouts_enabled?: boolean })?.payouts_enabled
-      );
+      const statusPayoutsEnabled = !!(statusRes?.isStripePayoutsEnabled || statusRes?.payouts_enabled);
+      const statusChargesEnabled = !!(statusRes?.isStripeChargesEnabled || statusRes?.charges_enabled);
       if (statusRes?.stripeAccountId && statusPayoutsEnabled) {
-        const balanceRes = await apiGet<WalletBalance>("/stripe/wallet/balance");
-        const txRes = await apiGet<Transaction[]>("/stripe/wallet/transactions");
+        const balanceRes = await apiGet<WalletBalance>("/wallet/summary");
         setBalance(balanceRes);
-        setTransactions(txRes || []);
+        if (statusChargesEnabled) {
+          const txRes = await apiGet<Transaction[]>("/stripe/wallet/transactions");
+          setTransactions(txRes || []);
+        } else {
+          setTransactions([]);
+        }
       }
     } catch (err) {
       setError((err as Error).message || t("host_wallet_load_error"));
@@ -94,8 +102,9 @@ export default function HostWalletPage() {
   };
 
   const currency = (balance?.currency || "ron").toUpperCase();
-  const available = balance?.available ? (balance.available / 100).toFixed(2) : "0.00";
-  const pending = balance?.pending ? (balance.pending / 100).toFixed(2) : "0.00";
+  const available = balance?.available ? Number(balance.available).toFixed(2) : "0.00";
+  const pending = balance?.pending ? Number(balance.pending).toFixed(2) : "0.00";
+  const blocked = balance?.blocked ? Number(balance.blocked).toFixed(2) : "0.00";
 
   return (
     <div className={styles.page}>
@@ -121,6 +130,10 @@ export default function HostWalletPage() {
                 <div className={styles.balanceLabel}>{t("host_wallet_pending")}</div>
                 <div className={styles.balanceValue}>{pending} {currency}</div>
               </div>
+              <div className={styles.balanceCard}>
+                <div className={styles.balanceLabel}>{t("host_wallet_blocked", { defaultValue: "Blocat" })}</div>
+                <div className={styles.balanceValue}>{blocked} {currency}</div>
+              </div>
             </div>
 
             <div className={styles.actions}>
@@ -134,7 +147,7 @@ export default function HostWalletPage() {
 
             <div className={styles.section}>
               <h2>{t("host_wallet_transactions")}</h2>
-              {transactions.length ? (
+              {chargesEnabled && transactions.length ? (
                 <div className={styles.txList}>
                   {transactions.map((tx) => (
                     <div key={tx._id} className={styles.txRow}>
@@ -151,7 +164,9 @@ export default function HostWalletPage() {
                   ))}
                 </div>
               ) : (
-                <div className="muted">{t("host_wallet_no_transactions")}</div>
+                <div className="muted">
+                  {chargesEnabled ? t("host_wallet_no_transactions") : t("walletInfoSoon", { defaultValue: "Retragerile vor fi disponibile în curând." })}
+                </div>
               )}
             </div>
           </>

@@ -86,41 +86,35 @@ export default function ExperiencesPage() {
         </div>
       ) : null}
       <section className={styles.hero}>
-        <div>
-          <div className={styles.kicker}>{t("experiences_kicker")}</div>
-          <h1 className={styles.title}>{t("experiences_title")}</h1>
-          <p className={styles.subtitle}>
-            {t("experiences_subtitle")}
+        <div className={styles.heroCopy}>
+          <h1 className={`${styles.title} ${styles.fadeIn}`}>LIVADAI este despre oameni și ceea ce iubesc să facă</h1>
+          <div className={styles.accentLine} />
+          <p className={`${styles.subtitle} ${styles.fadeIn} ${styles.delay1}`}>
+            <span className={styles.line}>Nu contează cine ești.</span>
+            <span className={styles.line}>Nu contează ce vrei să creezi.</span>
+            <span className={styles.line}>O experiență poate fi o aventură,</span>
+            <span className={styles.line}>o lecție, un moment de liniște</span>
+            <span className={styles.line}>sau pur și simplu timp petrecut cu alți oameni.</span>
+            <span className={styles.line}>Dacă e real, dacă e trăit, are loc pe LIVADAI.</span>
           </p>
-          <div className={styles.searchWrap}>
-            <input
-              className={styles.searchInput}
-              placeholder={t("experiences_search")}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-        </div>
-        <div className={styles.heroCard}>
-          <div className={styles.heroBadge}>{t("experiences_badge")}</div>
-          <div className={styles.heroStat}>
-            <span>{t("experiences_stat_new")}</span>
-            <strong>+24%</strong>
-          </div>
-          <div className={styles.heroStat}>
-            <span>{t("experiences_stat_trusted")}</span>
-            <strong>4.8/5</strong>
-          </div>
-          <button className="button" type="button">
-            {t("experiences_cta")}
-          </button>
+          <Link className={`button ${styles.heroCta} ${styles.fadeIn} ${styles.delay2}`} href="#experiences-list">
+            Explorează experiențe
+          </Link>
         </div>
       </section>
+      <div className={styles.searchWrap}>
+        <input
+          className={styles.searchInput}
+          placeholder={t("experiences_search")}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
       {loading ? (
         <div className="muted">{t("common_loading_experiences")}</div>
       ) : filtered.length ? (
-        <div className={styles.grid}>
+        <div className={styles.grid} id="experiences-list">
           {filtered.map((item) => {
             const isFree = !item.price || Number(item.price) <= 0;
             const priceText = isFree ? t("experiences_free") : `${item.price || 0} ${item.currencyCode || "RON"}`;

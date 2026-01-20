@@ -131,7 +131,7 @@ export default function HostWalletPage() {
                 <div className={styles.balanceValue}>{pending} {currency}</div>
               </div>
               <div className={styles.balanceCard}>
-                <div className={styles.balanceLabel}>{t("host_wallet_blocked", { defaultValue: "Blocat" })}</div>
+                <div className={styles.balanceLabel}>{t("host_wallet_blocked")}</div>
                 <div className={styles.balanceValue}>{blocked} {currency}</div>
               </div>
             </div>
@@ -165,7 +165,7 @@ export default function HostWalletPage() {
                 </div>
               ) : (
                 <div className="muted">
-                  {chargesEnabled ? t("host_wallet_no_transactions") : t("walletInfoSoon", { defaultValue: "Retragerile vor fi disponibile în curând." })}
+                  {chargesEnabled ? t("host_wallet_no_transactions") : t("walletInfoSoon")}
                 </div>
               )}
             </div>

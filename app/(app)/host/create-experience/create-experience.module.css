@@ -76,6 +76,18 @@
   grid-column: 1 / -1;
 }
 
+.scheduleHint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.scheduleError {
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
 .textarea {
   width: 100%;
   min-height: 140px;

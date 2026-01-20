@@ -251,18 +251,43 @@ function CreateExperienceContent() {
     }
   };
 
+  const scheduleState = useMemo(() => {
+    const hasStart = !!form.startsAt;
+    const hasEnd = !!form.endsAt;
+    const hasDuration = form.durationMinutes && Number(form.durationMinutes) > 0;
+    const endAfterStart =
+      hasStart && hasEnd ? new Date(form.endsAt).getTime() > new Date(form.startsAt).getTime() : true;
+    return { hasStart, hasEnd, hasDuration, endAfterStart };
+  }, [form.endsAt, form.startsAt, form.durationMinutes]);
+
   const canProceed = useMemo(() => {
     if (step === 1) return form.title && form.shortDescription && form.longDescription;
-    if (step === 2) return form.startsAt && form.endsAt && form.city;
+    if (step === 2) {
+      return scheduleState.hasStart && (scheduleState.hasEnd || scheduleState.hasDuration) && scheduleState.endAfterStart && form.city;
+    }
     return true;
-  }, [form, step]);
+  }, [form, step, scheduleState]);
+
+  const scheduleErrorText = useMemo(() => {
+    if (!scheduleState.hasStart) return t("create_experience_schedule_required");
+    if (!scheduleState.hasEnd && !scheduleState.hasDuration) return t("create_experience_schedule_required");
+    if (!scheduleState.endAfterStart) return t("create_experience_schedule_order");
+    return "";
+  }, [scheduleState, t]);
 
   const onSubmit = async () => {
     setLoading(true);
     setError("");
     setSuccess("");
     try {
+      if (scheduleErrorText) {
+        setError(scheduleErrorText);
+        setLoading(false);
+        return;
+      }
       const isFree = !form.price || Number(form.price) <= 0;
+      const startsAtIso = form.startsAt ? new Date(form.startsAt).toISOString() : undefined;
+      const endsAtIso = form.endsAt ? new Date(form.endsAt).toISOString() : undefined;
       const payload = {
         title: form.title,
         shortDescription: form.shortDescription,
@@ -272,8 +297,8 @@ function CreateExperienceContent() {
         activityType: form.activityType,
         maxParticipants: form.activityType === "GROUP" ? Number(form.maxParticipants) || 1 : 1,
         environment: form.environment,
-        startsAt: new Date(form.startsAt).toISOString(),
-        endsAt: new Date(form.endsAt).toISOString(),
+        startsAt: startsAtIso,
+        endsAt: endsAtIso,
         country: form.country,
         countryCode: form.countryCode,
         city: form.city,
@@ -422,6 +447,10 @@ function CreateExperienceContent() {
             <div>
               <label>{t("create_experience_duration")}</label>
               <input className="input" type="number" value={form.durationMinutes} onChange={(e) => onChange("durationMinutes", e.target.value)} />
+            </div>
+            <div className={styles.full}>
+              <div className={styles.scheduleHint}>{t("create_experience_schedule_hint")}</div>
+              {scheduleErrorText ? <div className={styles.scheduleError}>{scheduleErrorText}</div> : null}
             </div>
             <div className={styles.full}>
               <label>{t("create_experience_search_address")}</label>

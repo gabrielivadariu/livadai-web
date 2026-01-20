@@ -285,6 +285,10 @@ const messages: Record<Lang, Messages> = {
     host_wallet_pending: "În așteptare",
     host_wallet_blocked: "Blocat",
     host_wallet_dashboard: "Deschide Stripe Dashboard",
+    host_wallet_collect: "Colectează bani",
+    host_wallet_pending_title: "Cum funcționează plățile",
+    host_wallet_pending_text:
+      "Sumele intră în așteptare imediat după plată și devin disponibile la 72h după confirmarea prezenței.",
     host_wallet_refresh: "Reîmprospătează status",
     host_wallet_transactions: "Tranzacții recente",
     host_wallet_no_transactions: "Nu există tranzacții încă.",
@@ -685,6 +689,10 @@ const messages: Record<Lang, Messages> = {
     host_wallet_pending: "Pending",
     host_wallet_blocked: "Blocked",
     host_wallet_dashboard: "Open Stripe Dashboard",
+    host_wallet_collect: "Withdraw funds",
+    host_wallet_pending_title: "How payouts work",
+    host_wallet_pending_text:
+      "Funds move to pending right after payment and become available 72h after attendance is confirmed.",
     host_wallet_refresh: "Refresh status",
     host_wallet_transactions: "Recent transactions",
     host_wallet_no_transactions: "No transactions yet.",

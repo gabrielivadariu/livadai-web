@@ -39,8 +39,10 @@ export default function HostWalletPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const payoutsEnabled = !!(status?.isStripePayoutsEnabled || status?.payouts_enabled);
-  const chargesEnabled = !!(status?.isStripeChargesEnabled || status?.charges_enabled);
+  const payoutsEnabled =
+    status?.isStripePayoutsEnabled === undefined ? !!status?.payouts_enabled : !!status?.isStripePayoutsEnabled;
+  const chargesEnabled =
+    status?.isStripeChargesEnabled === undefined ? !!status?.charges_enabled : !!status?.isStripeChargesEnabled;
 
   const loadWallet = async () => {
     setLoading(true);
@@ -48,8 +50,10 @@ export default function HostWalletPage() {
     try {
       const statusRes = await apiGet<StripeStatus>("/stripe/debug/host-status");
       setStatus(statusRes);
-      const statusPayoutsEnabled = !!(statusRes?.isStripePayoutsEnabled || statusRes?.payouts_enabled);
-      const statusChargesEnabled = !!(statusRes?.isStripeChargesEnabled || statusRes?.charges_enabled);
+      const statusPayoutsEnabled =
+        statusRes?.isStripePayoutsEnabled === undefined ? !!statusRes?.payouts_enabled : !!statusRes?.isStripePayoutsEnabled;
+      const statusChargesEnabled =
+        statusRes?.isStripeChargesEnabled === undefined ? !!statusRes?.charges_enabled : !!statusRes?.isStripeChargesEnabled;
       if (statusRes?.stripeAccountId && statusPayoutsEnabled) {
         const balanceRes = await apiGet<WalletBalance>("/wallet/summary");
         setBalance(balanceRes);
@@ -105,6 +109,7 @@ export default function HostWalletPage() {
   const available = balance?.available ? Number(balance.available).toFixed(2) : "0.00";
   const pending = balance?.pending ? Number(balance.pending).toFixed(2) : "0.00";
   const blocked = balance?.blocked ? Number(balance.blocked).toFixed(2) : "0.00";
+  const showError = error && !(payoutsEnabled && /Stripe account not ready/i.test(error));
 
   return (
     <div className={styles.page}>
@@ -138,11 +143,16 @@ export default function HostWalletPage() {
 
             <div className={styles.actions}>
               <button className="button" type="button" onClick={onOpenDashboard}>
-                {t("host_wallet_dashboard")}
+                {t("host_wallet_collect")}
               </button>
               <button className="button secondary" type="button" onClick={loadWallet}>
                 {t("host_wallet_refresh")}
               </button>
+            </div>
+
+            <div className={styles.info}>
+              <div className={styles.infoTitle}>{t("host_wallet_pending_title")}</div>
+              <div className={styles.infoText}>{t("host_wallet_pending_text")}</div>
             </div>
 
             <div className={styles.section}>
@@ -194,7 +204,7 @@ export default function HostWalletPage() {
         </div>
       )}
 
-      {error ? <div className={styles.error}>{error}</div> : null}
+      {showError ? <div className={styles.error}>{error}</div> : null}
     </div>
   );
 }

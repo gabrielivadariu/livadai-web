@@ -48,6 +48,28 @@
 .actions {
   display: flex;
   justify-content: flex-start;
+  gap: 12px;
+}
+
+.info {
+  background: #fff;
+  border-radius: 18px;
+  padding: 16px 18px;
+  border: 1px solid #e6eff2;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 6px;
+}
+
+.infoTitle {
+  font-weight: 800;
+  color: var(--text);
+}
+
+.infoText {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .section {

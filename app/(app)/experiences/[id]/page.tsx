@@ -18,6 +18,13 @@ type Experience = {
   city?: string;
   country?: string;
   address?: string;
+  location?: {
+    street?: string;
+    streetNumber?: string;
+    city?: string;
+    country?: string;
+    formattedAddress?: string;
+  };
   price?: number;
   currencyCode?: string;
   rating_avg?: number;
@@ -76,14 +83,6 @@ type Booking = {
   host?: { name?: string; email?: string; profilePhoto?: string; avatar?: string };
 };
 
-type ChatMessage = {
-  _id: string;
-  senderId?: string;
-  senderProfile?: { name?: string; profileImage?: string };
-  message?: string;
-  createdAt?: string;
-};
-
 export default function ExperienceDetailPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -97,11 +96,6 @@ export default function ExperienceDetailPage() {
   const [error, setError] = useState("");
   const [bookingInfo, setBookingInfo] = useState<Booking | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [chatLoading, setChatLoading] = useState(false);
-  const [chatError, setChatError] = useState("");
-  const [draft, setDraft] = useState("");
-  const [sending, setSending] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [reportError, setReportError] = useState("");
@@ -196,58 +190,6 @@ export default function ExperienceDetailPage() {
     if (!bookingInfo?.status) return false;
     return ["PAID", "COMPLETED", "DEPOSIT_PAID"].includes(bookingInfo.status);
   }, [bookingInfo?.status]);
-
-  useEffect(() => {
-    let active = true;
-    let interval: ReturnType<typeof setInterval> | undefined;
-    const loadMessages = async (silent = false) => {
-      if (!bookingInfo?._id || !chatAllowed) return;
-      if (!silent) setChatLoading(true);
-      try {
-        const data = await apiGet<ChatMessage[]>(`/messages/${bookingInfo._id}`);
-        if (active) {
-          setChatMessages(data || []);
-          setChatError("");
-        }
-      } catch (err) {
-        if (!active) return;
-        const status = (err as Error & { status?: number }).status;
-        if (status === 403) {
-          setChatError(t("chat_requires_payment"));
-        } else {
-          setChatError(t("chat_load_error"));
-        }
-      } finally {
-        if (active && !silent) setChatLoading(false);
-      }
-    };
-    if (bookingInfo?._id && chatAllowed) {
-      loadMessages();
-      interval = setInterval(() => {
-        loadMessages(true);
-      }, 8000);
-    }
-    return () => {
-      active = false;
-      if (interval) clearInterval(interval);
-    };
-  }, [bookingInfo?._id, chatAllowed, t]);
-
-  const onSendMessage = async () => {
-    if (!bookingInfo?._id || !draft.trim()) return;
-    setSending(true);
-    try {
-      const created = await apiPost<ChatMessage>(`/messages/${bookingInfo._id}`, { message: draft.trim() });
-      setChatMessages((prev) => [...prev, created]);
-      setDraft("");
-      setChatError("");
-    } catch (err) {
-      const status = (err as Error & { status?: number }).status;
-      setChatError(status === 403 ? t("chat_requires_payment") : t("chat_send_error"));
-    } finally {
-      setSending(false);
-    }
-  };
 
   const onReportExperience = async ({ reason, comment }: { reason: string; comment: string }) => {
     if (!item?._id) return;
@@ -376,6 +318,18 @@ export default function ExperienceDetailPage() {
 
   const start = item.startsAt || item.startDate;
   const end = item.endsAt;
+  const location = item.location || {};
+  const streetLine = [location.street, location.streetNumber].filter(Boolean).join(" ").trim();
+  const cityLine = location.city || item.city;
+  const countryLine = location.country || item.country;
+  const addressLines = [
+    streetLine,
+    cityLine,
+    countryLine,
+  ].filter(Boolean) as string[];
+  if (!addressLines.length && item.address) {
+    addressLines.push(item.address);
+  }
   const dateFormatter = new Intl.DateTimeFormat(lang === "en" ? "en-US" : "ro-RO", {
     day: "numeric",
     month: "long",
@@ -387,10 +341,16 @@ export default function ExperienceDetailPage() {
   const endLabel = end ? dateFormatter.format(new Date(end)) : "";
   const priceText = !item.price || Number(item.price) <= 0 ? t("experiences_free") : `${item.price} ${item.currencyCode || "RON"}`;
   const isHost = user?.role === "HOST" || user?.role === "BOTH";
-  const otherUserName = isHost
-    ? bookingInfo?.explorer?.name || bookingInfo?.explorer?.email
-    : bookingInfo?.host?.name || bookingInfo?.host?.email;
   const bookingDisabled = booking || (item.activityType === "GROUP" && availableSeats <= 0);
+  const chatDisabledReason = !user
+    ? t("chat_login_prompt")
+    : bookingLoading
+      ? t("chat_loading_booking")
+      : !bookingInfo
+        ? t("chat_no_booking")
+        : !chatAllowed
+          ? t("chat_requires_payment")
+          : "";
   return (
     <div className={styles.page}>
       <div className={styles.hero}>
@@ -460,16 +420,28 @@ export default function ExperienceDetailPage() {
           <p className={styles.subtitle}>{item.shortDescription || item.description}</p>
           <div className={styles.metaGrid}>
             <div>
-              <span>{t("experience_location")}</span>
-              <strong>{item.city || ""} {item.country || item.address || ""}</strong>
-            </div>
-            <div>
               <span>{t("experience_start")}</span>
               <strong>{startLabel || t("experience_flexible")}</strong>
             </div>
             <div>
               <span>{t("experience_end")}</span>
               <strong>{endLabel || "—"}</strong>
+            </div>
+            <div>
+              <span>{t("experience_duration")}</span>
+              <strong>{formatDuration(item.durationMinutes, lang) || "—"}</strong>
+            </div>
+            <div>
+              <span>{t("experience_location")}</span>
+              <strong className={styles.address}>
+                {addressLines.length
+                  ? addressLines.map((line) => (
+                      <span key={line} className={styles.addressLine}>
+                        {line}
+                      </span>
+                    ))
+                  : "—"}
+              </strong>
             </div>
             <div>
               <span>{t("experience_type")}</span>
@@ -481,10 +453,6 @@ export default function ExperienceDetailPage() {
                 <strong>{formatGroupInfo(item, lang) || "—"}</strong>
               </div>
             ) : null}
-            <div>
-              <span>{t("experience_duration")}</span>
-              <strong>{formatDuration(item.durationMinutes, lang) || "—"}</strong>
-            </div>
           </div>
           <div className={styles.priceRow}>
             <div className={styles.price}>{priceText}</div>
@@ -520,6 +488,15 @@ export default function ExperienceDetailPage() {
           <button className="button" type="button" onClick={onBook} disabled={bookingDisabled}>
             {booking ? t("experience_booking") : t("experience_book")}
           </button>
+          <button
+            className="button"
+            type="button"
+            onClick={() => bookingInfo?._id && router.push(`/messages/${bookingInfo._id}`)}
+            disabled={!chatAllowed}
+          >
+            {t("chat_open")}
+          </button>
+          {!chatAllowed ? <div className={styles.chatHint}>{chatDisabledReason}</div> : null}
         </div>
       </div>
 
@@ -563,79 +540,6 @@ export default function ExperienceDetailPage() {
             </div>
           </section>
         </div>
-
-        <aside className={styles.chatPanel}>
-          <div className={styles.chatHeader}>
-            <div className={styles.chatKicker}>{t("chat_kicker")}</div>
-            <div className={styles.chatTitle}>{t("chat_title")}</div>
-            <div className={styles.chatSubtitle}>
-              {otherUserName ? `${t("chat_with")} ${otherUserName}` : t("chat_subtitle")}
-            </div>
-          </div>
-
-          <div className={styles.chatBody}>
-            {!user ? (
-              <div className={styles.chatHint}>{t("chat_login_prompt")}</div>
-            ) : bookingLoading ? (
-              <div className={styles.chatHint}>{t("chat_loading_booking")}</div>
-            ) : !bookingInfo ? (
-              <div className={styles.chatHint}>{t("chat_no_booking")}</div>
-            ) : !chatAllowed ? (
-              <div className={styles.chatHint}>{t("chat_requires_payment")}</div>
-            ) : chatLoading ? (
-              <div className={styles.chatHint}>{t("chat_loading")}</div>
-            ) : chatMessages.length === 0 ? (
-              <div className={styles.chatHint}>{t("chat_empty")}</div>
-            ) : (
-              <div className={styles.chatMessages}>
-                {chatMessages.map((msg) => {
-                  const isMine = msg.senderId && user?._id && msg.senderId === user._id;
-                  const timestamp = msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString(lang === "en" ? "en-US" : "ro-RO", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }) : "";
-                  return (
-                    <div key={msg._id} className={`${styles.chatRow} ${isMine ? styles.chatRowMine : ""}`}>
-                      {!isMine ? (
-                        <div className={styles.chatAvatar}>
-                          {msg.senderProfile?.profileImage ? (
-                            <img src={msg.senderProfile.profileImage} alt={msg.senderProfile?.name || "avatar"} />
-                          ) : (
-                            <span>{(msg.senderProfile?.name || "?").slice(0, 1).toUpperCase()}</span>
-                          )}
-                        </div>
-                      ) : null}
-                      <div className={styles.chatBubble}>
-                        <div className={styles.chatText}>{msg.message}</div>
-                        {timestamp ? <div className={styles.chatTime}>{timestamp}</div> : null}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className={styles.chatComposer}>
-            <input
-              type="text"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              placeholder={t("chat_placeholder")}
-              disabled={!user || !bookingInfo || !chatAllowed || sending}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  onSendMessage();
-                }
-              }}
-            />
-            <button type="button" onClick={onSendMessage} disabled={!draft.trim() || sending || !chatAllowed}>
-              {sending ? t("chat_sending") : t("chat_send")}
-            </button>
-            {chatError ? <div className={styles.chatError}>{chatError}</div> : null}
-          </div>
-        </aside>
       </div>
 
       <div className={styles.reportRow}>

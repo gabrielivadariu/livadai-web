@@ -30,6 +30,9 @@ type Experience = {
   durationMinutes?: number;
   environment?: string;
   activityType?: string;
+  maxParticipants?: number;
+  remainingSpots?: number;
+  availableSpots?: number;
   host?: { _id?: string; name?: string; displayName?: string; profilePhoto?: string; avatar?: string };
 };
 
@@ -53,6 +56,16 @@ const formatDuration = (minutes: number | undefined, lang: string) => {
   const daysLabel = days === 1 ? units.day : units.days;
   const hoursLabel = hours === 1 ? units.hour : units.hours;
   return hours ? `${days} ${daysLabel} ${hours} ${hoursLabel}` : `${days} ${daysLabel}`;
+};
+
+const formatGroupInfo = (item: Experience, lang: string) => {
+  if (item.activityType !== "GROUP") return "";
+  const total = item.maxParticipants || 0;
+  const available = item.availableSpots ?? item.remainingSpots ?? item.maxParticipants;
+  if (!total || typeof available !== "number") return "";
+  const occupied = Math.max(0, total - available);
+  const people = lang === "en" ? "participants" : "participanți";
+  return `${occupied} / ${total} ${people}`;
 };
 
 type Booking = {
@@ -433,6 +446,12 @@ export default function ExperienceDetailPage() {
               <span>{t("experience_type")}</span>
               <strong>{item.activityType || "INDIVIDUAL"}</strong>
             </div>
+            {item.activityType === "GROUP" ? (
+              <div>
+                <span>{lang === "en" ? "Participants" : "Participanți"}</span>
+                <strong>{formatGroupInfo(item, lang) || "—"}</strong>
+              </div>
+            ) : null}
             <div>
               <span>{t("experience_duration")}</span>
               <strong>{formatDuration(item.durationMinutes, lang) || "—"}</strong>

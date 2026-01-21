@@ -26,6 +26,10 @@ type Experience = {
   startsAt?: string;
   startDate?: string;
   durationMinutes?: number;
+  activityType?: string;
+  maxParticipants?: number;
+  remainingSpots?: number;
+  availableSpots?: number;
 };
 
 const formatDuration = (minutes: number | undefined, lang: string) => {
@@ -143,6 +147,7 @@ export default function ExperiencesPage() {
             const start = item.startsAt || item.startDate;
             const dateLabel = start ? new Date(start).toLocaleDateString(lang === "en" ? "en-US" : "ro-RO", { day: "numeric", month: "short" }) : "";
             const durationLabel = formatDuration(item.durationMinutes, lang);
+            const groupLabel = formatGroupInfo(item);
             return (
               <Link key={item._id} href={`/experiences/${item._id}`} className={styles.card}>
                 {item.coverImageUrl ? (
@@ -167,6 +172,7 @@ export default function ExperiencesPage() {
                     {dateLabel ? <span>📅 {dateLabel}</span> : null}
                     {item.languages?.length ? <span>🗣 {item.languages.slice(0, 2).join(" · ")}</span> : null}
                     {durationLabel ? <span>⏱ {durationLabel}</span> : null}
+                    {groupLabel ? <span>{groupLabel}</span> : null}
                     {item.rating_avg ? <span className={styles.rating}>⭐ {Number(item.rating_avg).toFixed(1)}</span> : null}
                   </div>
                 </div>
@@ -187,3 +193,13 @@ export default function ExperiencesPage() {
     </div>
   );
 }
+  const formatGroupInfo = (item: Experience) => {
+    if (item.activityType !== "GROUP") return "";
+    const total = item.maxParticipants || 0;
+    const available = item.availableSpots ?? item.remainingSpots ?? item.maxParticipants;
+    if (!total || typeof available !== "number") return "";
+    const occupied = Math.max(0, total - available);
+    const label = lang === "en" ? "Group" : "Grup";
+    const people = lang === "en" ? "participants" : "participanți";
+    return `👥 ${label} · ${occupied} / ${total} ${people}`;
+  };

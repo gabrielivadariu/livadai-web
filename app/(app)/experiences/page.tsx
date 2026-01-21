@@ -54,6 +54,17 @@ const formatDuration = (minutes: number | undefined, lang: string) => {
   return hours ? `${days} ${daysLabel} ${hours} ${hoursLabel}` : `${days} ${daysLabel}`;
 };
 
+const formatGroupInfo = (item: Experience, lang: string) => {
+  if (item.activityType !== "GROUP") return "";
+  const total = item.maxParticipants || 0;
+  const available = item.availableSpots ?? item.remainingSpots ?? item.maxParticipants;
+  if (!total || typeof available !== "number") return "";
+  const occupied = Math.max(0, total - available);
+  const label = lang === "en" ? "Group" : "Grup";
+  const people = lang === "en" ? "participants" : "participanți";
+  return `👥 ${label} · ${occupied} / ${total} ${people}`;
+};
+
 export default function ExperiencesPage() {
   const { lang } = useLang();
   const t = useT();
@@ -147,7 +158,7 @@ export default function ExperiencesPage() {
             const start = item.startsAt || item.startDate;
             const dateLabel = start ? new Date(start).toLocaleDateString(lang === "en" ? "en-US" : "ro-RO", { day: "numeric", month: "short" }) : "";
             const durationLabel = formatDuration(item.durationMinutes, lang);
-            const groupLabel = formatGroupInfo(item);
+            const groupLabel = formatGroupInfo(item, lang);
             return (
               <Link key={item._id} href={`/experiences/${item._id}`} className={styles.card}>
                 {item.coverImageUrl ? (
@@ -193,13 +204,3 @@ export default function ExperiencesPage() {
     </div>
   );
 }
-  const formatGroupInfo = (item: Experience) => {
-    if (item.activityType !== "GROUP") return "";
-    const total = item.maxParticipants || 0;
-    const available = item.availableSpots ?? item.remainingSpots ?? item.maxParticipants;
-    if (!total || typeof available !== "number") return "";
-    const occupied = Math.max(0, total - available);
-    const label = lang === "en" ? "Group" : "Grup";
-    const people = lang === "en" ? "participants" : "participanți";
-    return `👥 ${label} · ${occupied} / ${total} ${people}`;
-  };

@@ -92,6 +92,15 @@
   overflow-y: auto;
 }
 
+.chatBanner {
+  font-size: 12px;
+  color: #0f6d77;
+  background: #e6f4f6;
+  border: 1px solid #cfe7ec;
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+
 .chatMessages {
   display: grid;
   gap: 12px;

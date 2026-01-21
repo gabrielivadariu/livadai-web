@@ -11,6 +11,9 @@ import styles from "./chat.module.css";
 type Booking = {
   _id: string;
   status?: string;
+  chatArchivedAt?: string;
+  disputedAt?: string;
+  disputeResolvedAt?: string;
   experience?: { title?: string };
   explorer?: { name?: string; displayName?: string; avatar?: string; profilePhoto?: string };
   host?: { name?: string; displayName?: string; avatar?: string; profilePhoto?: string };
@@ -97,10 +100,29 @@ export default function ChatPage() {
     };
   }, [authLoading, resolvedBookingId, token]);
 
+  const chatArchived = useMemo(() => {
+    if (!booking?.chatArchivedAt) return false;
+    const archivedAt = new Date(booking.chatArchivedAt);
+    return !Number.isNaN(archivedAt.getTime()) && archivedAt <= new Date();
+  }, [booking?.chatArchivedAt]);
+
   const chatAllowed = useMemo(() => {
-    if (!booking?.status) return false;
-    return ["PAID", "COMPLETED", "DEPOSIT_PAID"].includes(booking.status);
-  }, [booking?.status]);
+    if (!booking?.status || chatArchived) return false;
+    return ["PAID", "COMPLETED", "DEPOSIT_PAID", "PENDING_ATTENDANCE", "AUTO_COMPLETED", "NO_SHOW", "DISPUTED"].includes(
+      booking.status
+    );
+  }, [booking?.status, chatArchived]);
+
+  const chatBanner = useMemo(() => {
+    if (!booking?._id || chatArchived) return null;
+    if (booking.status === "DISPUTED") {
+      return "Chatul rămâne activ până la rezolvarea disputei.";
+    }
+    if (booking.disputeResolvedAt) {
+      return "Chatul va fi disponibil încă 72h după rezolvarea disputei.";
+    }
+    return "Acest chat va fi disponibil timp de 48h după experiență.";
+  }, [booking, chatArchived]);
 
   const otherUserName = useMemo(() => {
     if (!booking && !conversation) return "";
@@ -135,7 +157,7 @@ export default function ChatPage() {
         if (!active) return;
         const status = (err as Error & { status?: number }).status;
         if (status === 403) {
-          setChatError(getMessage(lang, "chat_requires_payment"));
+          setChatError(chatArchived ? "Acest chat a fost arhivat." : getMessage(lang, "chat_requires_payment"));
         } else {
           setChatError(getMessage(lang, "chat_load_error"));
         }
@@ -166,7 +188,11 @@ export default function ChatPage() {
     } catch (err) {
       const status = (err as Error & { status?: number }).status;
       setChatError(
-        status === 403 ? getMessage(lang, "chat_requires_payment") : getMessage(lang, "chat_send_error")
+        status === 403
+          ? chatArchived
+            ? "Acest chat a fost arhivat."
+            : getMessage(lang, "chat_requires_payment")
+          : getMessage(lang, "chat_send_error")
       );
     } finally {
       setSending(false);
@@ -211,6 +237,8 @@ export default function ChatPage() {
             <div className={styles.chatHint}>{bookingError}</div>
           ) : !booking?._id ? (
             <div className={styles.chatHint}>{t("chat_no_booking")}</div>
+          ) : chatArchived ? (
+            <div className={styles.chatHint}>Acest chat a fost arhivat.</div>
           ) : !chatAllowed ? (
             <div className={styles.chatHint}>{t("chat_requires_payment")}</div>
           ) : chatLoading ? (
@@ -250,6 +278,8 @@ export default function ChatPage() {
             </div>
           )}
         </div>
+
+        {chatBanner ? <div className={styles.chatBanner}>{chatBanner}</div> : null}
 
         <div className={styles.chatComposer}>
           <div className={styles.composerRow}>

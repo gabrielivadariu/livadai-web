@@ -254,26 +254,40 @@ function CreateExperienceContent() {
   const scheduleState = useMemo(() => {
     const hasStart = !!form.startsAt;
     const hasEnd = !!form.endsAt;
-    const hasDuration = form.durationMinutes && Number(form.durationMinutes) > 0;
     const endAfterStart =
       hasStart && hasEnd ? new Date(form.endsAt).getTime() > new Date(form.startsAt).getTime() : true;
-    return { hasStart, hasEnd, hasDuration, endAfterStart };
-  }, [form.endsAt, form.startsAt, form.durationMinutes]);
+    return { hasStart, hasEnd, endAfterStart };
+  }, [form.endsAt, form.startsAt]);
 
   const canProceed = useMemo(() => {
     if (step === 1) return form.title && form.shortDescription && form.longDescription;
     if (step === 2) {
-      return scheduleState.hasStart && (scheduleState.hasEnd || scheduleState.hasDuration) && scheduleState.endAfterStart && form.city;
+      return scheduleState.hasStart && scheduleState.hasEnd && scheduleState.endAfterStart && form.city;
     }
     return true;
   }, [form, step, scheduleState]);
 
   const scheduleErrorText = useMemo(() => {
     if (!scheduleState.hasStart) return t("create_experience_schedule_required");
-    if (!scheduleState.hasEnd && !scheduleState.hasDuration) return t("create_experience_schedule_required");
+    if (!scheduleState.hasEnd) return t("create_experience_schedule_required");
     if (!scheduleState.endAfterStart) return t("create_experience_schedule_order");
     return "";
   }, [scheduleState, t]);
+
+  useEffect(() => {
+    if (!form.startsAt || !form.endsAt) {
+      setForm((f) => ({ ...f, durationMinutes: "" }));
+      return;
+    }
+    const start = new Date(form.startsAt).getTime();
+    const end = new Date(form.endsAt).getTime();
+    if (Number.isNaN(start) || Number.isNaN(end) || end <= start) {
+      setForm((f) => ({ ...f, durationMinutes: "" }));
+      return;
+    }
+    const diffMinutes = Math.round((end - start) / 60000);
+    setForm((f) => ({ ...f, durationMinutes: diffMinutes ? String(diffMinutes) : "" }));
+  }, [form.startsAt, form.endsAt]);
 
   const onSubmit = async () => {
     setLoading(true);
@@ -446,7 +460,7 @@ function CreateExperienceContent() {
             </div>
             <div>
               <label>{t("create_experience_duration")}</label>
-              <input className="input" type="number" value={form.durationMinutes} onChange={(e) => onChange("durationMinutes", e.target.value)} />
+              <input className="input" type="number" value={form.durationMinutes} readOnly />
             </div>
             <div className={styles.full}>
               <div className={styles.scheduleHint}>{t("create_experience_schedule_hint")}</div>

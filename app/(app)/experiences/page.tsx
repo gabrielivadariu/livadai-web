@@ -28,19 +28,26 @@ type Experience = {
   durationMinutes?: number;
 };
 
-const formatDuration = (minutes?: number) => {
+const formatDuration = (minutes: number | undefined, lang: string) => {
   const total = Number(minutes);
   if (!total || Number.isNaN(total)) return "";
-  if (total < 60) return `${total} min`;
+  const isEn = lang === "en";
+  const units = isEn
+    ? { min: "min", hour: "hour", hours: "hours", day: "day", days: "days" }
+    : { min: "min", hour: "oră", hours: "ore", day: "zi", days: "zile" };
+  if (total < 60) return `${total} ${units.min}`;
   if (total < 1440) {
     const hours = Math.floor(total / 60);
     const mins = total % 60;
-    return mins ? `${hours} ore ${mins} min` : `${hours} ore`;
+    const hoursLabel = hours === 1 ? units.hour : units.hours;
+    return mins ? `${hours} ${hoursLabel} ${mins} ${units.min}` : `${hours} ${hoursLabel}`;
   }
   const days = Math.floor(total / 1440);
   const remaining = total % 1440;
   const hours = Math.floor(remaining / 60);
-  return hours ? `${days} zile ${hours} ore` : `${days} zile`;
+  const daysLabel = days === 1 ? units.day : units.days;
+  const hoursLabel = hours === 1 ? units.hour : units.hours;
+  return hours ? `${days} ${daysLabel} ${hours} ${hoursLabel}` : `${days} ${daysLabel}`;
 };
 
 export default function ExperiencesPage() {
@@ -135,7 +142,7 @@ export default function ExperiencesPage() {
             const priceText = isFree ? t("experiences_free") : `${item.price || 0} ${item.currencyCode || "RON"}`;
             const start = item.startsAt || item.startDate;
             const dateLabel = start ? new Date(start).toLocaleDateString(lang === "en" ? "en-US" : "ro-RO", { day: "numeric", month: "short" }) : "";
-            const durationLabel = formatDuration(item.durationMinutes);
+            const durationLabel = formatDuration(item.durationMinutes, lang);
             return (
               <Link key={item._id} href={`/experiences/${item._id}`} className={styles.card}>
                 {item.coverImageUrl ? (

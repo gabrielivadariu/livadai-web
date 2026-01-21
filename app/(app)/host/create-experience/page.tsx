@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
+import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
 import styles from "./create-experience.module.css";
 
@@ -113,6 +114,7 @@ const initialForm: FormState = {
 
 function CreateExperienceContent() {
   const t = useT();
+  const { lang } = useLang();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
@@ -277,16 +279,23 @@ function CreateExperienceContent() {
   const formatDuration = (minutesValue: string) => {
     const minutes = Number(minutesValue);
     if (!minutes || Number.isNaN(minutes)) return "";
-    if (minutes < 60) return `${minutes} min`;
+    const isEn = lang === "en";
+    const units = isEn
+      ? { min: "min", hour: "hour", hours: "hours", day: "day", days: "days" }
+      : { min: "min", hour: "oră", hours: "ore", day: "zi", days: "zile" };
+    if (minutes < 60) return `${minutes} ${units.min}`;
     if (minutes < 1440) {
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
-      return mins ? `${hours} ore ${mins} min` : `${hours} ore`;
+      const hoursLabel = hours === 1 ? units.hour : units.hours;
+      return mins ? `${hours} ${hoursLabel} ${mins} ${units.min}` : `${hours} ${hoursLabel}`;
     }
     const days = Math.floor(minutes / 1440);
     const remaining = minutes % 1440;
     const hours = Math.floor(remaining / 60);
-    return hours ? `${days} zile ${hours} ore` : `${days} zile`;
+    const daysLabel = days === 1 ? units.day : units.days;
+    const hoursLabel = hours === 1 ? units.hour : units.hours;
+    return hours ? `${days} ${daysLabel} ${hours} ${hoursLabel}` : `${days} ${daysLabel}`;
   };
 
   useEffect(() => {

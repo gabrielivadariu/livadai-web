@@ -33,6 +33,21 @@ type Experience = {
   host?: { _id?: string; name?: string; displayName?: string; profilePhoto?: string; avatar?: string };
 };
 
+const formatDuration = (minutes?: number) => {
+  const total = Number(minutes);
+  if (!total || Number.isNaN(total)) return "";
+  if (total < 60) return `${total} min`;
+  if (total < 1440) {
+    const hours = Math.floor(total / 60);
+    const mins = total % 60;
+    return mins ? `${hours} ore ${mins} min` : `${hours} ore`;
+  }
+  const days = Math.floor(total / 1440);
+  const remaining = total % 1440;
+  const hours = Math.floor(remaining / 60);
+  return hours ? `${days} zile ${hours} ore` : `${days} zile`;
+};
+
 type Booking = {
   _id: string;
   status?: string;
@@ -413,7 +428,7 @@ export default function ExperienceDetailPage() {
             </div>
             <div>
               <span>{t("experience_duration")}</span>
-              <strong>{item.durationMinutes ? `${item.durationMinutes} ${t("experience_minutes")}` : "—"}</strong>
+              <strong>{formatDuration(item.durationMinutes) || "—"}</strong>
             </div>
           </div>
           <div className={styles.priceRow}>

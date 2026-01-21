@@ -28,6 +28,21 @@ type Experience = {
   durationMinutes?: number;
 };
 
+const formatDuration = (minutes?: number) => {
+  const total = Number(minutes);
+  if (!total || Number.isNaN(total)) return "";
+  if (total < 60) return `${total} min`;
+  if (total < 1440) {
+    const hours = Math.floor(total / 60);
+    const mins = total % 60;
+    return mins ? `${hours} ore ${mins} min` : `${hours} ore`;
+  }
+  const days = Math.floor(total / 1440);
+  const remaining = total % 1440;
+  const hours = Math.floor(remaining / 60);
+  return hours ? `${days} zile ${hours} ore` : `${days} zile`;
+};
+
 export default function ExperiencesPage() {
   const { lang } = useLang();
   const t = useT();
@@ -120,6 +135,7 @@ export default function ExperiencesPage() {
             const priceText = isFree ? t("experiences_free") : `${item.price || 0} ${item.currencyCode || "RON"}`;
             const start = item.startsAt || item.startDate;
             const dateLabel = start ? new Date(start).toLocaleDateString(lang === "en" ? "en-US" : "ro-RO", { day: "numeric", month: "short" }) : "";
+            const durationLabel = formatDuration(item.durationMinutes);
             return (
               <Link key={item._id} href={`/experiences/${item._id}`} className={styles.card}>
                 {item.coverImageUrl ? (
@@ -143,6 +159,7 @@ export default function ExperiencesPage() {
                   <div className={styles.cardMeta}>
                     {dateLabel ? <span>📅 {dateLabel}</span> : null}
                     {item.languages?.length ? <span>🗣 {item.languages.slice(0, 2).join(" · ")}</span> : null}
+                    {durationLabel ? <span>⏱ {durationLabel}</span> : null}
                     {item.rating_avg ? <span className={styles.rating}>⭐ {Number(item.rating_avg).toFixed(1)}</span> : null}
                   </div>
                 </div>

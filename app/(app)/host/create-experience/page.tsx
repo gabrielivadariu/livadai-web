@@ -274,6 +274,21 @@ function CreateExperienceContent() {
     return "";
   }, [scheduleState, t]);
 
+  const formatDuration = (minutesValue: string) => {
+    const minutes = Number(minutesValue);
+    if (!minutes || Number.isNaN(minutes)) return "";
+    if (minutes < 60) return `${minutes} min`;
+    if (minutes < 1440) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return mins ? `${hours} ore ${mins} min` : `${hours} ore`;
+    }
+    const days = Math.floor(minutes / 1440);
+    const remaining = minutes % 1440;
+    const hours = Math.floor(remaining / 60);
+    return hours ? `${days} zile ${hours} ore` : `${days} zile`;
+  };
+
   useEffect(() => {
     if (!form.startsAt || !form.endsAt) {
       setForm((f) => ({ ...f, durationMinutes: "" }));
@@ -460,7 +475,7 @@ function CreateExperienceContent() {
             </div>
             <div>
               <label>{t("create_experience_duration")}</label>
-              <input className="input" type="number" value={form.durationMinutes} readOnly />
+              <input className="input" value={formatDuration(form.durationMinutes)} readOnly />
             </div>
             <div className={styles.full}>
               <div className={styles.scheduleHint}>{t("create_experience_schedule_hint")}</div>

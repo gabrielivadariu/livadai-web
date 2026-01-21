@@ -330,6 +330,10 @@ export default function ExperienceDetailPage() {
 
   const onBook = async () => {
     if (!item?._id) return;
+    if (user?._id && item.host?._id && user._id === item.host._id) {
+      setError(t("experience_book_own"));
+      return;
+    }
     setBooking(true);
     setError("");
     try {
@@ -344,7 +348,12 @@ export default function ExperienceDetailPage() {
         setError(t("experience_payment_error"));
       }
     } catch (err) {
-      setError((err as Error).message || t("experience_payment_error"));
+      const message = (err as Error).message || "";
+      if (message.toLowerCase().includes("own experience")) {
+        setError(t("experience_book_own"));
+      } else {
+        setError(message || t("experience_payment_error"));
+      }
     } finally {
       setBooking(false);
     }

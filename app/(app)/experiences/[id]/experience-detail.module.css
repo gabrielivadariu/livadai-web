@@ -141,6 +141,45 @@
   margin-bottom: 12px;
 }
 
+.quantityRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.quantityControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.qtyButton {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid #d7eef2;
+  background: #f2fbfd;
+  color: var(--primary-dark);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qtyButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.qtyValue {
+  min-width: 24px;
+  text-align: center;
+  color: var(--text);
+  font-weight: 700;
+}
+
 .price {
   font-size: 24px;
   font-weight: 800;

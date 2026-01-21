@@ -108,6 +108,7 @@ export default function ExperienceDetailPage() {
   const [reportSuccess, setReportSuccess] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [quantity, setQuantity] = useState(1);
   const carouselRef = useRef<HTMLDivElement | null>(null);
   const lightboxRef = useRef<HTMLDivElement | null>(null);
 
@@ -291,6 +292,23 @@ export default function ExperienceDetailPage() {
     setActiveIndex(Math.max(0, Math.min(idx, mediaImages.length - 1)));
   };
 
+  const totalSeats = item?.maxParticipants ?? 0;
+  const availableSeats =
+    typeof item?.availableSpots === "number"
+      ? item.availableSpots
+      : typeof item?.remainingSpots === "number"
+        ? item.remainingSpots
+        : totalSeats;
+  const maxQuantity = item?.activityType === "GROUP" ? Math.max(1, availableSeats || totalSeats || 1) : 1;
+
+  useEffect(() => {
+    if (item?.activityType !== "GROUP") {
+      setQuantity(1);
+      return;
+    }
+    setQuantity((prev) => Math.min(Math.max(prev, 1), maxQuantity));
+  }, [item?.activityType, maxQuantity]);
+
   useEffect(() => {
     if (!lightboxOpen) return;
     const onKey = (event: KeyboardEvent) => {
@@ -315,9 +333,10 @@ export default function ExperienceDetailPage() {
     setBooking(true);
     setError("");
     try {
-      const res = await apiPost<{ checkoutUrl?: string }>("/stripe/checkout", {
+      const seatCount = item.activityType === "GROUP" ? quantity : 1;
+      const res = await apiPost<{ checkoutUrl?: string }>("/payments/create-checkout", {
         experienceId: item._id,
-        quantity: 1,
+        quantity: seatCount,
       });
       if (res?.checkoutUrl) {
         window.location.href = res.checkoutUrl;
@@ -362,6 +381,7 @@ export default function ExperienceDetailPage() {
   const otherUserName = isHost
     ? bookingInfo?.explorer?.name || bookingInfo?.explorer?.email
     : bookingInfo?.host?.name || bookingInfo?.host?.email;
+  const bookingDisabled = booking || (item.activityType === "GROUP" && availableSeats <= 0);
   return (
     <div className={styles.page}>
       <div className={styles.hero}>
@@ -461,8 +481,34 @@ export default function ExperienceDetailPage() {
             <div className={styles.price}>{priceText}</div>
             {item.rating_avg ? <div className={styles.rating}>⭐ {Number(item.rating_avg).toFixed(1)}</div> : null}
           </div>
+          {item.activityType === "GROUP" ? (
+            <div className={styles.quantityRow}>
+              <span>{lang === "en" ? "Seats" : "Locuri"}</span>
+              <div className={styles.quantityControls}>
+                <button
+                  className={styles.qtyButton}
+                  type="button"
+                  onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                  disabled={quantity <= 1}
+                  aria-label={lang === "en" ? "Decrease seats" : "Scade locuri"}
+                >
+                  -
+                </button>
+                <span className={styles.qtyValue}>{quantity}</span>
+                <button
+                  className={styles.qtyButton}
+                  type="button"
+                  onClick={() => setQuantity((prev) => Math.min(maxQuantity, prev + 1))}
+                  disabled={quantity >= maxQuantity}
+                  aria-label={lang === "en" ? "Increase seats" : "Creste locuri"}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          ) : null}
           {error ? <div className={styles.error}>{error}</div> : null}
-          <button className="button" type="button" onClick={onBook} disabled={booking}>
+          <button className="button" type="button" onClick={onBook} disabled={bookingDisabled}>
             {booking ? t("experience_booking") : t("experience_book")}
           </button>
         </div>

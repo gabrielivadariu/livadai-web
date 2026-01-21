@@ -6,12 +6,14 @@ import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
 import styles from "./host-bookings.module.css";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type Booking = {
   _id: string;
   status?: string;
   date?: string;
   timeSlot?: string;
+  quantity?: number;
   explorer?: { _id?: string; name?: string; email?: string };
   experience?: { title?: string; startDate?: string; startsAt?: string };
 };
@@ -19,6 +21,7 @@ type Booking = {
 export default function HostBookingsPage() {
   const { lang } = useLang();
   const t = useT();
+  const router = useRouter();
   const [items, setItems] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,7 +59,18 @@ export default function HostBookingsPage() {
           {items.map((b) => {
             const dateLabel = b.experience?.startsAt || b.experience?.startDate || b.date;
             return (
-              <div key={b._id} className={styles.card}>
+              <div
+                key={b._id}
+                className={styles.card}
+                role="button"
+                tabIndex={0}
+                onClick={() => router.push(`/host/bookings/${b._id}`)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    router.push(`/host/bookings/${b._id}`);
+                  }
+                }}
+              >
                 <div>
                   <div className={styles.title}>{b.experience?.title || t("common_experience")}</div>
                   <div className={styles.meta}>
@@ -65,10 +79,18 @@ export default function HostBookingsPage() {
                   <div className={styles.meta}>
                     {t("host_bookings_explorer")}:{" "}
                     {b.explorer?._id ? (
-                      <Link href={`/users/${b.explorer._id}`}>{b.explorer?.name || b.explorer?.email || "—"}</Link>
+                      <Link
+                        href={`/users/${b.explorer._id}`}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        {b.explorer?.name || b.explorer?.email || "—"}
+                      </Link>
                     ) : (
                       b.explorer?.name || b.explorer?.email || "—"
                     )}
+                  </div>
+                  <div className={styles.meta}>
+                    {t("host_bookings_seats")}: {b.quantity || 1}
                   </div>
                 </div>
                 <div className={styles.status}>{b.status || "STATUS"}</div>

@@ -319,17 +319,13 @@ export default function ExperienceDetailPage() {
   const start = item.startsAt || item.startDate;
   const end = item.endsAt;
   const location = item.location || {};
+  const formattedAddress = location.formattedAddress || item.address || "";
   const streetLine = [location.street, location.streetNumber].filter(Boolean).join(" ").trim();
   const cityLine = location.city || item.city;
   const countryLine = location.country || item.country;
-  const addressLines = [
-    streetLine,
-    cityLine,
-    countryLine,
-  ].filter(Boolean) as string[];
-  if (!addressLines.length && item.address) {
-    addressLines.push(item.address);
-  }
+  const addressLines = formattedAddress
+    ? [formattedAddress]
+    : ([streetLine, cityLine, countryLine].filter(Boolean) as string[]);
   const dateFormatter = new Intl.DateTimeFormat(lang === "en" ? "en-US" : "ro-RO", {
     day: "numeric",
     month: "long",
@@ -432,6 +428,18 @@ export default function ExperienceDetailPage() {
               <strong>{formatDuration(item.durationMinutes, lang) || "—"}</strong>
             </div>
             <div>
+              <span>{t("experience_type")}</span>
+              <strong>{item.activityType || "INDIVIDUAL"}</strong>
+            </div>
+            <div>
+              <span>{t("experience_seats_label")}</span>
+              <strong>
+                {item.activityType === "GROUP"
+                  ? `${formatGroupInfo(item, lang) || "—"}${typeof availableSeats === "number" ? ` · ${t("experience_spots_left", { count: availableSeats })}` : ""}`
+                  : t("experience_single_seat")}
+              </strong>
+            </div>
+            <div>
               <span>{t("experience_location")}</span>
               <strong className={styles.address}>
                 {addressLines.length
@@ -443,16 +451,6 @@ export default function ExperienceDetailPage() {
                   : "—"}
               </strong>
             </div>
-            <div>
-              <span>{t("experience_type")}</span>
-              <strong>{item.activityType || "INDIVIDUAL"}</strong>
-            </div>
-            {item.activityType === "GROUP" ? (
-              <div>
-                <span>{lang === "en" ? "Participants" : "Participanți"}</span>
-                <strong>{formatGroupInfo(item, lang) || "—"}</strong>
-              </div>
-            ) : null}
           </div>
           <div className={styles.priceRow}>
             <div className={styles.price}>{priceText}</div>

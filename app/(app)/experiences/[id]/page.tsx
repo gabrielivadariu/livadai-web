@@ -435,7 +435,7 @@ export default function ExperienceDetailPage() {
               <span>{t("experience_seats_label")}</span>
               <strong>
                 {item.activityType === "GROUP"
-                  ? `${formatGroupInfo(item, lang) || "—"}${typeof availableSeats === "number" ? ` · ${t("experience_spots_left", { count: availableSeats })}` : ""}`
+                  ? `${formatGroupInfo(item, lang) || "—"}${typeof availableSeats === "number" ? ` · ${t("experience_spots_left").replace("{{count}}", String(availableSeats))}` : ""}`
                   : t("experience_single_seat")}
               </strong>
             </div>

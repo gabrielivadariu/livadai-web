@@ -103,6 +103,7 @@ export default function ExperienceDetailPage() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const bookingPollRef = useRef<NodeJS.Timeout | null>(null);
   const carouselRef = useRef<HTMLDivElement | null>(null);
   const lightboxRef = useRef<HTMLDivElement | null>(null);
 
@@ -207,6 +208,35 @@ export default function ExperienceDetailPage() {
     ]).has(bookingInfo.status);
   }, [bookingInfo?.status]);
 
+  useEffect(() => {
+    const bookingId = searchParams?.get("bookingId");
+    if (!bookingId || !bookingInfo?._id || bookingInfo.status === "PAID" || bookingInfo.status === "DEPOSIT_PAID") {
+      if (bookingPollRef.current) {
+        clearTimeout(bookingPollRef.current);
+        bookingPollRef.current = null;
+      }
+      return;
+    }
+    bookingPollRef.current = setTimeout(async () => {
+      try {
+        const refreshed = await apiGet<Booking>(`/bookings/${bookingId}`);
+        const exp = refreshed?.experience;
+        const expId = typeof exp === "string" ? exp : exp?._id;
+        if (expId === item?._id) {
+          setBookingInfo(refreshed);
+        }
+      } catch {
+        // ignore
+      }
+    }, 4000);
+    return () => {
+      if (bookingPollRef.current) {
+        clearTimeout(bookingPollRef.current);
+        bookingPollRef.current = null;
+      }
+    };
+  }, [bookingInfo?._id, bookingInfo?.status, item?._id, searchParams]);
+
   const onReportExperience = async ({ reason, comment }: { reason: string; comment: string }) => {
     if (!item?._id) return;
     setReporting(true);
@@ -301,6 +331,12 @@ export default function ExperienceDetailPage() {
         quantity: seatCount,
       });
       if (res?.checkoutUrl) {
+        if (res.bookingId) {
+          window.localStorage.setItem(
+            "livadai_last_booking",
+            JSON.stringify({ bookingId: res.bookingId, experienceId: item._id, ts: Date.now() })
+          );
+        }
         window.location.href = res.checkoutUrl;
       } else {
         setError(t("experience_payment_error"));

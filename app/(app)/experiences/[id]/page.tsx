@@ -326,7 +326,7 @@ export default function ExperienceDetailPage() {
     setError("");
     try {
       const seatCount = item.activityType === "GROUP" ? quantity : 1;
-      const res = await apiPost<{ checkoutUrl?: string }>("/payments/create-checkout", {
+      const res = await apiPost<{ checkoutUrl?: string; bookingId?: string }>("/payments/create-checkout", {
         experienceId: item._id,
         quantity: seatCount,
       });

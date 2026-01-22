@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiGet } from "@/lib/api";
 import { useT } from "@/lib/i18n";
@@ -12,7 +12,7 @@ type Booking = {
   experience?: { _id?: string };
 };
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useT();
@@ -64,5 +64,13 @@ export default function PaymentSuccessPage() {
         <div className={styles.note}>{t("payment_success_redirect")}</div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={null}>
+      <PaymentSuccessContent />
+    </Suspense>
   );
 }

@@ -487,7 +487,7 @@ export default function ExperienceDetailPage() {
             {booking ? t("experience_booking") : t("experience_book")}
           </button>
           <button
-            className={styles.secondaryButton}
+            className={styles.chatLink}
             type="button"
             onClick={() => bookingInfo?._id && router.push(`/messages/${bookingInfo._id}`)}
             disabled={!chatAllowed}

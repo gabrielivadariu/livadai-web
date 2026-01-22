@@ -373,18 +373,18 @@
   color: var(--muted);
 }
 
-.secondaryButton {
-  width: 100%;
-  border: 1px solid #bfe8ee;
-  border-radius: 999px;
-  padding: 10px 14px;
+.chatLink {
+  align-self: flex-start;
+  border: none;
   background: transparent;
   color: var(--primary-dark);
-  font-weight: 700;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 2px 0;
   cursor: pointer;
 }
 
-.secondaryButton:disabled {
+.chatLink:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }

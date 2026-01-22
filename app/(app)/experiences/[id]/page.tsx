@@ -164,7 +164,15 @@ export default function ExperienceDetailPage() {
           // ignore
         }
       }
-      const allowedStatuses = new Set(["PAID", "COMPLETED", "DEPOSIT_PAID"]);
+      const allowedStatuses = new Set([
+        "PAID",
+        "COMPLETED",
+        "DEPOSIT_PAID",
+        "PENDING_ATTENDANCE",
+        "AUTO_COMPLETED",
+        "NO_SHOW",
+        "DISPUTED",
+      ]);
       const allowedMatch = candidates.find((bk) => {
         const exp = bk.experience;
         const expId = typeof exp === "string" ? exp : exp?._id;
@@ -188,7 +196,15 @@ export default function ExperienceDetailPage() {
 
   const chatAllowed = useMemo(() => {
     if (!bookingInfo?.status) return false;
-    return ["PAID", "COMPLETED", "DEPOSIT_PAID"].includes(bookingInfo.status);
+    return new Set([
+      "PAID",
+      "COMPLETED",
+      "DEPOSIT_PAID",
+      "PENDING_ATTENDANCE",
+      "AUTO_COMPLETED",
+      "NO_SHOW",
+      "DISPUTED",
+    ]).has(bookingInfo.status);
   }, [bookingInfo?.status]);
 
   const onReportExperience = async ({ reason, comment }: { reason: string; comment: string }) => {

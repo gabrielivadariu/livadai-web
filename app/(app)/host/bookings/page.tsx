@@ -5,7 +5,6 @@ import { apiGet } from "@/lib/api";
 import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
 import styles from "./host-bookings.module.css";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 type Booking = {
@@ -15,7 +14,14 @@ type Booking = {
   timeSlot?: string;
   quantity?: number;
   explorer?: { _id?: string; name?: string; email?: string };
-  experience?: { title?: string; startDate?: string; startsAt?: string };
+  experience?: {
+    _id?: string;
+    title?: string;
+    startDate?: string;
+    startsAt?: string;
+    maxParticipants?: number;
+    remainingSpots?: number;
+  };
 };
 
 export default function HostBookingsPage() {
@@ -56,44 +62,50 @@ export default function HostBookingsPage() {
         <div className="muted">{t("common_loading_bookings")}</div>
       ) : items.length ? (
         <div className={styles.list}>
-          {items.map((b) => {
-            const dateLabel = b.experience?.startsAt || b.experience?.startDate || b.date;
+          {Object.values(
+            items.reduce<Record<string, { experience: NonNullable<Booking["experience"]>; bookings: Booking[] }>>((acc, booking) => {
+              const exp = booking.experience;
+              const expId = exp?._id || "unknown";
+              if (!exp) return acc;
+              if (!acc[expId]) {
+                acc[expId] = { experience: exp, bookings: [] };
+              }
+              acc[expId].bookings.push(booking);
+              return acc;
+            }, {})
+          ).map((group) => {
+            const exp = group.experience;
+            const dateLabel = exp?.startsAt || exp?.startDate;
+            const bookedSeats = group.bookings.reduce((sum, b) => sum + (b.quantity || 1), 0);
+            const totalSeats =
+              typeof exp?.maxParticipants === "number"
+                ? exp.maxParticipants
+                : typeof exp?.remainingSpots === "number"
+                  ? exp.remainingSpots + bookedSeats
+                  : bookedSeats;
             return (
               <div
-                key={b._id}
+                key={exp?._id}
                 className={styles.card}
                 role="button"
                 tabIndex={0}
-                onClick={() => router.push(`/host/bookings/${b._id}`)}
+                onClick={() => router.push(`/host/bookings/experience/${exp?._id}`)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
-                    router.push(`/host/bookings/${b._id}`);
+                    router.push(`/host/bookings/experience/${exp?._id}`);
                   }
                 }}
               >
                 <div>
-                  <div className={styles.title}>{b.experience?.title || t("common_experience")}</div>
+                  <div className={styles.title}>{exp?.title || t("common_experience")}</div>
                   <div className={styles.meta}>
                     {dateLabel ? new Date(dateLabel).toLocaleString(lang === "en" ? "en-US" : "ro-RO") : t("host_bookings_date_fallback")}
                   </div>
                   <div className={styles.meta}>
-                    {t("host_bookings_explorer")}:{" "}
-                    {b.explorer?._id ? (
-                      <Link
-                        href={`/users/${b.explorer._id}`}
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        {b.explorer?.name || b.explorer?.email || "—"}
-                      </Link>
-                    ) : (
-                      b.explorer?.name || b.explorer?.email || "—"
-                    )}
-                  </div>
-                  <div className={styles.meta}>
-                    {t("host_bookings_seats")}: {b.quantity || 1}
+                    {t("host_bookings_occupied")}: {bookedSeats} / {totalSeats}
                   </div>
                 </div>
-                <div className={styles.status}>{b.status || "STATUS"}</div>
+                <div className={styles.status}>{t("host_bookings_participants")}</div>
               </div>
             );
           })}

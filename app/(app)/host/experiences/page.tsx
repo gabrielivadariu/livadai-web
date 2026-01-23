@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/auth-context";
-import { apiGet, apiPost } from "@/lib/api";
+import { apiGet, apiPatch } from "@/lib/api";
 import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
 import styles from "./host-experiences.module.css";
@@ -14,6 +14,7 @@ type Experience = {
   coverImageUrl?: string;
   startsAt?: string;
   status?: string;
+  isActive?: boolean;
 };
 
 export default function HostExperiencesPage() {
@@ -22,7 +23,7 @@ export default function HostExperiencesPage() {
   const t = useT();
   const [items, setItems] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
-  const [cancelingId, setCancelingId] = useState<string | null>(null);
+  const [pausingId, setPausingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -46,20 +47,20 @@ export default function HostExperiencesPage() {
     };
   }, [user?._id]);
 
-  const onCancel = async (id: string) => {
-    const confirmed = window.confirm(t("experience_cancel_confirm"));
+  const onPause = async (id: string) => {
+    const confirmed = window.confirm(t("experience_pause_confirm"));
     if (!confirmed) return;
-    setCancelingId(id);
+    setPausingId(id);
     setError("");
     try {
-      await apiPost(`/experiences/${id}/cancel`, {});
+      await apiPatch(`/experiences/${id}`, { isActive: false, status: "DISABLED" });
       setItems((prev) =>
-        prev.map((exp) => (exp._id === id ? { ...exp, status: "cancelled" } : exp))
+        prev.map((exp) => (exp._id === id ? { ...exp, status: "DISABLED", isActive: false } : exp))
       );
     } catch (err) {
-      setError((err as Error).message || t("experience_cancel_error"));
+      setError((err as Error).message || t("experience_pause_error"));
     } finally {
-      setCancelingId(null);
+      setPausingId(null);
     }
   };
 
@@ -98,10 +99,10 @@ export default function HostExperiencesPage() {
                   <button
                     className="button secondary"
                     type="button"
-                    onClick={() => onCancel(exp._id)}
-                    disabled={cancelingId === exp._id || exp.status === "cancelled"}
+                    onClick={() => onPause(exp._id)}
+                    disabled={pausingId === exp._id || exp.status === "DISABLED" || exp.isActive === false}
                   >
-                    {cancelingId === exp._id ? t("common_loading") : t("experience_cancel")}
+                    {pausingId === exp._id ? t("common_loading") : t("experience_pause")}
                   </button>
                 </div>
               </div>

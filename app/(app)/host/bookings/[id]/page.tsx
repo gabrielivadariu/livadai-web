@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { apiGet, apiPost } from "@/lib/api";
+import { apiGet } from "@/lib/api";
 import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
 import styles from "./host-booking-detail.module.css";
@@ -23,7 +23,6 @@ export default function HostBookingDetailPage() {
   const t = useT();
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -41,39 +40,6 @@ export default function HostBookingDetailPage() {
       active = false;
     };
   }, [id]);
-
-  const refresh = async () => {
-    try {
-      const data = await apiGet<Booking>(`/bookings/${id}`);
-      setBooking(data || null);
-    } catch {
-      setBooking(null);
-    }
-  };
-
-  const confirmAttendance = async () => {
-    if (!booking?._id) return;
-    if (!window.confirm(t("host_booking_detail_confirm_prompt"))) return;
-    try {
-      setSaving(true);
-      await apiPost(`/bookings/${booking._id}/confirm-attendance`);
-      await refresh();
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const cancelBooking = async () => {
-    if (!booking?._id) return;
-    if (!window.confirm(t("host_booking_detail_cancel_prompt"))) return;
-    try {
-      setSaving(true);
-      await apiPost(`/bookings/${booking._id}/cancel-by-host`);
-      await refresh();
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const exp = booking?.experience;
   const startLabel = exp?.startsAt || exp?.startDate;
@@ -96,54 +62,40 @@ export default function HostBookingDetailPage() {
       ) : !booking ? (
         <div className={styles.empty}>{t("host_booking_detail_missing")}</div>
       ) : (
-        <>
-          <div className={styles.grid}>
-            <div className={styles.card}>
-              <div className={styles.kicker}>{t("host_booking_detail_experience")}</div>
-              <div className={styles.title}>{exp?.title || t("common_experience")}</div>
-              <div className={styles.meta}>{t("host_booking_detail_start")}: {dateText}</div>
-              <div className={styles.meta}>{t("host_booking_detail_end")}: {endText}</div>
-              {exp?._id ? (
-                <Link className={styles.link} href={`/experiences/${exp._id}`}>
-                  {t("host_booking_detail_view_experience")}
-                </Link>
-              ) : null}
-            </div>
-
-            <div className={styles.card}>
-              <div className={styles.kicker}>{t("host_booking_detail_explorer")}</div>
-              <div className={styles.title}>{booking.explorer?.name || booking.explorer?.email || "—"}</div>
-              {booking.explorer?.phone ? <div className={styles.meta}>{booking.explorer.phone}</div> : null}
-              {booking.explorer?._id ? (
-                <Link className={styles.link} href={`/users/${booking.explorer._id}`}>
-                  {t("host_booking_detail_view_profile")}
-                </Link>
-              ) : null}
-            </div>
-
-            <div className={styles.card}>
-              <div className={styles.kicker}>{t("host_booking_detail_booking")}</div>
-              <div className={styles.meta}>
-                {t("host_booking_detail_seats")}: <strong>{booking.quantity || 1}</strong>
-              </div>
-              <div className={styles.meta}>
-                {t("host_booking_detail_status")}: <strong>{booking.status || "—"}</strong>
-              </div>
-            </div>
+        <div className={styles.grid}>
+          <div className={styles.card}>
+            <div className={styles.kicker}>{t("host_booking_detail_experience")}</div>
+            <div className={styles.title}>{exp?.title || t("common_experience")}</div>
+            <div className={styles.meta}>{t("host_booking_detail_start")}: {dateText}</div>
+            <div className={styles.meta}>{t("host_booking_detail_end")}: {endText}</div>
+            {exp?._id ? (
+              <Link className={styles.link} href={`/experiences/${exp._id}`}>
+                {t("host_booking_detail_view_experience")}
+              </Link>
+            ) : null}
           </div>
 
-          <div className={styles.actionsCard}>
-            <div className={styles.kicker}>{t("host_booking_detail_actions")}</div>
-            <div className={styles.actions}>
-              <button className={styles.primaryAction} type="button" onClick={confirmAttendance} disabled={saving}>
-                {t("host_booking_detail_confirm_action")}
-              </button>
-              <button className={styles.secondaryAction} type="button" onClick={cancelBooking} disabled={saving}>
-                {t("host_booking_detail_cancel_action")}
-              </button>
+          <div className={styles.card}>
+            <div className={styles.kicker}>{t("host_booking_detail_explorer")}</div>
+            <div className={styles.title}>{booking.explorer?.name || booking.explorer?.email || "—"}</div>
+            {booking.explorer?.phone ? <div className={styles.meta}>{booking.explorer.phone}</div> : null}
+            {booking.explorer?._id ? (
+              <Link className={styles.link} href={`/users/${booking.explorer._id}`}>
+                {t("host_booking_detail_view_profile")}
+              </Link>
+            ) : null}
+          </div>
+
+          <div className={styles.card}>
+            <div className={styles.kicker}>{t("host_booking_detail_booking")}</div>
+            <div className={styles.meta}>
+              {t("host_booking_detail_seats")}: <strong>{booking.quantity || 1}</strong>
+            </div>
+            <div className={styles.meta}>
+              {t("host_booking_detail_status")}: <strong>{booking.status || "—"}</strong>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

@@ -12,7 +12,16 @@ type Booking = {
   status?: string;
   quantity?: number;
   explorer?: { _id?: string; name?: string; email?: string; avatar?: string; profilePhoto?: string };
-  experience?: { _id?: string; title?: string; startsAt?: string; startDate?: string; maxParticipants?: number; remainingSpots?: number };
+  experience?: {
+    _id?: string;
+    title?: string;
+    startsAt?: string;
+    startDate?: string;
+    endsAt?: string;
+    endDate?: string;
+    maxParticipants?: number;
+    remainingSpots?: number;
+  };
 };
 
 export default function HostParticipantsPage() {

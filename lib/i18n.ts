@@ -300,6 +300,8 @@ const messages: Record<Lang, Messages> = {
     host_participants_confirm_prompt: "Confirmi că experiența a avut loc pentru toți participanții?",
     host_participants_cancel_prompt:
       "Ești sigur că vrei să anulezi experiența? Toți participanții vor primi refund automat.",
+    host_participants_confirm_wait: "Confirmarea va fi disponibilă după începerea experienței.",
+    host_participants_confirm_expired: "Fereastra de confirmare a expirat.",
     host_participants_empty: "Nu există participanți încă.",
     host_booking_detail_title: "Detalii booking",
     host_booking_detail_subtitle: "Informații complete despre rezervare.",
@@ -752,6 +754,8 @@ const messages: Record<Lang, Messages> = {
     host_participants_confirm_prompt: "Confirm the experience took place for all participants?",
     host_participants_cancel_prompt:
       "Are you sure you want to cancel the experience? All participants will be refunded automatically.",
+    host_participants_confirm_wait: "Confirmation will be available after the experience starts.",
+    host_participants_confirm_expired: "The confirmation window has expired.",
     host_participants_empty: "No participants yet.",
     host_booking_detail_title: "Booking details",
     host_booking_detail_subtitle: "Full information about this reservation.",

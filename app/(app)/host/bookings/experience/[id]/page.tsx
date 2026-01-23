@@ -49,6 +49,18 @@ export default function HostParticipantsPage() {
       : typeof exp?.remainingSpots === "number"
         ? exp.remainingSpots + bookedSeats
         : bookedSeats;
+  const windowStart = exp?.startsAt || exp?.startDate || dateLabel;
+  const windowEnd = exp?.endsAt || exp?.endDate || dateLabel;
+  const startDate = windowStart ? new Date(windowStart) : null;
+  const endDate = windowEnd ? new Date(windowEnd) : null;
+  const isValidStart = startDate && !Number.isNaN(startDate.getTime());
+  const isValidEnd = endDate && !Number.isNaN(endDate.getTime());
+  const now = new Date();
+  const confirmAfter = isValidStart ? new Date(startDate.getTime() + 15 * 60 * 1000) : null;
+  const confirmUntil = isValidEnd ? new Date(endDate.getTime() + 48 * 60 * 60 * 1000) : null;
+  const isBeforeWindow = confirmAfter ? now < confirmAfter : true;
+  const isAfterWindow = confirmUntil ? now > confirmUntil : false;
+  const canConfirm = !isBeforeWindow && !isAfterWindow;
 
   const actionableStatuses = new Set(["PAID", "DEPOSIT_PAID", "PENDING_ATTENDANCE"]);
   const actionableBookings = bookings.filter((b) => actionableStatuses.has(b.status || ""));
@@ -135,7 +147,7 @@ export default function HostParticipantsPage() {
               className={styles.primaryAction}
               type="button"
               onClick={handleConfirmAll}
-              disabled={!actionableBookings.length || savingAction === "confirm"}
+              disabled={!actionableBookings.length || savingAction === "confirm" || !canConfirm}
             >
               {t("host_participants_confirm_action")}
             </button>
@@ -148,6 +160,11 @@ export default function HostParticipantsPage() {
               {t("host_participants_cancel_action")}
             </button>
           </div>
+          {!canConfirm ? (
+            <div className={styles.confirmHint}>
+              {isAfterWindow ? t("host_participants_confirm_expired") : t("host_participants_confirm_wait")}
+            </div>
+          ) : null}
         </>
       ) : (
         <div className={styles.empty}>{t("host_participants_empty")}</div>

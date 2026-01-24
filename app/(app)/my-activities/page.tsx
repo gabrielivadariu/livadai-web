@@ -22,10 +22,10 @@ export default function MyActivitiesPage() {
   const t = useT();
   const [items, setItems] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reviewForm, setReviewForm] = useState<Record<string, { rating: number; comment: string }>>({});
+  const [reviewForm, setReviewForm] = useState<Record<string, { rating: number | null; comment: string }>>({});
   const [submitBusy, setSubmitBusy] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<Record<string, string>>({});
-  const [submitSuccess, setSubmitSuccess] = useState<Record<string, boolean>>({});
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -47,7 +47,7 @@ export default function MyActivitiesPage() {
   const updateForm = (bookingId: string, update: Partial<{ rating: number; comment: string }>) => {
     setReviewForm((prev) => ({
       ...prev,
-      [bookingId]: { rating: 5, comment: "", ...prev[bookingId], ...update },
+      [bookingId]: { rating: null, comment: "", ...prev[bookingId], ...update },
     }));
   };
 
@@ -58,6 +58,7 @@ export default function MyActivitiesPage() {
     const hostId = typeof booking.host === "string" ? booking.host : booking.host?._id;
     if (!expId || !hostId) return;
     const form = reviewForm[booking._id] || { rating: 5, comment: "" };
+    if (!form.rating) return;
     setSubmitBusy(booking._id);
     setSubmitError((prev) => ({ ...prev, [booking._id]: "" }));
     try {
@@ -67,7 +68,10 @@ export default function MyActivitiesPage() {
         rating: form.rating,
         comment: form.comment,
       });
-      setSubmitSuccess((prev) => ({ ...prev, [booking._id]: true }));
+      setToastMessage(t("review_saved"));
+      setTimeout(() => {
+        setToastMessage(null);
+      }, 2500);
       setItems((prev) =>
         prev.map((b) => (b._id === booking._id ? { ...b, reviewEligible: false, reviewExists: true } : b))
       );
@@ -83,6 +87,7 @@ export default function MyActivitiesPage() {
 
   return (
     <div className={styles.list}>
+      {toastMessage ? <div className={styles.toast}>{toastMessage}</div> : null}
       {items.length ? (
         items.map((b) => {
           const exp = b.experience;
@@ -116,8 +121,15 @@ export default function MyActivitiesPage() {
                       type="number"
                       min={1}
                       max={5}
-                      value={(reviewForm[b._id]?.rating ?? 5).toString()}
-                      onChange={(e) => updateForm(b._id, { rating: Number(e.target.value) || 5 })}
+                      value={reviewForm[b._id]?.rating ?? ""}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (!raw) {
+                          updateForm(b._id, { rating: null });
+                          return;
+                        }
+                        updateForm(b._id, { rating: Number(raw) });
+                      }}
                     />
                   </div>
                   <textarea
@@ -127,12 +139,11 @@ export default function MyActivitiesPage() {
                     onChange={(e) => updateForm(b._id, { comment: e.target.value })}
                   />
                   {submitError[b._id] ? <div className={styles.reviewError}>{submitError[b._id]}</div> : null}
-                  {submitSuccess[b._id] ? <div className={styles.reviewSuccess}>{t("review_saved")}</div> : null}
                   <button
                     className={styles.reviewButton}
                     type="button"
                     onClick={() => submitReview(b)}
-                    disabled={submitBusy === b._id}
+                    disabled={submitBusy === b._id || !reviewForm[b._id]?.rating}
                   >
                     {t("review_submit")}
                   </button>

@@ -11,8 +11,14 @@ type HostExperience = {
   title?: string;
   startDate?: string;
   startTime?: string;
+  endsAt?: string;
+  endDate?: string;
+  startsAt?: string;
   city?: string;
   address?: string;
+  bookedSpots?: number;
+  maxParticipants?: number;
+  availableSpots?: number;
 };
 
 export default function HostedExperiencesPage() {
@@ -44,6 +50,21 @@ export default function HostedExperiencesPage() {
     };
   }, [user?._id]);
 
+  const visibleItems = items.filter((exp) => {
+    const dateValue = exp.endsAt || exp.endDate || exp.startsAt || exp.startDate;
+    if (!dateValue) return true;
+    const ts = new Date(dateValue).getTime();
+    return Number.isNaN(ts) ? true : ts <= Date.now();
+  });
+
+  const getParticipantsCount = (exp: HostExperience) => {
+    if (typeof exp.bookedSpots === "number") return exp.bookedSpots;
+    if (typeof exp.maxParticipants === "number" && typeof exp.availableSpots === "number") {
+      return Math.max(0, exp.maxParticipants - exp.availableSpots);
+    }
+    return 0;
+  };
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -54,14 +75,11 @@ export default function HostedExperiencesPage() {
 
       {loading ? (
         <div className="muted">{t("common_loading")}</div>
-      ) : items.length ? (
+      ) : visibleItems.length ? (
         <div className={styles.list}>
-          {items.map((exp) => {
+          {visibleItems.map((exp) => {
             const startDate = exp.startDate ? new Date(exp.startDate) : null;
-            const statusLabel =
-              startDate && startDate.getTime() > Date.now()
-                ? t("hosted_experiences_upcoming")
-                : t("hosted_experiences_completed");
+            const participantsCount = getParticipantsCount(exp);
             return (
               <div key={exp._id} className={styles.card}>
                 <div className={styles.title}>{exp.title || t("hosted_experiences_untitled")}</div>
@@ -69,7 +87,8 @@ export default function HostedExperiencesPage() {
                   {startDate ? startDate.toLocaleDateString() : ""} {exp.startTime || ""}
                 </div>
                 <div className={styles.meta}>{exp.city || exp.address || ""}</div>
-                <div className={styles.status}>{statusLabel}</div>
+                <div className={styles.meta}>{t("hosted_experiences_participants", { count: participantsCount })}</div>
+                <div className={styles.status}>{t("hosted_experiences_status_completed")}</div>
               </div>
             );
           })}

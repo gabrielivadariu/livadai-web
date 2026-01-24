@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { apiGet } from "@/lib/api";
+import { apiGet, apiPost } from "@/lib/api";
 import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
 import styles from "./activities.module.css";
@@ -12,6 +12,9 @@ type Booking = {
   status?: string;
   experience?: { _id?: string; title?: string } | string;
   date?: string;
+  reviewEligible?: boolean;
+  reviewExists?: boolean;
+  host?: { _id?: string } | string;
 };
 
 export default function MyActivitiesPage() {
@@ -19,6 +22,10 @@ export default function MyActivitiesPage() {
   const t = useT();
   const [items, setItems] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reviewForm, setReviewForm] = useState<Record<string, { rating: number; comment: string }>>({});
+  const [submitBusy, setSubmitBusy] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<Record<string, string>>({});
+  const [submitSuccess, setSubmitSuccess] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let active = true;
@@ -37,6 +44,41 @@ export default function MyActivitiesPage() {
     };
   }, []);
 
+  const updateForm = (bookingId: string, update: Partial<{ rating: number; comment: string }>) => {
+    setReviewForm((prev) => ({
+      ...prev,
+      [bookingId]: { rating: 5, comment: "", ...prev[bookingId], ...update },
+    }));
+  };
+
+  const submitReview = async (booking: Booking) => {
+    if (!booking.reviewEligible || !booking.experience || !booking.host) return;
+    const exp = booking.experience;
+    const expId = typeof exp === "string" ? exp : exp?._id;
+    const hostId = typeof booking.host === "string" ? booking.host : booking.host?._id;
+    if (!expId || !hostId) return;
+    const form = reviewForm[booking._id] || { rating: 5, comment: "" };
+    setSubmitBusy(booking._id);
+    setSubmitError((prev) => ({ ...prev, [booking._id]: "" }));
+    try {
+      await apiPost(`/hosts/${hostId}/reviews`, {
+        experienceId: expId,
+        bookingId: booking._id,
+        rating: form.rating,
+        comment: form.comment,
+      });
+      setSubmitSuccess((prev) => ({ ...prev, [booking._id]: true }));
+      setItems((prev) =>
+        prev.map((b) => (b._id === booking._id ? { ...b, reviewEligible: false, reviewExists: true } : b))
+      );
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || t("review_failed");
+      setSubmitError((prev) => ({ ...prev, [booking._id]: msg }));
+    } finally {
+      setSubmitBusy(null);
+    }
+  };
+
   if (loading) return <div className="muted">{t("common_loading_activity")}</div>;
 
   return (
@@ -48,19 +90,56 @@ export default function MyActivitiesPage() {
           const title = typeof exp === "string" ? t("common_experience") : exp?.title || t("common_experience");
           const dateLabel = b.date ? new Date(b.date).toLocaleString(lang === "en" ? "en-US" : "ro-RO") : "";
           const href = expId ? `/experiences/${expId}?bookingId=${b._id}` : "";
-          return expId ? (
-            <Link key={b._id} href={href} className={styles.rowLink}>
-              <div className={`${styles.row} ${styles.rowClickable}`}>
-                <div className={styles.title}>{title}</div>
-                <div className={styles.meta}>{dateLabel}</div>
-                <div className={styles.status}>{b.status || "STATUS"}</div>
-              </div>
-            </Link>
-          ) : (
-            <div key={b._id} className={styles.row}>
+          const row = (
+            <div className={`${styles.row} ${expId ? styles.rowClickable : ""}`}>
               <div className={styles.title}>{title}</div>
               <div className={styles.meta}>{dateLabel}</div>
               <div className={styles.status}>{b.status || "STATUS"}</div>
+            </div>
+          );
+          return (
+            <div key={b._id} className={styles.block}>
+              {expId ? (
+                <Link href={href} className={styles.rowLink}>
+                  {row}
+                </Link>
+              ) : (
+                row
+              )}
+              {b.reviewEligible ? (
+                <div className={styles.reviewCard}>
+                  <div className={styles.reviewTitle}>{t("leave_review")}</div>
+                  <div className={styles.reviewRow}>
+                    <label className={styles.reviewLabel}>{t("review_rating_label")}</label>
+                    <input
+                      className={styles.reviewInput}
+                      type="number"
+                      min={1}
+                      max={5}
+                      value={(reviewForm[b._id]?.rating ?? 5).toString()}
+                      onChange={(e) => updateForm(b._id, { rating: Number(e.target.value) || 5 })}
+                    />
+                  </div>
+                  <textarea
+                    className={styles.reviewTextarea}
+                    placeholder={t("review_comment_placeholder")}
+                    value={reviewForm[b._id]?.comment ?? ""}
+                    onChange={(e) => updateForm(b._id, { comment: e.target.value })}
+                  />
+                  {submitError[b._id] ? <div className={styles.reviewError}>{submitError[b._id]}</div> : null}
+                  {submitSuccess[b._id] ? <div className={styles.reviewSuccess}>{t("review_saved")}</div> : null}
+                  <button
+                    className={styles.reviewButton}
+                    type="button"
+                    onClick={() => submitReview(b)}
+                    disabled={submitBusy === b._id}
+                  >
+                    {t("review_submit")}
+                  </button>
+                </div>
+              ) : b.status === "COMPLETED" && !b.reviewExists ? (
+                <div className={styles.reviewHint}>{t("review_hint_later")}</div>
+              ) : null}
             </div>
           );
         })

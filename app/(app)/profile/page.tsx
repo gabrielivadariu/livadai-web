@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiDelete, apiGet, apiPut } from "@/lib/api";
+import { apiGet, apiPost, apiPut } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { useAuth } from "@/context/auth-context";
 import styles from "./profile.module.css";
@@ -65,6 +65,10 @@ export default function ProfilePage() {
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteStep, setDeleteStep] = useState<"confirm" | "otp">("confirm");
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteOtp, setDeleteOtp] = useState("");
+  const [deleteInfo, setDeleteInfo] = useState("");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -177,10 +181,27 @@ export default function ProfilePage() {
   const onDeleteAccount = async () => {
     setDeleting(true);
     setDeleteError("");
+    setDeleteInfo("");
     try {
-      await apiDelete("/users/me");
+      await apiPost("/users/me/delete-confirm", { otpCode: deleteOtp.trim() });
       logout();
       router.replace("/login");
+    } catch (err) {
+      setDeleteError((err as Error).message || t("profile_delete_error"));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const onRequestDeleteCode = async () => {
+    setDeleting(true);
+    setDeleteError("");
+    setDeleteInfo("");
+    try {
+      await apiPost("/auth/reauth", { password: deletePassword });
+      await apiPost("/users/me/delete-request", {});
+      setDeleteStep("otp");
+      setDeleteInfo(t("profile_delete_code_sent"));
     } catch (err) {
       setDeleteError((err as Error).message || t("profile_delete_error"));
     } finally {
@@ -382,16 +403,60 @@ export default function ProfilePage() {
           <div className={styles.confirmBox}>
             <div className={styles.confirmTitle}>{t("profile_delete_confirm_title")}</div>
             <div className={styles.confirmText}>{t("profile_delete_confirm_text")}</div>
+            {deleteInfo ? <div className={styles.confirmInfo}>{deleteInfo}</div> : null}
             <div className={styles.confirmActions}>
+              {deleteStep === "confirm" ? (
+                <>
+                  <div className={styles.confirmField}>
+                    <label>{t("profile_delete_password_label")}</label>
+                    <input
+                      className="input"
+                      type="password"
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                    />
+                  </div>
+                  <button
+                    className={styles.deleteBtn}
+                    type="button"
+                    onClick={onRequestDeleteCode}
+                    disabled={deleting || !deletePassword}
+                  >
+                    {deleting ? t("profile_deleting") : t("profile_delete_send_code")}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className={styles.confirmField}>
+                    <label>{t("profile_delete_otp_label")}</label>
+                    <input
+                      className="input"
+                      inputMode="numeric"
+                      value={deleteOtp}
+                      onChange={(e) => setDeleteOtp(e.target.value)}
+                    />
+                  </div>
+                  <button
+                    className={styles.deleteBtn}
+                    type="button"
+                    onClick={onDeleteAccount}
+                    disabled={deleting || deleteOtp.trim().length < 6}
+                  >
+                    {deleting ? t("profile_deleting") : t("profile_delete_confirm_button")}
+                  </button>
+                </>
+              )}
               <button
-                className={styles.deleteBtn}
+                className={styles.cancelBtn}
                 type="button"
-                onClick={onDeleteAccount}
-                disabled={deleting}
+                onClick={() => {
+                  setConfirmDelete(false);
+                  setDeleteStep("confirm");
+                  setDeletePassword("");
+                  setDeleteOtp("");
+                  setDeleteInfo("");
+                }}
               >
-                {deleting ? t("profile_deleting") : t("profile_delete_confirm_button")}
-              </button>
-              <button className={styles.cancelBtn} type="button" onClick={() => setConfirmDelete(false)}>
                 {t("profile_delete_cancel")}
               </button>
             </div>

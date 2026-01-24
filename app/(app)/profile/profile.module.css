@@ -218,6 +218,17 @@
   gap: 8px;
 }
 
+.confirmInfo {
+  color: #0f766e;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.confirmField {
+  display: grid;
+  gap: 6px;
+}
+
 .confirmTitle {
   font-weight: 700;
   color: #991b1b;

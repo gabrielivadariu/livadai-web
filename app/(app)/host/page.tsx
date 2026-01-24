@@ -22,7 +22,6 @@ export default function HostDashboardPage() {
   useEffect(() => {
     let active = true;
     if (!hostId) {
-      setLoading(false);
       return;
     }
     apiGet<HostProfile>("/hosts/me/profile")

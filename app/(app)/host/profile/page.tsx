@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { apiGet, apiPut } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
 import { useT } from "@/lib/i18n";
@@ -48,6 +49,15 @@ type HostReview = {
   author?: { name?: string };
 };
 
+type HostExperience = {
+  _id: string;
+  title?: string;
+  startDate?: string;
+  startTime?: string;
+  city?: string;
+  address?: string;
+};
+
 export default function HostProfilePage() {
   const t = useT();
   const { user } = useAuth();
@@ -56,17 +66,20 @@ export default function HostProfilePage() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
   const [reviews, setReviews] = useState<HostReview[]>([]);
+  const [hostedExperiences, setHostedExperiences] = useState<HostExperience[]>([]);
 
   useEffect(() => {
     let active = true;
     Promise.all([
       apiGet<HostProfile>("/hosts/me/profile"),
       user?._id ? apiGet<HostReview[]>(`/hosts/${user._id}/reviews`).catch(() => []) : Promise.resolve([]),
+      user?._id ? apiGet<HostExperience[]>(`/hosts/${user._id}/activities`, { params: { limit: 3 } }).catch(() => []) : Promise.resolve([]),
     ])
-      .then(([profileRes, reviewRes]) => {
+      .then(([profileRes, reviewRes, hostedRes]) => {
         if (!active) return;
         setForm(profileRes || {});
         setReviews(reviewRes || []);
+        setHostedExperiences(hostedRes || []);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -227,6 +240,40 @@ export default function HostProfilePage() {
           </div>
         ) : (
           <div className="muted">{t("host_reviews_empty")}</div>
+        )}
+      </div>
+
+      <div className={styles.card}>
+        <div className={styles.sectionHeader}>
+          <h3 style={{ margin: 0 }}>{t("hosted_experiences_title")}</h3>
+          {hostedExperiences.length >= 3 ? (
+            <Link className={styles.link} href="/host/hosted-experiences">
+              {t("hosted_experiences_see_all")}
+            </Link>
+          ) : null}
+        </div>
+        {hostedExperiences.length ? (
+          <div className={styles.hostedList}>
+            {hostedExperiences.slice(0, 3).map((exp) => {
+              const startDate = exp.startDate ? new Date(exp.startDate) : null;
+              const statusLabel =
+                startDate && startDate.getTime() > Date.now()
+                  ? t("hosted_experiences_upcoming")
+                  : t("hosted_experiences_completed");
+              return (
+                <div key={exp._id} className={styles.hostedCard}>
+                  <div className={styles.hostedTitle}>{exp.title || t("hosted_experiences_untitled")}</div>
+                  <div className={styles.hostedMeta}>
+                    {startDate ? startDate.toLocaleDateString() : ""} {exp.startTime || ""}
+                  </div>
+                  <div className={styles.hostedMeta}>{exp.city || exp.address || ""}</div>
+                  <div className={styles.hostedStatus}>{statusLabel}</div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="muted">{t("hosted_experiences_empty")}</div>
         )}
       </div>
     </div>

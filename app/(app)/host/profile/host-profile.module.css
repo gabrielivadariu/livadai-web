@@ -149,6 +149,48 @@
   color: #1f2937;
 }
 
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.link {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.hostedList {
+  display: grid;
+  gap: 12px;
+}
+
+.hostedCard {
+  border: 1px solid #e6eff2;
+  border-radius: 16px;
+  padding: 14px;
+  background: #fff;
+  display: grid;
+  gap: 6px;
+}
+
+.hostedTitle {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.hostedMeta {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.hostedStatus {
+  font-weight: 600;
+  color: var(--primary-dark);
+}
+
 @media (max-width: 900px) {
   .header {
     flex-direction: column;

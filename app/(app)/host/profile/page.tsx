@@ -54,8 +54,14 @@ type HostExperience = {
   title?: string;
   startDate?: string;
   startTime?: string;
+  endsAt?: string;
+  endDate?: string;
+  startsAt?: string;
   city?: string;
   address?: string;
+  bookedSpots?: number;
+  maxParticipants?: number;
+  availableSpots?: number;
 };
 
 export default function HostProfilePage() {
@@ -256,10 +262,18 @@ export default function HostProfilePage() {
           <div className={styles.hostedList}>
             {hostedExperiences.slice(0, 3).map((exp) => {
               const startDate = exp.startDate ? new Date(exp.startDate) : null;
+              const participantsCount =
+                typeof exp.bookedSpots === "number"
+                  ? exp.bookedSpots
+                  : typeof exp.maxParticipants === "number" && typeof exp.availableSpots === "number"
+                  ? Math.max(0, exp.maxParticipants - exp.availableSpots)
+                  : 0;
               const statusLabel =
                 startDate && startDate.getTime() > Date.now()
                   ? t("hosted_experiences_upcoming")
-                  : t("hosted_experiences_completed");
+                  : participantsCount === 0
+                  ? t("hosted_experiences_status_no_participants")
+                  : t("hosted_experiences_status_completed");
               return (
                 <div key={exp._id} className={styles.hostedCard}>
                   <div className={styles.hostedTitle}>{exp.title || t("hosted_experiences_untitled")}</div>

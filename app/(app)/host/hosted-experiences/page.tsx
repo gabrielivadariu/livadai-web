@@ -80,6 +80,10 @@ export default function HostedExperiencesPage() {
           {visibleItems.map((exp) => {
             const startDate = exp.startDate ? new Date(exp.startDate) : null;
             const participantsCount = getParticipantsCount(exp);
+            const statusLabel =
+              participantsCount === 0
+                ? t("hosted_experiences_status_no_participants")
+                : t("hosted_experiences_status_completed");
             return (
               <div key={exp._id} className={styles.card}>
                 <div className={styles.title}>{exp.title || t("hosted_experiences_untitled")}</div>
@@ -90,7 +94,7 @@ export default function HostedExperiencesPage() {
                 <div className={styles.meta}>
                   {t("hosted_experiences_participants_label")} {participantsCount}
                 </div>
-                <div className={styles.status}>{t("hosted_experiences_status_completed")}</div>
+                <div className={styles.status}>{statusLabel}</div>
               </div>
             );
           })}

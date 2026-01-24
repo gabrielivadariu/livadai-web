@@ -353,7 +353,7 @@ function CreateExperienceContent() {
       };
       if (isEdit && editId) {
         await apiPatch(`/experiences/${editId}`, payload);
-        router.replace("/host/experiences");
+        router.replace("/host");
       } else {
         await apiPost("/experiences", payload);
         window.localStorage.setItem(EXPERIENCE_CREATED_KEY, "1");

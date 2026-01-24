@@ -44,11 +44,14 @@ export default function MyActivitiesPage() {
     };
   }, []);
 
-  const updateForm = (bookingId: string, update: Partial<{ rating: number; comment: string }>) => {
-    setReviewForm((prev) => ({
-      ...prev,
-      [bookingId]: { rating: null, comment: "", ...prev[bookingId], ...update },
-    }));
+  const updateForm = (bookingId: string, update: Partial<{ rating: number | null; comment: string }>) => {
+    setReviewForm((prev) => {
+      const current = prev[bookingId] || { rating: null, comment: "" };
+      return {
+        ...prev,
+        [bookingId]: { ...current, ...update },
+      };
+    });
   };
 
   const submitReview = async (booking: Booking) => {

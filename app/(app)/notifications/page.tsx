@@ -27,7 +27,8 @@ type Notification = {
 export default function NotificationsPage() {
   const t = useT();
   const { lang } = useLang();
-  const { loading: authLoading, token } = useAuth();
+  const { loading: authLoading, token, user } = useAuth();
+  const isHost = user?.role === "HOST" || user?.role === "BOTH";
   const router = useRouter();
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,7 +117,7 @@ export default function NotificationsPage() {
     if (activityId) return `/experiences/${activityId}`;
     if (n.type === "BOOKING_RECEIVED") return "/host/bookings";
     if (n.type === "EVENT_REMINDER_HOST") return "/host/bookings";
-    return "/my-activities";
+    return isHost ? "/host/guest-participations" : "/profile";
   };
 
   const onOpenNotification = async (n: Notification) => {

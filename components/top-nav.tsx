@@ -149,7 +149,6 @@ export default function TopNav({ pathname }: Props) {
             <Link href="/menu">{t("nav_menu")}</Link>
             <Link href="/profile">{t("nav_profile")}</Link>
             <Link href="/settings">{t("nav_settings")}</Link>
-            <Link href="/my-activities">{t("nav_my_activities")}</Link>
             <button type="button" onClick={onLogout}>
               {t("nav_logout")}
             </button>

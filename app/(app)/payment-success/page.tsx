@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiGet } from "@/lib/api";
+import { useAuth } from "@/context/auth-context";
 import { useT } from "@/lib/i18n";
 import styles from "./payment-status.module.css";
 
@@ -16,6 +17,9 @@ function PaymentSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useT();
+  const { user } = useAuth();
+  const isHost = user?.role === "HOST" || user?.role === "BOTH";
+  const fallbackPath = isHost ? "/host/guest-participations" : "/profile";
   const [statusText, setStatusText] = useState(t("payment_processing"));
 
   useEffect(() => {
@@ -29,7 +33,7 @@ function PaymentSuccessContent() {
     const poll = async () => {
       attempts += 1;
       if (!bookingId) {
-        router.replace("/my-activities");
+        router.replace(fallbackPath);
         return;
       }
       try {
@@ -47,12 +51,12 @@ function PaymentSuccessContent() {
         setStatusText(t("payment_processing_retry"));
         setTimeout(poll, 2000);
       } else {
-        router.replace(experienceId ? `/experiences/${experienceId}?bookingId=${bookingId}` : "/my-activities");
+        router.replace(experienceId ? `/experiences/${experienceId}?bookingId=${bookingId}` : fallbackPath);
       }
     };
 
     poll();
-  }, [router, searchParams, t]);
+  }, [router, searchParams, t, fallbackPath]);
 
   return (
     <div className={styles.page}>

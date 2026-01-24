@@ -39,6 +39,8 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState("");
   const [step, setStep] = useState<"register" | "verify">("register");
   const [code, setCode] = useState("");
+  const isPasswordValid = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password);
+  const canSubmit = termsChecked && isPasswordValid && password === confirmPassword;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,6 +150,9 @@ export default function RegisterPage() {
           <div className={styles.field}>
             <label className={styles.label}>{t("register_password")}</label>
             <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <div className={`${styles.hint} ${isPasswordValid ? styles.hintOk : styles.hintWarn}`}>
+              {t("password_rules")}
+            </div>
           </div>
           <div className={styles.field}>
             <label className={styles.label}>{t("register_password_confirm")}</label>
@@ -196,7 +201,7 @@ export default function RegisterPage() {
               <div style={{ color: "#0ba7bd", marginBottom: 8, textAlign: "center" }}>{success}</div>
             ) : null}
             {error ? <div className={styles.error}>{error}</div> : null}
-            <button className="button" type="submit">
+            <button className="button" type="submit" disabled={!canSubmit}>
               {t("register_button")}
             </button>
           </form>

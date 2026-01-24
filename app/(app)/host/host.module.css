@@ -41,6 +41,92 @@
   gap: 16px;
 }
 
+.purchasedSection {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid #e6eff2;
+  box-shadow: var(--shadow-soft);
+}
+
+.purchasedHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.purchasedHeader h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.purchasedTabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 6px;
+  border-radius: 14px;
+  background: #f1f5f9;
+}
+
+.purchasedTab {
+  border: none;
+  background: transparent;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+}
+
+.purchasedTabActive {
+  background: #fff;
+  color: var(--accent);
+  box-shadow: var(--shadow-soft);
+}
+
+.purchasedList {
+  display: grid;
+  gap: 12px;
+}
+
+.purchasedCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid #edf2f7;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+  text-decoration: none;
+  color: inherit;
+}
+
+.purchasedCard:hover {
+  box-shadow: var(--shadow);
+}
+
+.purchasedTitle {
+  font-weight: 800;
+}
+
+.purchasedMeta {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.purchasedEmpty {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .menuSection {
   display: grid;
   gap: 16px;

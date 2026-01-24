@@ -87,7 +87,9 @@ export default function HostedExperiencesPage() {
                   {startDate ? startDate.toLocaleDateString() : ""} {exp.startTime || ""}
                 </div>
                 <div className={styles.meta}>{exp.city || exp.address || ""}</div>
-                <div className={styles.meta}>{t("hosted_experiences_participants", { count: participantsCount })}</div>
+                <div className={styles.meta}>
+                  {t("hosted_experiences_participants_label")} {participantsCount}
+                </div>
                 <div className={styles.status}>{t("hosted_experiences_status_completed")}</div>
               </div>
             );

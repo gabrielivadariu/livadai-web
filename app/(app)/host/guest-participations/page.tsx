@@ -25,7 +25,8 @@ type Booking = {
   user?: { _id?: string } | string;
 };
 
-const historyStatuses = new Set(["COMPLETED", "CANCELLED", "REFUNDED"]);
+const historyStatuses = new Set(["COMPLETED", "AUTO_COMPLETED", "CANCELLED", "REFUNDED", "NO_SHOW"]);
+const activeStatuses = new Set(["PENDING", "PAID", "DEPOSIT_PAID", "CONFIRMED"]);
 
 const getId = (value: unknown) => {
   if (!value) return "";
@@ -74,12 +75,16 @@ export default function GuestParticipationsPage() {
         const past: Booking[] = [];
         ownParticipantBookings.forEach((b) => {
           if (historyStatuses.has(b.status || "")) {
-            if (b.status !== "COMPLETED" || isCompletedVisible(b.experience)) {
+            if (!["COMPLETED", "AUTO_COMPLETED"].includes(b.status || "") || isCompletedVisible(b.experience)) {
               past.push(b);
             }
-          } else {
-            next.push(b);
+            return;
           }
+          if (activeStatuses.has(b.status || "")) {
+            next.push(b);
+            return;
+          }
+          next.push(b);
         });
         setUpcoming(next);
         setHistory(past);
@@ -105,8 +110,10 @@ export default function GuestParticipationsPage() {
   const statusLabel = useMemo(
     () => ({
       COMPLETED: t("guest_completed"),
+      AUTO_COMPLETED: t("guest_completed"),
       CANCELLED: t("guest_cancelled"),
       REFUNDED: t("guest_refunded"),
+      NO_SHOW: t("guest_no_show"),
     }),
     [t]
   );
@@ -151,6 +158,7 @@ export default function GuestParticipationsPage() {
                   <div>
                     <div className={styles.title}>{exp.title || t("common_experience")}</div>
                     <div className={styles.meta}>{statusLabel[b.status as keyof typeof statusLabel] || b.status}</div>
+                    {dateText(exp) ? <div className={styles.meta}>{dateText(exp)}</div> : null}
                   </div>
                 </div>
               );

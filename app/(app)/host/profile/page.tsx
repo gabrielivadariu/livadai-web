@@ -73,7 +73,7 @@ export default function HostProfilePage() {
     Promise.all([
       apiGet<HostProfile>("/hosts/me/profile"),
       user?._id ? apiGet<HostReview[]>(`/hosts/${user._id}/reviews`).catch(() => []) : Promise.resolve([]),
-      user?._id ? apiGet<HostExperience[]>(`/hosts/${user._id}/activities`, { params: { limit: 3 } }).catch(() => []) : Promise.resolve([]),
+      user?._id ? apiGet<HostExperience[]>(`/hosts/${user._id}/activities?limit=3`).catch(() => []) : Promise.resolve([]),
     ])
       .then(([profileRes, reviewRes, hostedRes]) => {
         if (!active) return;

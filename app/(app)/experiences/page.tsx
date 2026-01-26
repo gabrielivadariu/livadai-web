@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiGet } from "@/lib/api";
 import { useLang } from "@/context/lang-context";
+import { useAuth } from "@/context/auth-context";
 import { useT } from "@/lib/i18n";
 import styles from "./experiences.module.css";
 
@@ -68,6 +69,7 @@ const formatGroupInfo = (item: Experience, lang: string) => {
 export default function ExperiencesPage() {
   const { lang } = useLang();
   const t = useT();
+  const { user } = useAuth();
   const [items, setItems] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -147,6 +149,7 @@ export default function ExperiencesPage() {
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
+      {!user ? <div className={styles.guestHint}>{t("guest_list_hint")}</div> : null}
 
       {loading ? (
         <div className="muted">{t("common_loading_experiences")}</div>
@@ -194,8 +197,12 @@ export default function ExperiencesPage() {
       ) : (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>✨</div>
-          <div className={styles.emptyTitle}>{t("experiences_empty_title")}</div>
-          <div className={styles.emptyText}>{t("experiences_empty_text")}</div>
+          <div className={styles.emptyTitle}>
+            {search.trim() ? t("experiences_search_empty_title") : t("experiences_empty_title")}
+          </div>
+          <div className={styles.emptyText}>
+            {search.trim() ? t("experiences_search_empty_text") : t("experiences_empty_text")}
+          </div>
           <button className="button" type="button">
             {t("experiences_view_map")}
           </button>

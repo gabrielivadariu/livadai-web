@@ -222,6 +222,28 @@ a {
   gap: 10px;
 }
 
+.nav-auth {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.nav-auth-link {
+  font-weight: 700;
+  color: var(--primary-dark);
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #dbeafe;
+  background: #ffffff;
+}
+
+.nav-auth-link.primary {
+  color: #fff;
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+
 .nav-icon {
   position: relative;
   width: 38px;

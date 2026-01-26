@@ -22,11 +22,13 @@ export default function TopNav({ pathname }: Props) {
   const isHost = user?.role === "HOST" || user?.role === "BOTH";
   const navItems = [
     { href: "/experiences", labelKey: "nav_explorers" },
-    isHost
-      ? { href: "/host", labelKey: "nav_hosts" }
-      : { href: "/profile", labelKey: "nav_profile" },
+    user
+      ? isHost
+        ? { href: "/host", labelKey: "nav_hosts" }
+        : { href: "/profile", labelKey: "nav_profile" }
+      : null,
     { href: "/map", labelKey: "nav_map" },
-  ];
+  ].filter(Boolean) as { href: string; labelKey: string }[];
 
   const onLogout = () => {
     logout();
@@ -113,8 +115,9 @@ export default function TopNav({ pathname }: Props) {
         })}
       </nav>
 
-      <div className="nav-actions">
-        <Link className="nav-icon" href="/messages" aria-label={t("nav_messages")}>
+      {user ? (
+        <div className="nav-actions">
+          <Link className="nav-icon" href="/messages" aria-label={t("nav_messages")}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path
               d="M4 5.5h16v9H8l-4 4V5.5z"
@@ -137,24 +140,36 @@ export default function TopNav({ pathname }: Props) {
           </svg>
           {unreadCount > 0 ? <span className="nav-badge">{unreadCount}</span> : null}
         </Link>
-      </div>
+        </div>
+      ) : (
+        <div className="nav-auth">
+          <Link className="nav-auth-link" href="/login">
+            {t("login_button")}
+          </Link>
+          <Link className="nav-auth-link primary" href="/register">
+            {t("login_register")}
+          </Link>
+        </div>
+      )}
 
-      <div className="nav-profile">
-        <details className="profile-menu">
-          <summary className="profile-summary">
-            <span className="profile-dot" />
-            <span>{name}</span>
-          </summary>
-          <div className="profile-dropdown">
-            <Link href="/menu">{t("nav_menu")}</Link>
-            <Link href="/profile">{t("nav_profile")}</Link>
-            <Link href="/settings">{t("nav_settings")}</Link>
-            <button type="button" onClick={onLogout}>
-              {t("nav_logout")}
-            </button>
-          </div>
-        </details>
-      </div>
+      {user ? (
+        <div className="nav-profile">
+          <details className="profile-menu">
+            <summary className="profile-summary">
+              <span className="profile-dot" />
+              <span>{name}</span>
+            </summary>
+            <div className="profile-dropdown">
+              <Link href="/menu">{t("nav_menu")}</Link>
+              <Link href="/profile">{t("nav_profile")}</Link>
+              <Link href="/settings">{t("nav_settings")}</Link>
+              <button type="button" onClick={onLogout}>
+                {t("nav_logout")}
+              </button>
+            </div>
+          </details>
+        </div>
+      ) : null}
     </header>
   );
 }

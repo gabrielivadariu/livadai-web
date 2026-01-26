@@ -543,6 +543,7 @@ export default function ExperienceDetailPage() {
           <button className="button" type="button" onClick={onBook} disabled={bookingDisabled}>
             {booking ? t("experience_booking") : t("experience_book")}
           </button>
+          {!user ? <div className={styles.guestReserveHint}>{t("guest_reserve_hint")}</div> : null}
           <button
             className={styles.chatLink}
             type="button"

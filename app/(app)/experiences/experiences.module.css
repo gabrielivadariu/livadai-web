@@ -90,6 +90,12 @@
   max-width: 480px;
 }
 
+.guestHint {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .searchInput {
   width: 100%;
   border: none;

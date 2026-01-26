@@ -5,12 +5,10 @@ import { useRouter } from "next/navigation";
 
 export default function Home() {
   const router = useRouter();
-  const { loading } = useAuth();
 
   useEffect(() => {
-    if (loading) return;
     router.replace("/experiences");
-  }, [loading, router]);
+  }, [router]);
 
   return <div className="page screen">Loading...</div>;
 }

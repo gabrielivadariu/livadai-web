@@ -119,6 +119,7 @@ export default function HostWalletPage() {
   const blocked = balance?.blocked ? Number(balance.blocked).toFixed(2) : "0.00";
   const stripeAvailable = stripeBalance?.available ? (Number(stripeBalance.available) / 100).toFixed(2) : "0.00";
   const stripePending = stripeBalance?.pending ? (Number(stripeBalance.pending) / 100).toFixed(2) : "0.00";
+  const stripeAvailableValue = Number(stripeBalance?.available || 0);
   const showError = error && !(payoutsEnabled && /Stripe account not ready/i.test(error));
 
   return (
@@ -150,6 +151,7 @@ export default function HostWalletPage() {
                 <div className={styles.balanceValue}>{blocked} {currency}</div>
               </div>
             </div>
+            <div className={styles.infoText}>{t("host_wallet_internal_note")}</div>
 
             <div className={styles.info}>
               <div className={styles.infoTitle}>{t("host_wallet_stripe_title")}</div>
@@ -163,22 +165,27 @@ export default function HostWalletPage() {
                   <div className={styles.balanceValue}>{stripePending} {stripeCurrency}</div>
                 </div>
               </div>
-              <div className={styles.infoText}>{t("host_wallet_estimate_note")}</div>
+              <div className={styles.infoText}>{t("host_wallet_internal_note")}</div>
+              <div className={styles.infoText}>{t("host_wallet_stripe_note")}</div>
+              <div className={styles.infoText}>{t("host_wallet_pending_text")}</div>
+              <div className={styles.infoText}>{t("host_wallet_dispute_text")}</div>
             </div>
 
             <div className={styles.actions}>
-              <button className="button" type="button" onClick={onOpenDashboard}>
+              <button className="button" type="button" onClick={onOpenDashboard} disabled={stripeAvailableValue <= 0}>
                 {t("host_wallet_collect")}
               </button>
               <button className="button secondary" type="button" onClick={loadWallet}>
                 {t("host_wallet_refresh")}
               </button>
             </div>
+            {stripeAvailableValue <= 0 ? (
+              <div className={styles.infoText}>{t("host_wallet_collect_disabled")}</div>
+            ) : null}
 
             <div className={styles.info}>
-              <div className={styles.infoTitle}>{t("host_wallet_pending_title")}</div>
-              <div className={styles.infoText}>{t("host_wallet_pending_text")}</div>
-              <div className={styles.infoText}>{t("host_wallet_dispute_text")}</div>
+              <div className={styles.infoTitle}>{t("host_wallet_flow_title")}</div>
+              <div className={styles.infoText}>{t("host_wallet_flow_text")}</div>
             </div>
 
             <div className={styles.section}>

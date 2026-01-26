@@ -36,6 +36,7 @@ export default function HostWalletPage() {
   const t = useT();
   const [status, setStatus] = useState<StripeStatus | null>(null);
   const [balance, setBalance] = useState<WalletBalance | null>(null);
+  const [stripeBalance, setStripeBalance] = useState<WalletBalance | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -57,6 +58,12 @@ export default function HostWalletPage() {
       if (statusRes?.stripeAccountId && statusPayoutsEnabled) {
         const balanceRes = await apiGet<WalletBalance>("/wallet/summary");
         setBalance(balanceRes);
+        try {
+          const stripeBalanceRes = await apiGet<WalletBalance>("/stripe/wallet/balance");
+          setStripeBalance(stripeBalanceRes);
+        } catch (stripeErr) {
+          setStripeBalance(null);
+        }
         if (statusChargesEnabled) {
           const txRes = await apiGet<Transaction[]>("/stripe/wallet/transactions");
           setTransactions(txRes || []);
@@ -106,9 +113,12 @@ export default function HostWalletPage() {
   };
 
   const currency = (balance?.currency || "ron").toUpperCase();
+  const stripeCurrency = (stripeBalance?.currency || "ron").toUpperCase();
   const available = balance?.available ? Number(balance.available).toFixed(2) : "0.00";
   const pending = balance?.pending ? Number(balance.pending).toFixed(2) : "0.00";
   const blocked = balance?.blocked ? Number(balance.blocked).toFixed(2) : "0.00";
+  const stripeAvailable = stripeBalance?.available ? (Number(stripeBalance.available) / 100).toFixed(2) : "0.00";
+  const stripePending = stripeBalance?.pending ? (Number(stripeBalance.pending) / 100).toFixed(2) : "0.00";
   const showError = error && !(payoutsEnabled && /Stripe account not ready/i.test(error));
 
   return (
@@ -139,6 +149,21 @@ export default function HostWalletPage() {
                 <div className={styles.balanceLabel}>{t("host_wallet_blocked")}</div>
                 <div className={styles.balanceValue}>{blocked} {currency}</div>
               </div>
+            </div>
+
+            <div className={styles.info}>
+              <div className={styles.infoTitle}>{t("host_wallet_stripe_title")}</div>
+              <div className={styles.balanceGrid}>
+                <div className={styles.balanceCard}>
+                  <div className={styles.balanceLabel}>{t("host_wallet_stripe_available")}</div>
+                  <div className={styles.balanceValue}>{stripeAvailable} {stripeCurrency}</div>
+                </div>
+                <div className={styles.balanceCard}>
+                  <div className={styles.balanceLabel}>{t("host_wallet_stripe_pending")}</div>
+                  <div className={styles.balanceValue}>{stripePending} {stripeCurrency}</div>
+                </div>
+              </div>
+              <div className={styles.infoText}>{t("host_wallet_estimate_note")}</div>
             </div>
 
             <div className={styles.actions}>

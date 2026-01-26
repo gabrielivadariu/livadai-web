@@ -376,6 +376,11 @@ const messages: Record<Lang, Messages> = {
       "Sumele intră în așteptare imediat după plată și devin disponibile la 72h după confirmarea prezenței.",
     host_wallet_dispute_text:
       "Dacă există dispute după payout, Stripe poate retrage suma din soldul tău disponibil.",
+    host_wallet_stripe_title: "Balanță Stripe",
+    host_wallet_stripe_available: "Disponibil Stripe",
+    host_wallet_stripe_pending: "În așteptare Stripe",
+    host_wallet_estimate_note:
+      "Balanța internă este o estimare bazată pe booking-uri. Stripe rămâne sursa de adevăr.",
     host_wallet_refresh: "Reîmprospătează status",
     host_wallet_transactions: "Tranzacții recente",
     host_wallet_no_transactions: "Nu există tranzacții încă.",
@@ -870,6 +875,11 @@ const messages: Record<Lang, Messages> = {
       "Funds move to pending right after payment and become available 72h after attendance is confirmed.",
     host_wallet_dispute_text:
       "If a dispute happens after payout, Stripe may debit the amount from your available balance.",
+    host_wallet_stripe_title: "Stripe balance",
+    host_wallet_stripe_available: "Stripe available",
+    host_wallet_stripe_pending: "Stripe pending",
+    host_wallet_estimate_note:
+      "The internal balance is an estimate based on bookings. Stripe remains the source of truth.",
     host_wallet_refresh: "Refresh status",
     host_wallet_transactions: "Recent transactions",
     host_wallet_no_transactions: "No transactions yet.",

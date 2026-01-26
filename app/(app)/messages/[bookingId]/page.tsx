@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/lang-context";
@@ -37,6 +37,8 @@ export default function ChatPage() {
   const { bookingId } = useParams();
   const resolvedBookingId = Array.isArray(bookingId) ? bookingId[0] : bookingId;
   const { user, loading: authLoading, token } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
   const { lang } = useLang();
   const t = useT();
   const [booking, setBooking] = useState<Booking | null>(null);
@@ -54,8 +56,7 @@ export default function ChatPage() {
     let active = true;
     if (authLoading) return;
     if (!resolvedBookingId || !token) {
-      setBooking(null);
-      setBookingLoading(false);
+      router.replace(`/login?reason=auth&next=${encodeURIComponent(pathname || "/messages")}`);
       return;
     }
     const fetchKey = `${resolvedBookingId}:${token}`;
@@ -76,7 +77,7 @@ export default function ChatPage() {
     return () => {
       active = false;
     };
-  }, [authLoading, resolvedBookingId, token, lang]);
+  }, [authLoading, resolvedBookingId, token, lang, router, pathname]);
 
   useEffect(() => {
     if (authLoading || !token || !resolvedBookingId) return;

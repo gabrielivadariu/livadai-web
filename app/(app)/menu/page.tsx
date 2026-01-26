@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
@@ -12,7 +14,8 @@ const languageOptions = [
 ];
 
 export default function MenuPage() {
-  const { user, logout } = useAuth();
+  const router = useRouter();
+  const { user, logout, token, loading } = useAuth();
   const { lang, setLang } = useLang();
   const t = useT();
   const isHost = user?.role === "HOST" || user?.role === "BOTH";
@@ -20,6 +23,11 @@ export default function MenuPage() {
   const onSetLanguage = (code: string) => {
     setLang(code === "en" ? "en" : "ro");
   };
+
+  useEffect(() => {
+    if (loading) return;
+    if (!token) router.replace("/login?reason=auth&next=/menu");
+  }, [loading, token, router]);
 
   return (
     <div className={styles.page}>

@@ -133,12 +133,11 @@ export default function NotificationsPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!token) {
-      setItems([]);
-      setLoading(false);
+      router.replace("/login?reason=auth&next=/notifications");
       return;
     }
     loadNotifications();
-  }, [authLoading, token]);
+  }, [authLoading, token, router]);
 
   return (
     <div className={styles.page}>

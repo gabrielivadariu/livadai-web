@@ -79,6 +79,10 @@ export default function ProfilePage() {
     let active = true;
     const loadProfile = async () => {
       if (!active) return;
+      if (!user && !loading) {
+        router.replace("/login?reason=auth&next=/profile");
+        return;
+      }
       refresh().catch(() => undefined);
       try {
         const [profileRes, favRes, hostRes] = await Promise.all([
@@ -109,7 +113,7 @@ export default function ProfilePage() {
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onFocus);
     };
-  }, [refresh, user?.role]);
+  }, [refresh, user?.role, loading, user, router]);
 
   const onChange = (key: keyof Profile, value: Profile[keyof Profile]) => {
     setForm((prev) => ({ ...prev, [key]: value }));

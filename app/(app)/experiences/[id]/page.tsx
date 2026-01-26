@@ -318,6 +318,10 @@ export default function ExperienceDetailPage() {
 
   const onBook = async () => {
     if (!item?._id) return;
+    if (!user) {
+      router.replace(`/login?reason=auth&next=${encodeURIComponent(`/experiences/${item._id}`)}`);
+      return;
+    }
     if (user?._id && item.host?._id && user._id === item.host._id) {
       setError(t("experience_book_own"));
       return;
@@ -390,8 +394,9 @@ export default function ExperienceDetailPage() {
   const priceText = !item.price || Number(item.price) <= 0 ? t("experiences_free") : `${item.price} ${item.currencyCode || "RON"}`;
   const isHost = user?.role === "HOST" || user?.role === "BOTH";
   const bookingDisabled = booking || (item.activityType === "GROUP" && availableSeats <= 0);
-  const chatDisabledReason = !user
-    ? t("chat_login_prompt")
+  const chatRequiresAuth = !user;
+  const chatDisabledReason = chatRequiresAuth
+    ? t("login_required")
     : bookingLoading
       ? t("chat_loading_booking")
       : !bookingInfo
@@ -541,8 +546,14 @@ export default function ExperienceDetailPage() {
           <button
             className={styles.chatLink}
             type="button"
-            onClick={() => bookingInfo?._id && router.push(`/messages/${bookingInfo._id}`)}
-            disabled={!chatAllowed}
+            onClick={() => {
+              if (chatRequiresAuth) {
+                router.replace(`/login?reason=auth&next=${encodeURIComponent(`/experiences/${item?._id}`)}`);
+                return;
+              }
+              if (bookingInfo?._id && chatAllowed) router.push(`/messages/${bookingInfo._id}`);
+            }}
+            disabled={!chatRequiresAuth && !chatAllowed}
           >
             {t("chat_open")}
           </button>

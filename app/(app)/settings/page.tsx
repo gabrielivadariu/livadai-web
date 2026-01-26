@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/lang-context";
-import { apiDelete } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 
 const NOTIFICATIONS_KEY = "livadai-notifications";
@@ -13,7 +12,7 @@ const NOTIFICATIONS_KEY = "livadai-notifications";
 export default function SettingsPage() {
   const t = useT();
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, token, loading } = useAuth();
   const { lang, setLang } = useLang();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [deleteError, setDeleteError] = useState("");
@@ -21,9 +20,14 @@ export default function SettingsPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
+    if (loading) return;
+    if (!token) {
+      router.replace("/login?reason=auth&next=/settings");
+      return;
+    }
     const stored = window.localStorage.getItem(NOTIFICATIONS_KEY);
     if (stored === "off") setNotificationsEnabled(false);
-  }, []);
+  }, [loading, token, router]);
 
   const toggleNotifications = () => {
     const next = !notificationsEnabled;
@@ -31,18 +35,8 @@ export default function SettingsPage() {
     window.localStorage.setItem(NOTIFICATIONS_KEY, next ? "on" : "off");
   };
 
-  const onDeleteAccount = async () => {
-    setDeleting(true);
-    setDeleteError("");
-    try {
-      await apiDelete("/users/me");
-      logout();
-      router.replace("/login");
-    } catch (err) {
-      setDeleteError((err as Error).message || t("settings_delete_error"));
-    } finally {
-      setDeleting(false);
-    }
+  const onDeleteAccount = () => {
+    router.push("/profile");
   };
 
   return (
@@ -107,7 +101,7 @@ export default function SettingsPage() {
             <div style={{ color: "#7f1d1d", marginBottom: 10 }}>{t("settings_delete_confirm_text")}</div>
             <div style={{ display: "grid", gap: 8 }}>
               <button className="button" type="button" onClick={onDeleteAccount} disabled={deleting}>
-                {deleting ? t("profile_deleting") : t("settings_delete_confirm_button")}
+                {t("settings_delete_confirm_button")}
               </button>
               <button className="button secondary" type="button" onClick={() => setConfirmDelete(false)}>
                 {t("settings_delete_cancel")}

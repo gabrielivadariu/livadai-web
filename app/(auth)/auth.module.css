@@ -74,6 +74,14 @@
   text-align: center;
 }
 
+.info {
+  color: #0f766e;
+  font-weight: 600;
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
 .roleRow {
   display: flex;
   gap: 8px;

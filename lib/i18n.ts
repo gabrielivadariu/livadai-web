@@ -194,7 +194,8 @@ const messages: Record<Lang, Messages> = {
     report_comment_placeholder: "Descrie ce s-a întâmplat",
     report_submit: "Trimite",
     report_cancel: "Anulează",
-    report_sent: "Raport trimis",
+    report_sent:
+      "Am primit raportarea ta. Echipa noastră o va analiza și te va contacta dacă sunt necesare informații suplimentare.",
     report_failed: "Raportarea a eșuat",
     report_reason_conduct: "Conduită necorespunzătoare",
     report_reason_harassment: "Hărțuire",
@@ -693,7 +694,8 @@ const messages: Record<Lang, Messages> = {
     report_comment_placeholder: "Describe what happened",
     report_submit: "Send",
     report_cancel: "Cancel",
-    report_sent: "Report sent",
+    report_sent:
+      "We’ve received your report. Our team will review it and contact you if additional information is needed.",
     report_failed: "Report failed",
     report_reason_conduct: "Inappropriate conduct",
     report_reason_harassment: "Harassment",

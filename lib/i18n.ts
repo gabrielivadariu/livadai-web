@@ -374,6 +374,8 @@ const messages: Record<Lang, Messages> = {
     host_wallet_pending_title: "Cum funcționează plățile",
     host_wallet_pending_text:
       "Sumele intră în așteptare imediat după plată și devin disponibile la 72h după confirmarea prezenței.",
+    host_wallet_dispute_text:
+      "Dacă există dispute după payout, Stripe poate retrage suma din soldul tău disponibil.",
     host_wallet_refresh: "Reîmprospătează status",
     host_wallet_transactions: "Tranzacții recente",
     host_wallet_no_transactions: "Nu există tranzacții încă.",
@@ -866,6 +868,8 @@ const messages: Record<Lang, Messages> = {
     host_wallet_pending_title: "How payouts work",
     host_wallet_pending_text:
       "Funds move to pending right after payment and become available 72h after attendance is confirmed.",
+    host_wallet_dispute_text:
+      "If a dispute happens after payout, Stripe may debit the amount from your available balance.",
     host_wallet_refresh: "Refresh status",
     host_wallet_transactions: "Recent transactions",
     host_wallet_no_transactions: "No transactions yet.",

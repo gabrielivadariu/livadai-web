@@ -153,6 +153,7 @@ export default function HostWalletPage() {
             <div className={styles.info}>
               <div className={styles.infoTitle}>{t("host_wallet_pending_title")}</div>
               <div className={styles.infoText}>{t("host_wallet_pending_text")}</div>
+              <div className={styles.infoText}>{t("host_wallet_dispute_text")}</div>
             </div>
 
             <div className={styles.section}>

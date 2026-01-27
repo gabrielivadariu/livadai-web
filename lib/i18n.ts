@@ -381,11 +381,8 @@ const messages: Record<Lang, Messages> = {
     host_wallet_stripe_note:
       "Aceștia sunt banii reali care pot fi retrași în contul tău bancar.",
     host_wallet_collect_disabled: "Nu ai încă fonduri disponibile în Stripe.",
-    host_wallet_stripe_title: "Balanță Stripe",
     host_wallet_stripe_available: "Disponibil Stripe",
     host_wallet_stripe_pending: "În așteptare Stripe",
-    host_wallet_estimate_note:
-      "Balanța internă este o estimare bazată pe booking-uri. Stripe rămâne sursa de adevăr.",
     host_wallet_refresh: "Reîmprospătează status",
     host_wallet_transactions: "Tranzacții recente",
     host_wallet_no_transactions: "Nu există tranzacții încă.",
@@ -885,11 +882,8 @@ const messages: Record<Lang, Messages> = {
     host_wallet_stripe_note:
       "These are the real funds that can be withdrawn to your bank account.",
     host_wallet_collect_disabled: "No funds available in Stripe yet.",
-    host_wallet_stripe_title: "Stripe balance",
     host_wallet_stripe_available: "Stripe available",
     host_wallet_stripe_pending: "Stripe pending",
-    host_wallet_estimate_note:
-      "The internal balance is an estimate based on bookings. Stripe remains the source of truth.",
     host_wallet_refresh: "Refresh status",
     host_wallet_transactions: "Recent transactions",
     host_wallet_no_transactions: "No transactions yet.",

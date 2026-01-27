@@ -160,7 +160,6 @@ export default function ExperiencesPage() {
             const priceText = isFree ? t("experiences_free") : `${item.price || 0} ${item.currencyCode || "RON"}`;
             const start = item.startsAt || item.startDate;
             const dateLabel = start ? new Date(start).toLocaleDateString(lang === "en" ? "en-US" : "ro-RO", { day: "numeric", month: "short" }) : "";
-            const durationLabel = formatDuration(item.durationMinutes, lang);
             const groupLabel = formatGroupInfo(item, lang);
             return (
               <Link key={item._id} href={`/experiences/${item._id}`} className={styles.card}>
@@ -185,7 +184,6 @@ export default function ExperiencesPage() {
                   <div className={styles.cardMeta}>
                     {dateLabel ? <span>📅 {dateLabel}</span> : null}
                     {item.languages?.length ? <span>🗣 {item.languages.slice(0, 2).join(" · ")}</span> : null}
-                    {durationLabel ? <span>⏱ {durationLabel}</span> : null}
                     {groupLabel ? <span>{groupLabel}</span> : null}
                     {item.rating_avg ? <span className={styles.rating}>⭐ {Number(item.rating_avg).toFixed(1)}</span> : null}
                   </div>

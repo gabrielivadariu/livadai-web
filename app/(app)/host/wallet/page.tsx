@@ -122,7 +122,7 @@ export default function HostWalletPage() {
   const stripeAvailableValue = Number(stripeBalance?.available || 0);
   const statusMessage =
     stripeAvailableValue > 0
-      ? t("host_wallet_status_available", { amount: stripeAvailable })
+      ? t("host_wallet_status_available").replace("{{amount}}", stripeAvailable)
       : t("host_wallet_status_empty");
   const showError = error && !(payoutsEnabled && /Stripe account not ready/i.test(error));
 

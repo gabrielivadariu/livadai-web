@@ -60,6 +60,16 @@ type MapPoint = {
 export default function MapClient({ points }: { points: MapPoint[] }) {
   const router = useRouter();
   const defaultIcon = getDefaultIcon();
+  const safePoints = useMemo(() => {
+    return (points || []).filter((p) => {
+      const lat = Number(p.latitude);
+      const lng = Number(p.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+      if (lat < -90 || lat > 90) return false;
+      if (lng < -180 || lng > 180) return false;
+      return true;
+    });
+  }, [points]);
   const markerIcon = useMemo(() => {
     if (typeof window === "undefined") return null;
     const L = window.L;
@@ -87,7 +97,7 @@ export default function MapClient({ points }: { points: MapPoint[] }) {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      {points.map((p) => (
+      {safePoints.map((p) => (
         <Marker
           key={p._id}
           position={[p.latitude, p.longitude]}

@@ -161,6 +161,7 @@ export default function ExperiencesPage() {
             const start = item.startsAt || item.startDate;
             const dateLabel = start ? new Date(start).toLocaleDateString(lang === "en" ? "en-US" : "ro-RO", { day: "numeric", month: "short" }) : "";
             const groupLabel = formatGroupInfo(item, lang);
+            const seats = groupLabel ? groupLabel.match(/\d+\/\d+/)?.[0] : null;
             return (
               <Link key={item._id} href={`/experiences/${item._id}`} className={styles.card}>
                 {item.coverImageUrl ? (
@@ -184,7 +185,7 @@ export default function ExperiencesPage() {
                   <div className={styles.cardMeta}>
                     {dateLabel ? <span>📅 {dateLabel}</span> : null}
                     {item.languages?.length ? <span>🗣 {item.languages.slice(0, 2).join(" · ")}</span> : null}
-                    {groupLabel ? <span>{groupLabel}</span> : null}
+                    {seats ? <span>👥 {seats}</span> : null}
                     {item.rating_avg ? <span className={styles.rating}>⭐ {Number(item.rating_avg).toFixed(1)}</span> : null}
                   </div>
                 </div>

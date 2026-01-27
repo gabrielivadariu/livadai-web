@@ -187,11 +187,11 @@ export default function RegisterPage() {
             <input type="checkbox" checked={termsChecked} onChange={(e) => setTermsChecked(e.target.checked)} />
             <span>
               {t("register_terms_prefix")}{" "}
-              <a href="https://sites.google.com/view/terms-conditions-livadai/pagina-de-pornire" target="_blank">
+              <a href="/terms">
                 {t("register_terms")}
               </a>{" "}
               {t("register_terms_and")}{" "}
-              <a href="https://sites.google.com/view/privacypolicylivadai/pagina-de-pornire" target="_blank">
+              <a href="/privacy">
                 {t("register_privacy")}
               </a>
             </span>

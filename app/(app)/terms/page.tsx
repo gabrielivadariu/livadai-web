@@ -1,22 +1,5 @@
-"use client";
-
-import InfoBody from "@/components/info-body";
-import { infoContent } from "@/lib/info-content";
-import { useLang } from "@/lib/use-lang";
-import styles from "../legal.module.css";
+import LegalPlaceholder from "@/components/legal-placeholder";
 
 export default function TermsPage() {
-  const { lang } = useLang();
-  const content = infoContent.terms[lang];
-
-  return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <h1>{content.title}</h1>
-      </div>
-      <div className={styles.card}>
-        <InfoBody items={content.items} />
-      </div>
-    </div>
-  );
+  return <LegalPlaceholder title="Terms & Conditions" subtitle="Last updated: TBD" />;
 }

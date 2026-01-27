@@ -372,20 +372,15 @@ const messages: Record<Lang, Messages> = {
     host_wallet_blocked: "Blocat",
     host_wallet_dashboard: "Deschide Stripe Dashboard",
     host_wallet_collect: "Colectează bani",
-    host_wallet_pending_title: "Cum funcționează plățile",
-    host_wallet_pending_text:
-      "Sumele intră în așteptare imediat după plată și devin disponibile la 72h după confirmarea prezenței.",
-    host_wallet_dispute_text:
-      "Dacă există dispute după payout, Stripe poate retrage suma din soldul tău disponibil.",
+    host_wallet_status_empty: "Momentan nu ai bani disponibili pentru retragere",
+    host_wallet_status_available: "Ai {{amount}} RON disponibili pentru retragere",
+    host_wallet_internal_title: "Sold estimat LIVADAI",
     host_wallet_internal_note:
-      "Soldul intern este o estimare LIVADAI, calculată pe baza booking-urilor confirmate.",
+      "Estimare bazată pe experiențe confirmate. Devine eligibil la 72h.",
+    host_wallet_stripe_title: "Bani reali (Stripe)",
     host_wallet_stripe_note:
-      "Soldul Stripe reprezintă banii reali disponibili sau în așteptare în contul tău.",
-    host_wallet_flow_title: "Cum ajung banii la tine",
-    host_wallet_flow_text:
-      "1) Clientul plătește. 2) Experiența este confirmată. 3) După 72h, suma devine eligibilă. 4) Stripe o mută în soldul disponibil. 5) Poți retrage.",
-    host_wallet_collect_disabled:
-      "Nu ai încă sold disponibil în Stripe. Sumele apar după confirmare și procesarea Stripe.",
+      "Aceștia sunt banii reali care pot fi retrași în contul tău bancar.",
+    host_wallet_collect_disabled: "Nu ai încă fonduri disponibile în Stripe.",
     host_wallet_stripe_title: "Balanță Stripe",
     host_wallet_stripe_available: "Disponibil Stripe",
     host_wallet_stripe_pending: "În așteptare Stripe",
@@ -881,20 +876,15 @@ const messages: Record<Lang, Messages> = {
     host_wallet_blocked: "Blocked",
     host_wallet_dashboard: "Open Stripe Dashboard",
     host_wallet_collect: "Withdraw funds",
-    host_wallet_pending_title: "How payouts work",
-    host_wallet_pending_text:
-      "Funds move to pending right after payment and become available 72h after attendance is confirmed.",
-    host_wallet_dispute_text:
-      "If a dispute happens after payout, Stripe may debit the amount from your available balance.",
+    host_wallet_status_empty: "You don’t have funds available for withdrawal yet",
+    host_wallet_status_available: "You have {{amount}} RON available for withdrawal",
+    host_wallet_internal_title: "LIVADAI estimated balance",
     host_wallet_internal_note:
-      "The internal balance is a LIVADAI estimate based on confirmed bookings.",
+      "Estimate based on confirmed experiences. Becomes eligible after 72h.",
+    host_wallet_stripe_title: "Real money (Stripe)",
     host_wallet_stripe_note:
-      "The Stripe balance represents the real funds available or pending in your account.",
-    host_wallet_flow_title: "How money reaches you",
-    host_wallet_flow_text:
-      "1) The client pays. 2) The experience is confirmed. 3) After 72h, the amount becomes eligible. 4) Stripe moves it to available. 5) You can withdraw.",
-    host_wallet_collect_disabled:
-      "No Stripe available balance yet. Funds appear after confirmation and Stripe processing.",
+      "These are the real funds that can be withdrawn to your bank account.",
+    host_wallet_collect_disabled: "No funds available in Stripe yet.",
     host_wallet_stripe_title: "Stripe balance",
     host_wallet_stripe_available: "Stripe available",
     host_wallet_stripe_pending: "Stripe pending",

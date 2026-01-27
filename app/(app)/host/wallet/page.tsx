@@ -120,6 +120,10 @@ export default function HostWalletPage() {
   const stripeAvailable = stripeBalance?.available ? (Number(stripeBalance.available) / 100).toFixed(2) : "0.00";
   const stripePending = stripeBalance?.pending ? (Number(stripeBalance.pending) / 100).toFixed(2) : "0.00";
   const stripeAvailableValue = Number(stripeBalance?.available || 0);
+  const statusMessage =
+    stripeAvailableValue > 0
+      ? t("host_wallet_status_available", { amount: stripeAvailable })
+      : t("host_wallet_status_empty");
   const showError = error && !(payoutsEnabled && /Stripe account not ready/i.test(error));
 
   return (
@@ -137,6 +141,13 @@ export default function HostWalletPage() {
       ) : status?.stripeAccountId ? (
         payoutsEnabled ? (
           <>
+            <div className={styles.info}>
+              <div className={styles.infoTitle}>{statusMessage}</div>
+            </div>
+
+            <div className={styles.info}>
+              <div className={styles.infoTitle}>{t("host_wallet_internal_title")}</div>
+            </div>
             <div className={styles.balanceGrid}>
               <div className={styles.balanceCard}>
                 <div className={styles.balanceLabel}>{t("host_wallet_available")}</div>
@@ -165,10 +176,7 @@ export default function HostWalletPage() {
                   <div className={styles.balanceValue}>{stripePending} {stripeCurrency}</div>
                 </div>
               </div>
-              <div className={styles.infoText}>{t("host_wallet_internal_note")}</div>
               <div className={styles.infoText}>{t("host_wallet_stripe_note")}</div>
-              <div className={styles.infoText}>{t("host_wallet_pending_text")}</div>
-              <div className={styles.infoText}>{t("host_wallet_dispute_text")}</div>
             </div>
 
             <div className={styles.actions}>
@@ -184,8 +192,7 @@ export default function HostWalletPage() {
             ) : null}
 
             <div className={styles.info}>
-              <div className={styles.infoTitle}>{t("host_wallet_flow_title")}</div>
-              <div className={styles.infoText}>{t("host_wallet_flow_text")}</div>
+              <div className={styles.infoTitle}>{statusMessage}</div>
             </div>
 
             <div className={styles.section}>

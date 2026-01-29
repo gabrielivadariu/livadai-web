@@ -25,7 +25,7 @@ type Booking = {
   user?: { _id?: string } | string;
 };
 
-const historyStatuses = new Set(["COMPLETED", "AUTO_COMPLETED", "CANCELLED", "REFUNDED", "NO_SHOW"]);
+const historyStatuses = new Set(["COMPLETED", "AUTO_COMPLETED", "CANCELLED", "REFUNDED", "REFUND_FAILED", "NO_SHOW"]);
 const activeStatuses = new Set(["PENDING", "PAID", "DEPOSIT_PAID", "CONFIRMED"]);
 
 const getId = (value: unknown) => {
@@ -112,7 +112,8 @@ export default function GuestParticipationsPage() {
       COMPLETED: t("guest_completed"),
       AUTO_COMPLETED: t("guest_completed"),
       CANCELLED: t("guest_cancelled"),
-      REFUNDED: t("guest_refunded"),
+      REFUNDED: t("guest_cancelled"),
+      REFUND_FAILED: t("guest_cancelled"),
       NO_SHOW: t("guest_no_show"),
     }),
     [t]
@@ -158,6 +159,8 @@ export default function GuestParticipationsPage() {
                   <div>
                     <div className={styles.title}>{exp.title || t("common_experience")}</div>
                     <div className={styles.meta}>{statusLabel[b.status as keyof typeof statusLabel] || b.status}</div>
+                    {b.status === "REFUNDED" ? <div className={styles.meta}>{t("guest_refund_initiated")}</div> : null}
+                    {b.status === "REFUND_FAILED" ? <div className={styles.meta}>{t("guest_refund_processing")}</div> : null}
                     {dateText(exp) ? <div className={styles.meta}>{dateText(exp)}</div> : null}
                   </div>
                 </div>

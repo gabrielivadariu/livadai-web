@@ -76,6 +76,18 @@ export default function HostBookingsPage() {
           ).map((group) => {
             const exp = group.experience;
             const dateLabel = exp?.startsAt || exp?.startDate;
+            const startDate = dateLabel ? new Date(dateLabel) : null;
+            const isUpcoming = !!startDate && startDate.getTime() > Date.now();
+            const statuses = new Set(group.bookings.map((b) => b.status));
+            const hasCancelled = ["CANCELLED", "REFUNDED", "REFUND_FAILED"].some((s) => statuses.has(s));
+            const hasCompleted = ["COMPLETED", "AUTO_COMPLETED", "NO_SHOW"].some((s) => statuses.has(s));
+            const statusKey = hasCancelled
+              ? "booking_status_cancelled"
+              : hasCompleted
+                ? "booking_status_completed"
+                : isUpcoming
+                  ? "booking_status_upcoming"
+                  : "booking_status_active";
             const bookedSeats = group.bookings.reduce((sum, b) => sum + (b.quantity || 1), 0);
             const totalSeats =
               typeof exp?.maxParticipants === "number"
@@ -105,7 +117,7 @@ export default function HostBookingsPage() {
                     {t("host_bookings_occupied")}: {bookedSeats} / {totalSeats}
                   </div>
                 </div>
-                <div className={styles.status}>{t("host_bookings_participants")}</div>
+                <div className={styles.status}>{t(statusKey)}</div>
               </div>
             );
           })}

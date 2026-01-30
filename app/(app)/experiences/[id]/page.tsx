@@ -391,7 +391,10 @@ export default function ExperienceDetailPage() {
   });
   const startLabel = start ? dateFormatter.format(new Date(start)) : "";
   const endLabel = end ? dateFormatter.format(new Date(end)) : "";
-  const priceText = !item.price || Number(item.price) <= 0 ? t("experiences_free") : `${item.price} ${item.currencyCode || "RON"}`;
+  const isFree = !item.price || Number(item.price) <= 0;
+  const priceText = isFree ? t("experience_free_label") : `${item.price} ${item.currencyCode || "RON"}`;
+  const serviceFeeTotal = (item.activityType === "GROUP" ? quantity : 1) * 1;
+  const serviceFeeTotalLabel = t("experience_service_fee_total").replace("{{amount}}", String(serviceFeeTotal));
   const isHost = user?.role === "HOST" || user?.role === "BOTH";
   const bookingDisabled = booking || (item.activityType === "GROUP" && availableSeats <= 0);
   const chatRequiresAuth = !user;
@@ -513,6 +516,12 @@ export default function ExperienceDetailPage() {
             <div className={styles.price}>{priceText}</div>
             {item.rating_avg ? <div className={styles.rating}>⭐ {Number(item.rating_avg).toFixed(1)}</div> : null}
           </div>
+          {isFree ? (
+            <div className={styles.serviceFee}>
+              <span>{t("experience_service_fee_per_participant")}</span>
+              <strong>{serviceFeeTotalLabel}</strong>
+            </div>
+          ) : null}
           {item.activityType === "GROUP" ? (
             <div className={styles.quantityRow}>
               <span>{lang === "en" ? "Seats" : "Locuri"}</span>

@@ -149,6 +149,19 @@
   margin-bottom: 12px;
 }
 
+.serviceFee {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.serviceFee strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
 .quantityRow {
   display: flex;
   justify-content: space-between;

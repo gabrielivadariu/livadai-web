@@ -263,6 +263,16 @@
   margin-top: 12px;
 }
 
+.readonlyField {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 14px;
+}
+
 .imageThumb {
   border-radius: 12px;
   overflow: hidden;

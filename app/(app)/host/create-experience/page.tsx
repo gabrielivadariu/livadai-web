@@ -484,7 +484,7 @@ function CreateExperienceContent() {
             </div>
             <div>
               <label>{t("create_experience_duration")}</label>
-              <input className="input" value={formatDuration(form.durationMinutes)} readOnly />
+              <div className={styles.readonlyField}>{formatDuration(form.durationMinutes) || "—"}</div>
             </div>
             <div className={styles.full}>
               <div className={styles.scheduleHint}>{t("create_experience_schedule_hint")}</div>

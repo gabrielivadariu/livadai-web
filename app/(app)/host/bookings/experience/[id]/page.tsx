@@ -89,14 +89,12 @@ export default function HostParticipantsPage() {
   };
 
   const handleCancelAll = async () => {
-    if (!actionableBookings.length) return;
     if (!window.confirm(t("host_participants_cancel_prompt"))) return;
     try {
       setSavingAction("cancel");
-      for (const booking of actionableBookings) {
-        await apiPost(`/bookings/${booking._id}/cancel-by-host`);
-      }
+      await apiPost(`/experiences/${id}/cancel`);
       await load();
+      router.refresh();
     } finally {
       setSavingAction(null);
     }
@@ -164,7 +162,7 @@ export default function HostParticipantsPage() {
               className={styles.secondaryAction}
               type="button"
               onClick={handleCancelAll}
-              disabled={!actionableBookings.length || savingAction === "cancel"}
+              disabled={savingAction === "cancel"}
             >
               {t("host_participants_cancel_action")}
             </button>

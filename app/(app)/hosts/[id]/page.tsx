@@ -11,7 +11,7 @@ import styles from "./host-public.module.css";
 type HostProfile = {
   id?: string;
   name?: string;
-  display_name?: string;
+  displayName?: string;
   city?: string;
   country?: string;
   about_me?: string;
@@ -76,7 +76,7 @@ export default function HostPublicProfilePage() {
   if (loading) return <div className="muted">{t("common_loading_profile")}</div>;
   if (!profile) return <div className="muted">{t("common_loading_profile")}</div>;
 
-  const name = profile.display_name || profile.name || t("nav_profile_fallback");
+  const name = profile.displayName || profile.name || t("nav_profile_fallback");
 
   return (
     <div className={styles.page}>

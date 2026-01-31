@@ -26,7 +26,7 @@ const languageOptions = [
 
 type HostProfile = {
   name?: string;
-  display_name?: string;
+  displayName?: string;
   city?: string;
   country?: string;
   about_me?: string;
@@ -112,7 +112,7 @@ export default function HostProfilePage() {
     setStatus("");
     try {
       await apiPut("/hosts/me/profile", {
-        display_name: form.display_name,
+        displayName: form.displayName,
         name: form.name,
         city: form.city,
         country: form.country,
@@ -168,7 +168,7 @@ export default function HostProfilePage() {
           </div>
           <div>
             <label>{t("host_profile_display_name")}</label>
-            <input className="input" value={form.display_name || ""} onChange={(e) => onChange("display_name", e.target.value)} />
+            <input className="input" value={form.displayName || ""} onChange={(e) => onChange("displayName", e.target.value)} />
           </div>
           <div>
             <label>{t("host_profile_city")}</label>

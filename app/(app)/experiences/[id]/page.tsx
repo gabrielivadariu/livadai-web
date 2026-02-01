@@ -554,11 +554,7 @@ export default function ExperienceDetailPage() {
               <span>{t("experience_service_fee_per_participant")}</span>
               <strong>{serviceFeeTotalLabel}</strong>
             </div>
-          ) : (
-            <div className={styles.serviceFee}>
-              <strong>{t("experience_platform_fee_label")}</strong>
-            </div>
-          )}
+          ) : null}
           {item.activityType === "GROUP" ? (
             <div className={styles.quantityRow}>
               <span>{lang === "en" ? "Seats" : "Locuri"}</span>

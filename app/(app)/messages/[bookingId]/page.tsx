@@ -11,6 +11,7 @@ import styles from "./chat.module.css";
 type Booking = {
   _id: string;
   status?: string;
+  paymentConfirmed?: boolean;
   chatArchivedAt?: string;
   disputedAt?: string;
   disputeResolvedAt?: string;

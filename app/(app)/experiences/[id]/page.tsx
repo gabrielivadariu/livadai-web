@@ -207,7 +207,7 @@ export default function ExperienceDetailPage() {
       "AUTO_COMPLETED",
       "NO_SHOW",
       "DISPUTED",
-    ]).has(bookingInfo.status);
+    ]).has(bookingInfo.status || "");
   }, [bookingInfo?.status, bookingInfo?.paymentConfirmed]);
 
   useEffect(() => {

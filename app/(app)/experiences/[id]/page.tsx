@@ -104,9 +104,11 @@ export default function ExperienceDetailPage() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [shareNotice, setShareNotice] = useState("");
   const bookingPollRef = useRef<NodeJS.Timeout | null>(null);
   const carouselRef = useRef<HTMLDivElement | null>(null);
   const lightboxRef = useRef<HTMLDivElement | null>(null);
+  const shareTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -359,6 +361,35 @@ export default function ExperienceDetailPage() {
     }
   };
 
+  const handleShare = async () => {
+    if (!item?._id || typeof window === "undefined") return;
+    const origin = window.location.origin.replace(/\/$/, "");
+    const shareUrl = `${origin}/experiences/${item._id}`;
+    const cityLabel = (item.city || (item.address || "").split(",")[0] || "").trim();
+    const shareText = cityLabel ? `${item.title} • ${cityLabel} • LIVADAI` : `${item.title} • LIVADAI`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: item.title, text: shareText, url: shareUrl });
+        return;
+      }
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        setShareNotice(t("share_copied"));
+      } else {
+        window.prompt(t("share_experience"), `${shareText}\n${shareUrl}`);
+      }
+    } finally {
+      if (shareTimeoutRef.current) clearTimeout(shareTimeoutRef.current);
+      shareTimeoutRef.current = setTimeout(() => setShareNotice(""), 3000);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (shareTimeoutRef.current) clearTimeout(shareTimeoutRef.current);
+    };
+  }, []);
+
   if (loading) {
     return <div className="muted">{t("common_loading_experiences")}</div>;
   }
@@ -573,6 +604,10 @@ export default function ExperienceDetailPage() {
           >
             {t("chat_open")}
           </button>
+          <button className={styles.shareLink} type="button" onClick={handleShare}>
+            {t("share_experience")}
+          </button>
+          {shareNotice ? <div className={styles.shareHint}>{shareNotice}</div> : null}
           {!chatAllowed ? <div className={styles.chatHint}>{chatDisabledReason}</div> : null}
         </div>
       </div>

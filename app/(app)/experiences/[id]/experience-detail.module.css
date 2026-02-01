@@ -405,6 +405,22 @@
   cursor: pointer;
 }
 
+.shareLink {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  color: var(--primary-dark);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+.shareHint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .guestReserveHint {
   font-size: 12px;
   color: var(--muted);

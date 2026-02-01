@@ -112,7 +112,7 @@ export default function ChatPage() {
     if ((!booking?.status && !booking?.paymentConfirmed) || chatArchived) return false;
     if (booking?.paymentConfirmed) return true;
     return ["PAID", "COMPLETED", "DEPOSIT_PAID", "PENDING_ATTENDANCE", "AUTO_COMPLETED", "NO_SHOW", "DISPUTED"].includes(
-      booking.status
+      booking.status || ""
     );
   }, [booking?.status, booking?.paymentConfirmed, chatArchived]);
 

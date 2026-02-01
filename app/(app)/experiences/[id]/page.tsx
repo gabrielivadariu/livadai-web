@@ -78,6 +78,7 @@ const formatGroupInfo = (item: Experience, lang: string) => {
 type Booking = {
   _id: string;
   status?: string;
+  paymentConfirmed?: boolean;
   experience?: { _id?: string; title?: string } | string;
   explorer?: { name?: string; email?: string; profilePhoto?: string; avatar?: string };
   host?: { name?: string; email?: string; profilePhoto?: string; avatar?: string };

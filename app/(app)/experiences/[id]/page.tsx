@@ -196,7 +196,8 @@ export default function ExperienceDetailPage() {
   }, [item?._id, user, searchParams]);
 
   const chatAllowed = useMemo(() => {
-    if (!bookingInfo?.status) return false;
+    if (!bookingInfo?.status && !bookingInfo?.paymentConfirmed) return false;
+    if (bookingInfo?.paymentConfirmed) return true;
     return new Set([
       "PAID",
       "COMPLETED",
@@ -206,7 +207,7 @@ export default function ExperienceDetailPage() {
       "NO_SHOW",
       "DISPUTED",
     ]).has(bookingInfo.status);
-  }, [bookingInfo?.status]);
+  }, [bookingInfo?.status, bookingInfo?.paymentConfirmed]);
 
   useEffect(() => {
     const bookingId = searchParams?.get("bookingId");

@@ -598,7 +598,9 @@ export default function ExperienceDetailPage() {
                       .toUpperCase()
                   )}
                 </span>
-                <span>{item.host?.displayName || item.host?.name || t("experience_host_fallback")}</span>
+                <span className={styles.hostName}>
+                  {item.host?.displayName || item.host?.name || t("experience_host_fallback")}
+                </span>
               </Link>
             ) : (
               <div className={styles.hostChip}>

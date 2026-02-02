@@ -427,6 +427,12 @@
   margin-top: 4px;
 }
 
+.refundNotice {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
 .chatLink:disabled {
   cursor: not-allowed;
   opacity: 0.6;

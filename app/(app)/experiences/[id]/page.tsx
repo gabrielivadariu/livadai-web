@@ -582,6 +582,7 @@ export default function ExperienceDetailPage() {
             </div>
           ) : null}
           {error ? <div className={styles.error}>{error}</div> : null}
+          <div className={styles.refundNotice}>{t("refund_policy_notice")}</div>
           <button className="button" type="button" onClick={onBook} disabled={bookingDisabled}>
             {booking ? t("experience_booking") : t("experience_book")}
           </button>

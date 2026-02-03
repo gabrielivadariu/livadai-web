@@ -12,7 +12,7 @@ type Booking = {
   _id: string;
   status?: string;
   quantity?: number;
-  explorer?: { _id?: string; name?: string; email?: string; phone?: string };
+  explorer?: { _id?: string; name?: string; email?: string };
   experience?: { _id?: string; title?: string; startsAt?: string; startDate?: string; endsAt?: string; endDate?: string };
 };
 
@@ -78,7 +78,6 @@ export default function HostBookingDetailPage() {
           <div className={styles.card}>
             <div className={styles.kicker}>{t("host_booking_detail_explorer")}</div>
             <div className={styles.title}>{booking.explorer?.name || booking.explorer?.email || "—"}</div>
-            {booking.explorer?.phone ? <div className={styles.meta}>{booking.explorer.phone}</div> : null}
             {booking.explorer?._id ? (
               <Link className={styles.link} href={`/users/${booking.explorer._id}`}>
                 {t("host_booking_detail_view_profile")}

@@ -149,6 +149,7 @@ export default function ExperiencesPage() {
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
           <h1 className={`${styles.heroTitle} ${styles.fadeIn}`}>{t("hero_title")}</h1>
+          <div className={styles.heroLine} />
           <p className={`${styles.heroSubtitle} ${styles.fadeIn} ${styles.delay1}`}>
             {t("hero_subtitle_line1")}
             <br />

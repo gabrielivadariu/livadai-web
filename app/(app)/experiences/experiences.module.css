@@ -39,7 +39,7 @@
 
 .heroCopy {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .kicker {
@@ -55,6 +55,16 @@
   font-size: 46px;
   line-height: 1.05;
   margin: 12px 0;
+}
+
+.heroHeadlineWrap {
+  display: grid;
+  gap: 6px;
+}
+
+.heroHeadlineAnimated {
+  display: inline-block;
+  transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
 .accentLine {
@@ -80,15 +90,6 @@
   margin: 4px 0 8px;
 }
 
-.heroList {
-  margin: 0;
-  padding: 0 0 0 18px;
-  display: grid;
-  gap: 6px;
-  color: var(--text);
-  font-weight: 600;
-}
-
 .heroSection {
   margin-top: 10px;
   display: grid;
@@ -107,47 +108,70 @@
   line-height: 1.6;
 }
 
-.line {
-  display: block;
-}
-
-.heroCta {
-  width: fit-content;
-  margin-top: 4px;
-}
-
-.searchWrap {
-  margin-top: 4px;
-  background: #fff;
-  border-radius: 999px;
-  border: 1px solid #e2e8f0;
-  padding: 8px 14px;
-  max-width: 480px;
-}
-
 .guestHint {
   margin-top: 8px;
   color: var(--muted);
   font-size: 13px;
 }
 
-.searchInput {
+.heroSearch {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  background: #fff;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  padding: 12px 14px;
+  max-width: 640px;
+  box-shadow: var(--shadow-soft);
+}
+
+.heroSearchInput {
   width: 100%;
   border: none;
   background: transparent;
-  font-size: 15px;
+  font-size: 16px;
   outline: none;
-  padding: 6px;
+  padding: 6px 8px;
+}
+
+.heroSearchButton {
+  white-space: nowrap;
+}
+
+.heroCards {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
 .heroCard {
   display: grid;
-  gap: 16px;
+  gap: 6px;
   background: #fff;
-  border-radius: 22px;
-  padding: 20px;
+  border-radius: 18px;
+  padding: 16px;
   border: 1px solid #eef2f7;
   box-shadow: var(--shadow-soft);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.heroCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.heroCardTitle {
+  font-weight: 800;
+}
+
+.heroCardText {
+  color: var(--muted);
+  line-height: 1.5;
+  font-size: 14px;
 }
 
 .heroBadge {

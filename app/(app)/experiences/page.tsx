@@ -111,6 +111,16 @@ export default function ExperiencesPage() {
     });
   }, [items, search]);
 
+  const headlineOptions = [t("hero_headline_1"), t("hero_headline_2"), t("hero_headline_3")];
+  const [headlineIndex, setHeadlineIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setHeadlineIndex((prev) => (prev + 1) % headlineOptions.length);
+    }, 3200);
+    return () => window.clearInterval(timer);
+  }, [headlineOptions.length]);
+
   return (
     <div className={styles.page}>
       {showCreated ? (
@@ -126,33 +136,48 @@ export default function ExperiencesPage() {
       ) : null}
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
-          <h1 className={`${styles.title} ${styles.fadeIn}`}>{t("hero_headline")}</h1>
-          <div className={styles.accentLine} />
+          <div className={styles.heroHeadlineWrap}>
+            <h1 className={`${styles.title} ${styles.fadeIn}`}>
+              <span className={styles.heroHeadlineAnimated}>{headlineOptions[headlineIndex]}</span>
+            </h1>
+            <div className={styles.accentLine} />
+          </div>
           <p className={`${styles.subtitle} ${styles.fadeIn} ${styles.delay1}`}>{t("hero_subheadline")}</p>
           <p className={`${styles.heroParagraph} ${styles.fadeIn} ${styles.delay1}`}>{t("hero_paragraph")}</p>
-          <ul className={`${styles.heroList} ${styles.fadeIn} ${styles.delay1}`}>
-            <li>{t("hero_value_1")}</li>
-            <li>{t("hero_value_2")}</li>
-            <li>{t("hero_value_3")}</li>
-            <li>{t("hero_value_4")}</li>
-          </ul>
-          <div className={`${styles.heroSection} ${styles.fadeIn} ${styles.delay1}`}>
-            <div className={styles.heroSectionTitle}>{t("hero_about_title")}</div>
-            <p className={styles.heroSectionText}>{t("hero_about_text")}</p>
+
+          <div className={`${styles.heroSearch} ${styles.fadeIn} ${styles.delay1}`}>
+            <input
+              className={styles.heroSearchInput}
+              placeholder={t("hero_search_placeholder")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <Link className={`button ${styles.heroSearchButton}`} href="#experiences-list">
+              {t("hero_cta")}
+            </Link>
           </div>
-          <Link className={`button ${styles.heroCta} ${styles.fadeIn} ${styles.delay2}`} href="#experiences-list">
-            {t("hero_cta")}
-          </Link>
+
+          <div className={`${styles.heroCards} ${styles.fadeIn} ${styles.delay1}`}>
+            <Link className={styles.heroCard} href="#experiences-list">
+              <div className={styles.heroCardTitle}>{t("hero_card_explore_title")}</div>
+              <div className={styles.heroCardText}>{t("hero_card_explore_text")}</div>
+            </Link>
+            <Link className={styles.heroCard} href="/host/create-experience">
+              <div className={styles.heroCardTitle}>{t("hero_card_create_title")}</div>
+              <div className={styles.heroCardText}>{t("hero_card_create_text")}</div>
+            </Link>
+            <Link className={styles.heroCard} href="/messages">
+              <div className={styles.heroCardTitle}>{t("hero_card_meet_title")}</div>
+              <div className={styles.heroCardText}>{t("hero_card_meet_text")}</div>
+            </Link>
+          </div>
+
+          <div className={`${styles.heroSection} ${styles.fadeIn} ${styles.delay1}`}>
+            <div className={styles.heroSectionTitle}>{t("hero_built_title")}</div>
+            <p className={styles.heroSectionText}>{t("hero_built_text")}</p>
+          </div>
         </div>
       </section>
-      <div className={styles.searchWrap}>
-        <input
-          className={styles.searchInput}
-          placeholder={t("experiences_search")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
       {!user ? <div className={styles.guestHint}>{t("guest_list_hint")}</div> : null}
 
       {loading ? (

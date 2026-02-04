@@ -32,7 +32,9 @@
   align-items: center;
   padding: 32px 36px;
   border-radius: 28px;
-  background: linear-gradient(135deg, #ffffff, #e6fbfe);
+  background: linear-gradient(135deg, #ffffff, #e6fbfe, #f7fffd);
+  background-size: 140% 140%;
+  animation: heroBreath 12s ease-in-out infinite;
   border: 1px solid #e2f0f4;
   box-shadow: var(--shadow);
 }
@@ -80,6 +82,13 @@
   color: var(--muted);
   max-width: 520px;
   line-height: 1.6;
+}
+
+.heroDaily {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-dark);
+  opacity: 0.85;
 }
 
 .heroMicro {
@@ -171,6 +180,18 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes heroBreath {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
   }
 }
 

@@ -113,6 +113,15 @@ export default function ExperiencesPage() {
 
   const headlineOptions = [t("hero_headline_1"), t("hero_headline_2"), t("hero_headline_3")];
   const microOptions = [t("hero_micro_1"), t("hero_micro_2"), t("hero_micro_3")];
+  const dailyOptions = [
+    t("hero_daily_1"),
+    t("hero_daily_2"),
+    t("hero_daily_3"),
+    t("hero_daily_4"),
+    t("hero_daily_5"),
+    t("hero_daily_6"),
+    t("hero_daily_7"),
+  ];
   const [headlineIndex, setHeadlineIndex] = useState(0);
   const [microIndex, setMicroIndex] = useState(0);
 
@@ -129,6 +138,14 @@ export default function ExperiencesPage() {
     }, 2200);
     return () => window.clearInterval(timer);
   }, [microOptions.length]);
+
+  const dailyIndex = useMemo(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 0);
+    const diff = now.getTime() - start.getTime();
+    const day = Math.floor(diff / 86400000);
+    return day % dailyOptions.length;
+  }, [dailyOptions.length]);
 
   return (
     <div className={styles.page}>
@@ -152,6 +169,9 @@ export default function ExperiencesPage() {
             <div className={styles.accentLine} />
           </div>
           <p className={`${styles.subtitle} ${styles.fadeIn} ${styles.delay1}`}>{t("hero_subheadline")}</p>
+          <div className={`${styles.heroDaily} ${styles.fadeIn} ${styles.delay1}`}>
+            {dailyOptions[dailyIndex]}
+          </div>
 
           <div className={`${styles.heroMicro} ${styles.fadeIn} ${styles.delay1}`}>
             <span className={styles.heroMicroText}>{microOptions[microIndex]}</span>

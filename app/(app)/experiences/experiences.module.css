@@ -65,14 +65,16 @@
 
 .heroIllustration {
   position: absolute;
-  right: 4%;
-  bottom: 4%;
-  width: min(52%, 560px);
-  height: auto;
-  opacity: 0.14;
-  color: rgba(var(--brand-rgb), 1);
+  left: 6%;
+  right: 6%;
+  bottom: 6%;
+  width: auto;
+  height: 90px;
+  opacity: 0.1;
+  color: #ffffff;
   z-index: 1;
   pointer-events: none;
+  filter: blur(0.2px);
 }
 
 .heroText {

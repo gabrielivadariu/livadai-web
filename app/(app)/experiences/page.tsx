@@ -158,36 +158,42 @@ export default function ExperiencesPage() {
         </div>
       ) : null}
       <section className={styles.hero}>
-        <svg className={styles.heroIllustration} viewBox="0 0 520 260" aria-hidden="true">
-          <g fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M92 188c12-28 10-58-6-86" />
-            <circle cx="78" cy="86" r="10" />
-            <path d="M60 126l18 16 22-14" />
-            <path d="M58 142l-16 46" />
-            <path d="M92 142l20 46" />
-            <path d="M120 88l18-8 10 18" />
-            <circle cx="150" cy="72" r="6" />
+        <svg className={styles.heroIllustration} viewBox="0 0 640 180" aria-hidden="true">
+          <g fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M40 138c60 10 120 10 180 4 80-8 160-10 240-4 52 4 98 4 160-6" />
 
-            <circle cx="250" cy="84" r="10" />
-            <path d="M238 122c10 6 22 6 32 0" />
-            <path d="M230 138l-18 42" />
-            <path d="M270 138l18 42" />
-            <path d="M224 118l26-16 26 16" />
-            <path d="M230 156c20 8 40 8 60 0" />
-            <path d="M210 170c24 14 70 14 94 0" />
+            <circle cx="80" cy="98" r="7" />
+            <path d="M74 110l14 10" />
+            <path d="M70 118l-10 22" />
+            <path d="M90 118l14 22" />
+            <path d="M86 100l18-8 8 16" />
 
-            <circle cx="362" cy="96" r="10" />
-            <path d="M350 132l24 18" />
-            <path d="M338 154l-18 40" />
-            <path d="M382 150l26 40" />
-            <path d="M350 136c10-12 28-12 38 0" />
+            <circle cx="180" cy="104" r="7" />
+            <path d="M172 114l16 10" />
+            <path d="M168 126l-10 18" />
+            <path d="M192 126l10 18" />
+            <path d="M170 122l28-6" />
+            <path d="M162 134c18 6 38 6 56 0" />
 
-            <circle cx="452" cy="72" r="10" />
-            <path d="M438 112c10 6 26 6 36 0" />
-            <path d="M432 130l-18 40" />
-            <path d="M474 130l18 40" />
-            <path d="M450 118l-10 26" />
-            <path d="M462 118l10 26" />
+            <circle cx="290" cy="100" r="7" />
+            <path d="M282 112l16 10" />
+            <path d="M276 124l-10 18" />
+            <path d="M302 124l12 18" />
+            <path d="M290 114l8 22" />
+            <path d="M300 114l10 22" />
+
+            <circle cx="400" cy="98" r="7" />
+            <path d="M392 110l16 10" />
+            <path d="M386 122l-10 18" />
+            <path d="M414 122l12 18" />
+            <path d="M388 114c10-10 24-10 34 0" />
+
+            <circle cx="520" cy="92" r="7" />
+            <path d="M512 104l16 10" />
+            <path d="M506 116l-10 18" />
+            <path d="M534 116l12 18" />
+            <path d="M520 104l-8 18" />
+            <path d="M528 104l10 18" />
           </g>
         </svg>
         <div className={styles.heroText}>

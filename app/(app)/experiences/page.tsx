@@ -111,8 +111,8 @@ export default function ExperiencesPage() {
     });
   }, [items, search]);
 
-  const totalMinutes = useMemo(() => Math.floor(80 * 365 * 24 * 60), []);
-  const [remainingMinutes, setRemainingMinutes] = useState(totalMinutes);
+  const totalHours = useMemo(() => Math.floor(80 * 365 * 24), []);
+  const [tickSeconds, setTickSeconds] = useState(59);
   const [timerStarted, setTimerStarted] = useState(false);
 
   useEffect(() => {
@@ -123,15 +123,19 @@ export default function ExperiencesPage() {
   useEffect(() => {
     if (!timerStarted) return;
     const tick = window.setInterval(() => {
-      setRemainingMinutes((prev) => Math.max(prev - 1, 0));
-    }, 60000);
+      setTickSeconds((prev) => (prev === 0 ? 59 : prev - 1));
+    }, 1000);
     return () => window.clearInterval(tick);
   }, [timerStarted]);
 
-  const formattedMinutes = useMemo(() => {
+  const formattedHours = useMemo(() => {
     const locale = lang === "en" ? "en-US" : "ro-RO";
-    return new Intl.NumberFormat(locale).format(remainingMinutes);
-  }, [lang, remainingMinutes]);
+    return new Intl.NumberFormat(locale).format(totalHours);
+  }, [lang, totalHours]);
+
+  const formattedSeconds = useMemo(() => {
+    return String(tickSeconds).padStart(2, "0");
+  }, [tickSeconds]);
 
   return (
     <div className={styles.page}>
@@ -169,7 +173,11 @@ export default function ExperiencesPage() {
         <div className={`${styles.heroVisual} ${styles.fadeIn} ${styles.delay1}`}>
           <div className={styles.timerCard}>
             <div className={styles.timerLabel}>{t("hero_timer_label")}</div>
-            <div className={styles.heroTimer}>{formattedMinutes}</div>
+            <div className={styles.heroTimer}>
+              {formattedHours}
+              <span className={styles.heroTimerUnit}>{t("hero_timer_unit")}</span>
+              <span className={styles.heroTimerSeconds}>{formattedSeconds}</span>
+            </div>
             <div className={styles.heroTimerNote}>{t("hero_timer_note")}</div>
           </div>
         </div>

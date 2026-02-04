@@ -151,7 +151,6 @@ export default function ExperiencesPage() {
         </div>
       ) : null}
       <section className={styles.hero}>
-        <div className={styles.heroConnector} />
         <div className={styles.heroText}>
           <h1 className={`${styles.heroTitle} ${styles.fadeIn}`}>{t("hero_title")}</h1>
           <p className={`${styles.heroSubtitle} ${styles.fadeIn} ${styles.delay1}`}>

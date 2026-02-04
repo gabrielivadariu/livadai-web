@@ -72,23 +72,24 @@
   text-align: left;
 }
 
+.heroText::after {
+  content: "";
+  position: absolute;
+  left: 62%;
+  top: 56%;
+  width: 220px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(var(--brand-rgb), 0.2), rgba(var(--brand-rgb), 0.8));
+  transform: rotate(-8deg);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
 .heroVisual {
   position: relative;
   z-index: 2;
   display: flex;
   justify-content: flex-end;
-}
-
-.heroConnector {
-  position: absolute;
-  left: 52%;
-  top: 52%;
-  width: 120px;
-  height: 2px;
-  background: linear-gradient(90deg, rgba(var(--brand-rgb), 0.15), rgba(var(--brand-rgb), 0.6));
-  transform: rotate(-12deg);
-  border-radius: 999px;
-  z-index: 1;
 }
 
 .heroTitle {
@@ -278,7 +279,7 @@
     justify-content: flex-start;
   }
 
-  .heroConnector {
+  .heroText::after {
     display: none;
   }
 }

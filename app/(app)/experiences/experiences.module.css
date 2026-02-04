@@ -116,22 +116,29 @@
   letter-spacing: 0.6px;
   display: inline-flex;
   align-items: baseline;
-  gap: 6px;
+  gap: 4px;
 }
 
 .heroTimerUnit {
   font-size: 12px;
   font-weight: 600;
   color: rgba(5, 49, 58, 0.6);
-  letter-spacing: 1px;
+  letter-spacing: 0.6px;
   text-transform: lowercase;
 }
 
+.heroTimerMinutes,
 .heroTimerSeconds {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--brand);
   opacity: 0.9;
+}
+
+.heroTimerDelimiter {
+  font-size: 14px;
+  color: rgba(5, 49, 58, 0.5);
+  font-weight: 600;
 }
 
 .heroTimerNote {

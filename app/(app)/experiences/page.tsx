@@ -111,8 +111,8 @@ export default function ExperiencesPage() {
     });
   }, [items, search]);
 
-  const totalHours = useMemo(() => Math.floor(80 * 365 * 24), []);
-  const [tickSeconds, setTickSeconds] = useState(59);
+  const totalSeconds = useMemo(() => Math.floor(80 * 365 * 24 * 60 * 60), []);
+  const [remainingSeconds, setRemainingSeconds] = useState(totalSeconds);
   const [timerStarted, setTimerStarted] = useState(false);
 
   useEffect(() => {
@@ -123,19 +123,26 @@ export default function ExperiencesPage() {
   useEffect(() => {
     if (!timerStarted) return;
     const tick = window.setInterval(() => {
-      setTickSeconds((prev) => (prev === 0 ? 59 : prev - 1));
+      setRemainingSeconds((prev) => Math.max(prev - 1, 0));
     }, 1000);
     return () => window.clearInterval(tick);
   }, [timerStarted]);
 
   const formattedHours = useMemo(() => {
     const locale = lang === "en" ? "en-US" : "ro-RO";
-    return new Intl.NumberFormat(locale).format(totalHours);
-  }, [lang, totalHours]);
+    const hours = Math.floor(remainingSeconds / 3600);
+    return new Intl.NumberFormat(locale).format(hours);
+  }, [lang, remainingSeconds]);
+
+  const formattedMinutes = useMemo(() => {
+    const minutes = Math.floor((remainingSeconds % 3600) / 60);
+    return String(minutes).padStart(2, "0");
+  }, [remainingSeconds]);
 
   const formattedSeconds = useMemo(() => {
-    return String(tickSeconds).padStart(2, "0");
-  }, [tickSeconds]);
+    const seconds = remainingSeconds % 60;
+    return String(seconds).padStart(2, "0");
+  }, [remainingSeconds]);
 
   return (
     <div className={styles.page}>
@@ -175,8 +182,11 @@ export default function ExperiencesPage() {
             <div className={styles.timerLabel}>{t("hero_timer_label")}</div>
             <div className={styles.heroTimer}>
               {formattedHours}
-              <span className={styles.heroTimerUnit}>{t("hero_timer_unit")}</span>
+              <span className={styles.heroTimerDelimiter}>:</span>
+              <span className={styles.heroTimerMinutes}>{formattedMinutes}</span>
+              <span className={styles.heroTimerDelimiter}>:</span>
               <span className={styles.heroTimerSeconds}>{formattedSeconds}</span>
+              <span className={styles.heroTimerUnit}>{t("hero_timer_unit")}</span>
             </div>
             <div className={styles.heroTimerNote}>{t("hero_timer_note")}</div>
           </div>

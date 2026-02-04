@@ -65,11 +65,11 @@
 
 .heroIllustration {
   position: absolute;
-  right: 6%;
-  bottom: 6%;
-  width: min(46%, 520px);
+  right: 4%;
+  bottom: 4%;
+  width: min(52%, 560px);
   height: auto;
-  opacity: 0.08;
+  opacity: 0.14;
   color: rgba(var(--brand-rgb), 1);
   z-index: 1;
   pointer-events: none;

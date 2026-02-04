@@ -159,7 +159,7 @@ export default function ExperiencesPage() {
       ) : null}
       <section className={styles.hero}>
         <svg className={styles.heroIllustration} viewBox="0 0 520 260" aria-hidden="true">
-          <g fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <g fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M92 188c12-28 10-58-6-86" />
             <circle cx="78" cy="86" r="10" />
             <path d="M60 126l18 16 22-14" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiGet } from "@/lib/api";
@@ -113,41 +113,20 @@ export default function ExperiencesPage() {
     });
   }, [items, search]);
 
-  const headlineOptions = [t("hero_headline_1"), t("hero_headline_2"), t("hero_headline_3")];
-  const microOptions = [t("hero_micro_1"), t("hero_micro_2"), t("hero_micro_3")];
-  const dailyOptions = [
-    t("hero_daily_1"),
-    t("hero_daily_2"),
-    t("hero_daily_3"),
-    t("hero_daily_4"),
-    t("hero_daily_5"),
-    t("hero_daily_6"),
-    t("hero_daily_7"),
-  ];
-  const [headlineIndex, setHeadlineIndex] = useState(0);
-  const [microIndex, setMicroIndex] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      setHeadlineIndex((prev) => (prev + 1) % headlineOptions.length);
-    }, 3200);
-    return () => window.clearInterval(timer);
-  }, [headlineOptions.length]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setMicroIndex((prev) => (prev + 1) % microOptions.length);
-    }, 2200);
-    return () => window.clearInterval(timer);
-  }, [microOptions.length]);
-
-  const dailyIndex = useMemo(() => {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), 0, 0);
-    const diff = now.getTime() - start.getTime();
-    const day = Math.floor(diff / 86400000);
-    return day % dailyOptions.length;
-  }, [dailyOptions.length]);
+    const handleStart = () => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      audio.play().catch(() => undefined);
+      window.removeEventListener("pointerdown", handleStart);
+    };
+    window.addEventListener("pointerdown", handleStart, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", handleStart);
+    };
+  }, []);
 
   return (
     <div className={styles.page}>
@@ -163,36 +142,23 @@ export default function ExperiencesPage() {
         </div>
       ) : null}
       <section className={styles.hero}>
+        <video
+          className={styles.heroVideo}
+          autoPlay
+          muted
+          loop
+          playsInline
+          poster="/hero/ambient-poster.jpg"
+          preload="auto"
+        >
+          <source src="/hero/ambient.mp4" type="video/mp4" />
+        </video>
+        <audio ref={audioRef} src="/hero/ambient.mp3" preload="auto" loop />
+        <div className={styles.heroOverlay} />
         <div className={styles.heroCopy}>
-          <div className={styles.heroHeadlineWrap}>
-            <h1 className={`${styles.title} ${styles.fadeIn}`}>
-              <span className={styles.heroHeadlineAnimated}>{headlineOptions[headlineIndex]}</span>
-            </h1>
-            <div className={styles.accentLine} />
-          </div>
-          <p className={`${styles.subtitle} ${styles.fadeIn} ${styles.delay1}`}>{t("hero_subheadline")}</p>
-          <div className={`${styles.heroDaily} ${styles.fadeIn} ${styles.delay1}`}>
-            {dailyOptions[dailyIndex]}
-          </div>
-
-          <div className={`${styles.heroMicro} ${styles.fadeIn} ${styles.delay1}`}>
-            <span className={styles.heroMicroText}>{microOptions[microIndex]}</span>
-          </div>
-
-          <div className={`${styles.heroChoices} ${styles.fadeIn} ${styles.delay1}`}>
-            <button className={styles.choiceCard} type="button">
-              {t("hero_choice_1")}
-            </button>
-            <button className={styles.choiceCard} type="button">
-              {t("hero_choice_2")}
-            </button>
-            <button className={styles.choiceCard} type="button">
-              {t("hero_choice_3")}
-            </button>
-          </div>
-
+          <div className={styles.heroBrand}>{t("hero_brand")}</div>
           <button
-            className={`button ${styles.heroCta} ${styles.fadeIn} ${styles.delay2}`}
+            className={`button ${styles.heroCta} ${styles.fadeIn}`}
             type="button"
             onClick={() => {
               if (!items.length) return;
@@ -201,7 +167,7 @@ export default function ExperiencesPage() {
             }}
             disabled={!items.length}
           >
-            {t("hero_cta_surprise")}
+            {t("hero_cta_enter")}
           </button>
         </div>
       </section>

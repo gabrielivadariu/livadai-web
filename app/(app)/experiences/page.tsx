@@ -126,18 +126,22 @@ export default function ExperiencesPage() {
       ) : null}
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
-          <h1 className={`${styles.title} ${styles.fadeIn}`}>LIVADAI este despre oameni și ceea ce iubesc să facă</h1>
+          <h1 className={`${styles.title} ${styles.fadeIn}`}>{t("hero_headline")}</h1>
           <div className={styles.accentLine} />
-          <p className={`${styles.subtitle} ${styles.fadeIn} ${styles.delay1}`}>
-            <span className={styles.line}>Nu contează cine ești.</span>
-            <span className={styles.line}>Nu contează ce vrei să creezi.</span>
-            <span className={styles.line}>O experiență poate fi o aventură,</span>
-            <span className={styles.line}>o lecție, un moment de liniște</span>
-            <span className={styles.line}>sau pur și simplu timp petrecut cu alți oameni.</span>
-            <span className={styles.line}>Dacă e real, dacă e trăit, are loc pe LIVADAI.</span>
-          </p>
+          <p className={`${styles.subtitle} ${styles.fadeIn} ${styles.delay1}`}>{t("hero_subheadline")}</p>
+          <p className={`${styles.heroParagraph} ${styles.fadeIn} ${styles.delay1}`}>{t("hero_paragraph")}</p>
+          <ul className={`${styles.heroList} ${styles.fadeIn} ${styles.delay1}`}>
+            <li>{t("hero_value_1")}</li>
+            <li>{t("hero_value_2")}</li>
+            <li>{t("hero_value_3")}</li>
+            <li>{t("hero_value_4")}</li>
+          </ul>
+          <div className={`${styles.heroSection} ${styles.fadeIn} ${styles.delay1}`}>
+            <div className={styles.heroSectionTitle}>{t("hero_about_title")}</div>
+            <p className={styles.heroSectionText}>{t("hero_about_text")}</p>
+          </div>
           <Link className={`button ${styles.heroCta} ${styles.fadeIn} ${styles.delay2}`} href="#experiences-list">
-            Explorează experiențe
+            {t("hero_cta")}
           </Link>
         </div>
       </section>

@@ -72,6 +72,41 @@
   line-height: 1.6;
 }
 
+.heroParagraph {
+  font-size: 15px;
+  color: var(--muted);
+  max-width: 560px;
+  line-height: 1.7;
+  margin: 4px 0 8px;
+}
+
+.heroList {
+  margin: 0;
+  padding: 0 0 0 18px;
+  display: grid;
+  gap: 6px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.heroSection {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+  max-width: 560px;
+}
+
+.heroSectionTitle {
+  font-weight: 800;
+  color: var(--text);
+}
+
+.heroSectionText {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
 .line {
   display: block;
 }

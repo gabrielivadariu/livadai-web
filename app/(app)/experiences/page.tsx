@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { apiGet } from "@/lib/api";
 import { useLang } from "@/context/lang-context";
 import { useAuth } from "@/context/auth-context";
@@ -71,7 +70,6 @@ export default function ExperiencesPage() {
   const { lang } = useLang();
   const t = useT();
   const { user } = useAuth();
-  const router = useRouter();
   const [items, setItems] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -113,20 +111,27 @@ export default function ExperiencesPage() {
     });
   }, [items, search]);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const totalSeconds = useMemo(() => Math.floor(80 * 365 * 24 * 60 * 60), []);
+  const [remainingSeconds, setRemainingSeconds] = useState(totalSeconds);
+  const [timerStarted, setTimerStarted] = useState(false);
 
   useEffect(() => {
-    const handleStart = () => {
-      const audio = audioRef.current;
-      if (!audio) return;
-      audio.play().catch(() => undefined);
-      window.removeEventListener("pointerdown", handleStart);
-    };
-    window.addEventListener("pointerdown", handleStart, { once: true });
-    return () => {
-      window.removeEventListener("pointerdown", handleStart);
-    };
+    const startTimer = window.setTimeout(() => setTimerStarted(true), 1000);
+    return () => window.clearTimeout(startTimer);
   }, []);
+
+  useEffect(() => {
+    if (!timerStarted) return;
+    const tick = window.setInterval(() => {
+      setRemainingSeconds((prev) => Math.max(prev - 1, 0));
+    }, 1000);
+    return () => window.clearInterval(tick);
+  }, [timerStarted]);
+
+  const formattedSeconds = useMemo(() => {
+    const locale = lang === "en" ? "en-US" : "ro-RO";
+    return new Intl.NumberFormat(locale).format(remainingSeconds);
+  }, [lang, remainingSeconds]);
 
   return (
     <div className={styles.page}>
@@ -142,33 +147,28 @@ export default function ExperiencesPage() {
         </div>
       ) : null}
       <section className={styles.hero}>
-        <video
-          className={styles.heroVideo}
-          autoPlay
-          muted
-          loop
-          playsInline
-          poster="/hero/ambient-poster.jpg"
-          preload="auto"
-        >
-          <source src="/hero/ambient.mp4" type="video/mp4" />
-        </video>
-        <audio ref={audioRef} src="/hero/ambient.mp3" preload="auto" loop />
-        <div className={styles.heroOverlay} />
         <div className={styles.heroCopy}>
-          <div className={styles.heroBrand}>{t("hero_brand")}</div>
+          <h1 className={`${styles.heroTitle} ${styles.fadeIn}`}>{t("hero_title")}</h1>
+          <p className={`${styles.heroSubtitle} ${styles.fadeIn} ${styles.delay1}`}>
+            {t("hero_subtitle_line1")}
+            <br />
+            {t("hero_subtitle_line2")}
+          </p>
+
+          <div className={`${styles.heroTimer} ${styles.fadeIn} ${styles.delay2}`}>{formattedSeconds}</div>
+          <div className={styles.heroTimerNote}>{t("hero_timer_note")}</div>
+
           <button
-            className={`button ${styles.heroCta} ${styles.fadeIn}`}
+            className={`button ${styles.heroCta} ${styles.fadeIn} ${styles.delay2}`}
             type="button"
             onClick={() => {
-              if (!items.length) return;
-              const pick = items[Math.floor(Math.random() * items.length)];
-              if (pick?._id) router.push(`/experiences/${pick._id}`);
+              const list = document.getElementById("experiences-list");
+              if (list) list.scrollIntoView({ behavior: "smooth", block: "start" });
             }}
-            disabled={!items.length}
           >
-            {t("hero_cta_enter")}
+            {t("hero_cta_primary")}
           </button>
+          <div className={styles.heroMicrocopy}>{t("hero_cta_microcopy")}</div>
         </div>
       </section>
       {!user ? <div className={styles.guestHint}>{t("guest_list_hint")}</div> : null}

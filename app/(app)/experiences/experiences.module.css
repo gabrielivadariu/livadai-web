@@ -79,6 +79,18 @@
   justify-content: flex-end;
 }
 
+.heroConnector {
+  position: absolute;
+  left: 52%;
+  top: 52%;
+  width: 120px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(var(--brand-rgb), 0.15), rgba(var(--brand-rgb), 0.6));
+  transform: rotate(-12deg);
+  border-radius: 999px;
+  z-index: 1;
+}
+
 .heroTitle {
   font-family: "Sora", "Segoe UI", sans-serif;
   font-size: 30px;
@@ -264,6 +276,10 @@
 
   .heroVisual {
     justify-content: flex-start;
+  }
+
+  .heroConnector {
+    display: none;
   }
 }
 

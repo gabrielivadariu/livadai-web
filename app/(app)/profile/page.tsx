@@ -85,6 +85,9 @@ export default function ProfilePage() {
         return;
       }
       setLoading(true);
+      if (process.env.NODE_ENV !== "production") {
+        console.debug("[profile] load start", { token: Boolean(token) });
+      }
       await refresh().catch(() => undefined);
       try {
         const [profileRes, favRes, hostRes] = await Promise.all([
@@ -103,7 +106,12 @@ export default function ProfilePage() {
         setFavorites(favRes || []);
         setHostStats(hostRes || null);
       } finally {
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+          if (process.env.NODE_ENV !== "production") {
+            console.debug("[profile] load end");
+          }
+        }
       }
     };
     loadProfile();

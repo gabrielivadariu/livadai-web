@@ -32,12 +32,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await apiGet<{ user: User }>("/auth/me");
       setUser(data?.user || null);
     } catch {
+      if (process.env.NODE_ENV !== "production") {
+        console.debug("[auth] refresh failed");
+      }
       setUser(null);
     }
   }, []);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("token");
+    if (process.env.NODE_ENV !== "production") {
+      console.debug("[auth] stored token", Boolean(stored));
+    }
     if (stored) {
       setToken(stored);
       setAuthToken(stored);

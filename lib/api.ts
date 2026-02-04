@@ -24,16 +24,32 @@ const apiRequest = async <T>(path: string, options: ApiOptions = {}) => {
     headers.Authorization = `Bearer ${authToken}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-    body: options.json ? JSON.stringify(options.json) : options.body,
-  });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 10000);
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers,
+      body: options.json ? JSON.stringify(options.json) : options.body,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.debug("[apiRequest]", path, "failed", error);
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 
   if (!res.ok) {
     const message = await res.json().catch(() => ({}));
     const error = new Error(message?.message || "Request failed");
     (error as Error & { status?: number }).status = res.status;
+    if (process.env.NODE_ENV !== "production") {
+      console.debug("[apiRequest]", path, "status", res.status);
+    }
     throw error;
   }
 

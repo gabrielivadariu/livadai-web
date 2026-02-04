@@ -35,9 +35,32 @@
   min-height: 40vh;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(100deg, #ffffff 0%, #ffffff 55%, #e8fbfd 100%);
+  background: linear-gradient(315deg, rgba(18, 199, 214, 0.2) 0%, rgba(18, 199, 214, 0.12) 28%, #ffffff 60%);
   border: 1px solid #e2f0f4;
   box-shadow: var(--shadow);
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  right: 8%;
+  bottom: -10%;
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, rgba(18, 199, 214, 0.22), rgba(18, 199, 214, 0) 70%);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 44px;
+  background: linear-gradient(180deg, rgba(18, 199, 214, 0) 0%, rgba(18, 199, 214, 0.12) 100%);
+  pointer-events: none;
 }
 
 .hero::before {
@@ -97,7 +120,7 @@
   background: #fff;
   border-radius: 18px;
   padding: 18px 20px;
-  box-shadow: 0 12px 24px rgba(5, 49, 58, 0.08);
+  box-shadow: 0 12px 24px rgba(18, 199, 214, 0.15);
   border: 1px solid rgba(5, 49, 58, 0.08);
   min-width: 240px;
 }

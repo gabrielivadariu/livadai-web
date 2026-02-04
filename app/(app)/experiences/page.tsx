@@ -112,7 +112,9 @@ export default function ExperiencesPage() {
   }, [items, search]);
 
   const headlineOptions = [t("hero_headline_1"), t("hero_headline_2"), t("hero_headline_3")];
+  const microOptions = [t("hero_micro_1"), t("hero_micro_2"), t("hero_micro_3")];
   const [headlineIndex, setHeadlineIndex] = useState(0);
+  const [microIndex, setMicroIndex] = useState(0);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -120,6 +122,13 @@ export default function ExperiencesPage() {
     }, 3200);
     return () => window.clearInterval(timer);
   }, [headlineOptions.length]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setMicroIndex((prev) => (prev + 1) % microOptions.length);
+    }, 2200);
+    return () => window.clearInterval(timer);
+  }, [microOptions.length]);
 
   return (
     <div className={styles.page}>
@@ -143,39 +152,26 @@ export default function ExperiencesPage() {
             <div className={styles.accentLine} />
           </div>
           <p className={`${styles.subtitle} ${styles.fadeIn} ${styles.delay1}`}>{t("hero_subheadline")}</p>
-          <p className={`${styles.heroParagraph} ${styles.fadeIn} ${styles.delay1}`}>{t("hero_paragraph")}</p>
 
-          <div className={`${styles.heroSearch} ${styles.fadeIn} ${styles.delay1}`}>
-            <input
-              className={styles.heroSearchInput}
-              placeholder={t("hero_search_placeholder")}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <Link className={`button ${styles.heroSearchButton}`} href="#experiences-list">
-              {t("hero_cta")}
-            </Link>
+          <div className={`${styles.heroMicro} ${styles.fadeIn} ${styles.delay1}`}>
+            <span className={styles.heroMicroText}>{microOptions[microIndex]}</span>
           </div>
 
-          <div className={`${styles.heroCards} ${styles.fadeIn} ${styles.delay1}`}>
-            <Link className={styles.heroCard} href="#experiences-list">
-              <div className={styles.heroCardTitle}>{t("hero_card_explore_title")}</div>
-              <div className={styles.heroCardText}>{t("hero_card_explore_text")}</div>
-            </Link>
-            <Link className={styles.heroCard} href="/host/create-experience">
-              <div className={styles.heroCardTitle}>{t("hero_card_create_title")}</div>
-              <div className={styles.heroCardText}>{t("hero_card_create_text")}</div>
-            </Link>
-            <Link className={styles.heroCard} href="/messages">
-              <div className={styles.heroCardTitle}>{t("hero_card_meet_title")}</div>
-              <div className={styles.heroCardText}>{t("hero_card_meet_text")}</div>
-            </Link>
+          <div className={`${styles.heroChoices} ${styles.fadeIn} ${styles.delay1}`}>
+            <button className={styles.choiceCard} type="button">
+              {t("hero_choice_1")}
+            </button>
+            <button className={styles.choiceCard} type="button">
+              {t("hero_choice_2")}
+            </button>
+            <button className={styles.choiceCard} type="button">
+              {t("hero_choice_3")}
+            </button>
           </div>
 
-          <div className={`${styles.heroSection} ${styles.fadeIn} ${styles.delay1}`}>
-            <div className={styles.heroSectionTitle}>{t("hero_built_title")}</div>
-            <p className={styles.heroSectionText}>{t("hero_built_text")}</p>
-          </div>
+          <Link className={`button ${styles.heroCta} ${styles.fadeIn} ${styles.delay2}`} href="#experiences-list">
+            {t("hero_cta")}
+          </Link>
         </div>
       </section>
       {!user ? <div className={styles.guestHint}>{t("guest_list_hint")}</div> : null}

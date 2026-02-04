@@ -82,30 +82,45 @@
   line-height: 1.6;
 }
 
-.heroParagraph {
-  font-size: 15px;
-  color: var(--muted);
-  max-width: 560px;
-  line-height: 1.7;
-  margin: 4px 0 8px;
+.heroMicro {
+  font-weight: 700;
+  color: var(--primary-dark);
+  letter-spacing: 0.2px;
+  font-size: 14px;
 }
 
-.heroSection {
-  margin-top: 10px;
+.heroMicroText {
+  display: inline-block;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.heroChoices {
   display: grid;
-  gap: 6px;
-  max-width: 560px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 4px;
 }
 
-.heroSectionTitle {
-  font-weight: 800;
+.choiceCard {
+  text-align: left;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #e7eef3;
   color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.heroSectionText {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.6;
+.choiceCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+}
+
+.heroCta {
+  width: fit-content;
+  margin-top: 8px;
 }
 
 .guestHint {
@@ -114,65 +129,6 @@
   font-size: 13px;
 }
 
-.heroSearch {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  align-items: center;
-  background: #fff;
-  border-radius: 999px;
-  border: 1px solid #e2e8f0;
-  padding: 12px 14px;
-  max-width: 640px;
-  box-shadow: var(--shadow-soft);
-}
-
-.heroSearchInput {
-  width: 100%;
-  border: none;
-  background: transparent;
-  font-size: 16px;
-  outline: none;
-  padding: 6px 8px;
-}
-
-.heroSearchButton {
-  white-space: nowrap;
-}
-
-.heroCards {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-}
-
-.heroCard {
-  display: grid;
-  gap: 6px;
-  background: #fff;
-  border-radius: 18px;
-  padding: 16px;
-  border: 1px solid #eef2f7;
-  box-shadow: var(--shadow-soft);
-  text-decoration: none;
-  color: inherit;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.heroCard:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow);
-}
-
-.heroCardTitle {
-  font-weight: 800;
-}
-
-.heroCardText {
-  color: var(--muted);
-  line-height: 1.5;
-  font-size: 14px;
-}
 
 .heroBadge {
   font-weight: 700;

@@ -55,7 +55,7 @@ type HostStats = {
 };
 
 export default function ProfilePage() {
-  const { user, logout, refresh } = useAuth();
+  const { user, token, logout, refresh, loading: authLoading } = useAuth();
   const t = useT();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -79,11 +79,13 @@ export default function ProfilePage() {
     let active = true;
     const loadProfile = async () => {
       if (!active) return;
-      if (!user && !loading) {
+      if (authLoading) return;
+      if (!token) {
         router.replace("/login?reason=auth&next=/profile");
         return;
       }
-      refresh().catch(() => undefined);
+      setLoading(true);
+      await refresh().catch(() => undefined);
       try {
         const [profileRes, favRes, hostRes] = await Promise.all([
           apiGet<Profile>("/users/me/profile"),
@@ -113,7 +115,7 @@ export default function ProfilePage() {
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onFocus);
     };
-  }, [refresh, user?.role, loading, user, router]);
+  }, [refresh, user?.role, user, router, authLoading, token]);
 
   const onChange = (key: keyof Profile, value: Profile[keyof Profile]) => {
     setForm((prev) => ({ ...prev, [key]: value }));

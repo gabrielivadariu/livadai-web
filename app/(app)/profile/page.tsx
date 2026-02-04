@@ -62,6 +62,7 @@ export default function ProfilePage() {
   const [hostStats, setHostStats] = useState<HostStats | null>(null);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -85,10 +86,11 @@ export default function ProfilePage() {
         return;
       }
       setLoading(true);
+      setLoadError("");
       if (process.env.NODE_ENV !== "production") {
         console.debug("[profile] load start", { token: Boolean(token) });
       }
-      await refresh().catch(() => undefined);
+      refresh().catch(() => undefined);
       try {
         const [profileRes, favRes, hostRes] = await Promise.all([
           apiGet<Profile>("/users/me/profile"),
@@ -105,6 +107,11 @@ export default function ProfilePage() {
         setForm(normalized);
         setFavorites(favRes || []);
         setHostStats(hostRes || null);
+      } catch (err) {
+        if (active) {
+          const message = (err as Error)?.message || "Nu am putut încărca profilul.";
+          setLoadError(message);
+        }
       } finally {
         if (active) {
           setLoading(false);
@@ -224,6 +231,16 @@ export default function ProfilePage() {
   };
 
   if (loading) return <div className="muted">{t("common_loading_profile")}</div>;
+  if (loadError) {
+    return (
+      <div className={styles.errorCard}>
+        <div>{loadError}</div>
+        <button className="button secondary" type="button" onClick={() => window.location.reload()}>
+          {t("common_retry")}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <>

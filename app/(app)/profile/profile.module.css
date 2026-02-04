@@ -229,6 +229,17 @@
   gap: 6px;
 }
 
+.errorCard {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
 .confirmTitle {
   font-weight: 700;
   color: #991b1b;

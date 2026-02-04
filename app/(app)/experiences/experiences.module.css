@@ -63,6 +63,18 @@
   pointer-events: none;
 }
 
+.heroIllustration {
+  position: absolute;
+  right: 6%;
+  bottom: 6%;
+  width: min(46%, 520px);
+  height: auto;
+  opacity: 0.08;
+  color: rgba(var(--brand-rgb), 1);
+  z-index: 1;
+  pointer-events: none;
+}
+
 .heroText {
   position: relative;
   z-index: 2;
@@ -287,6 +299,10 @@
   }
 
   .heroText::after {
+    display: none;
+  }
+
+  .heroIllustration {
     display: none;
   }
 }

@@ -158,6 +158,38 @@ export default function ExperiencesPage() {
         </div>
       ) : null}
       <section className={styles.hero}>
+        <svg className={styles.heroIllustration} viewBox="0 0 520 260" aria-hidden="true">
+          <g fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M92 188c12-28 10-58-6-86" />
+            <circle cx="78" cy="86" r="10" />
+            <path d="M60 126l18 16 22-14" />
+            <path d="M58 142l-16 46" />
+            <path d="M92 142l20 46" />
+            <path d="M120 88l18-8 10 18" />
+            <circle cx="150" cy="72" r="6" />
+
+            <circle cx="250" cy="84" r="10" />
+            <path d="M238 122c10 6 22 6 32 0" />
+            <path d="M230 138l-18 42" />
+            <path d="M270 138l18 42" />
+            <path d="M224 118l26-16 26 16" />
+            <path d="M230 156c20 8 40 8 60 0" />
+            <path d="M210 170c24 14 70 14 94 0" />
+
+            <circle cx="362" cy="96" r="10" />
+            <path d="M350 132l24 18" />
+            <path d="M338 154l-18 40" />
+            <path d="M382 150l26 40" />
+            <path d="M350 136c10-12 28-12 38 0" />
+
+            <circle cx="452" cy="72" r="10" />
+            <path d="M438 112c10 6 26 6 36 0" />
+            <path d="M432 130l-18 40" />
+            <path d="M474 130l18 40" />
+            <path d="M450 118l-10 26" />
+            <path d="M462 118l10 26" />
+          </g>
+        </svg>
         <div className={styles.heroText}>
           <h1 className={`${styles.heroTitle} ${styles.fadeIn}`}>{t("hero_title")}</h1>
           <p className={`${styles.heroSubtitle} ${styles.fadeIn} ${styles.delay1}`}>

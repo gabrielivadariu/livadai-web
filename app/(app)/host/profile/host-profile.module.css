@@ -75,7 +75,7 @@
 }
 
 .langActive {
-  background: #e6fbfe;
+  background: rgba(var(--brand-rgb), 0.08);
   color: var(--primary-dark);
   border-color: #bfeef4;
 }
@@ -92,7 +92,7 @@
 }
 
 .statCard {
-  background: #f7fbfc;
+  background: rgba(var(--brand-rgb), 0.04);
   border: 1px solid #e6eff2;
   border-radius: 16px;
   padding: 12px 14px;

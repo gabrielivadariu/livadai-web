@@ -198,7 +198,7 @@ export default function RegisterPage() {
           </label>
 
             {success ? (
-              <div style={{ color: "#0ba7bd", marginBottom: 8, textAlign: "center" }}>{success}</div>
+              <div style={{ color: "var(--brand)", marginBottom: 8, textAlign: "center" }}>{success}</div>
             ) : null}
             {error ? <div className={styles.error}>{error}</div> : null}
             <button className="button" type="submit" disabled={!canSubmit}>
@@ -221,7 +221,7 @@ export default function RegisterPage() {
               />
             </div>
             {success ? (
-              <div style={{ color: "#0ba7bd", marginBottom: 8, textAlign: "center" }}>{success}</div>
+              <div style={{ color: "var(--brand)", marginBottom: 8, textAlign: "center" }}>{success}</div>
             ) : null}
             {error ? <div className={styles.error}>{error}</div> : null}
             <button className="button" type="submit">

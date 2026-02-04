@@ -19,7 +19,7 @@
   width: 96px;
   height: 96px;
   border-radius: 50%;
-  background: #e6fbfe;
+  background: rgba(var(--brand-rgb), 0.08);
   display: grid;
   place-items: center;
   font-size: 36px;

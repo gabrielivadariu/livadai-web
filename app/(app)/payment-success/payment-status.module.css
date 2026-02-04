@@ -3,7 +3,7 @@
   display: grid;
   place-items: center;
   padding: 40px 16px;
-  background: radial-gradient(circle at top, rgba(0, 188, 212, 0.12), #f7fbfc 55%);
+  background: radial-gradient(circle at top, rgba(var(--brand-rgb), 0.12), #ffffff 55%);
 }
 
 .card {
@@ -53,7 +53,7 @@
   border: none;
   border-radius: 999px;
   padding: 10px 16px;
-  background: linear-gradient(120deg, #17b5c0, #0aa0aa);
+  background: linear-gradient(120deg, rgba(var(--brand-rgb), 1), rgba(var(--brand-rgb), 0.85));
   color: #fff;
   font-weight: 700;
   cursor: pointer;

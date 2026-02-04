@@ -121,7 +121,7 @@
 }
 
 .chipActive {
-  background: #e6fbfe;
+  background: rgba(var(--brand-rgb), 0.08);
   color: var(--primary-dark);
   border-color: #bfeef4;
 }
@@ -148,7 +148,7 @@
 }
 
 .langChip.chipActive {
-  background: #e6fbfe;
+  background: rgba(var(--brand-rgb), 0.08);
   color: var(--primary-dark);
   border-color: #bfeef4;
 }
@@ -194,7 +194,7 @@
 
 .dropzoneActive {
   border-color: var(--primary);
-  background: #e6fbfe;
+  background: rgba(var(--brand-rgb), 0.08);
 }
 
 .dropzoneText {
@@ -223,7 +223,7 @@
   justify-content: center;
   padding: 12px 16px;
   border-radius: 999px;
-  background: #e6fbfe;
+  background: rgba(var(--brand-rgb), 0.08);
   border: 1px solid #bfeef4;
   color: var(--primary-dark);
   font-weight: 700;

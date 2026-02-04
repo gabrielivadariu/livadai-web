@@ -51,7 +51,7 @@
 }
 
 .card:focus-visible {
-  outline: 2px solid rgba(0, 188, 212, 0.4);
+  outline: 2px solid rgba(var(--brand-rgb), 0.4);
   outline-offset: 2px;
 }
 

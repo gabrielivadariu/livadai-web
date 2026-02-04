@@ -50,7 +50,7 @@
 .coverPlaceholder {
   height: 360px;
   border-radius: 20px;
-  background: linear-gradient(135deg, #e6fbfe, #f5fbfb);
+  background: linear-gradient(135deg, rgba(var(--brand-rgb), 0.08), #f5fbfb);
 }
 
 .arrow {
@@ -283,7 +283,7 @@
   padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid #bfeef4;
-  background: #e6fbfe;
+  background: rgba(var(--brand-rgb), 0.08);
   color: var(--primary-dark);
   font-weight: 700;
   text-decoration: none;

@@ -96,7 +96,7 @@
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  background: #e6fbfe;
+  background: rgba(var(--brand-rgb), 0.08);
   display: grid;
   place-items: center;
   font-size: 20px;
@@ -187,7 +187,7 @@
 
 .coverPlaceholder {
   height: 160px;
-  background: linear-gradient(135deg, #e6fbfe, #f5fbfb);
+  background: linear-gradient(135deg, rgba(var(--brand-rgb), 0.08), #f5fbfb);
 }
 
 .cardBody {

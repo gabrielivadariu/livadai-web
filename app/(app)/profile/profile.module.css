@@ -110,7 +110,7 @@
 }
 
 .langActive {
-  background: #e6fbfe;
+  background: rgba(var(--brand-rgb), 0.08);
   color: var(--primary-dark);
   border-color: #bfeef4;
 }
@@ -140,7 +140,7 @@
 }
 
 .favoriteRow:focus-visible {
-  outline: 2px solid #0ea5e9;
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
 
@@ -219,7 +219,7 @@
 }
 
 .confirmInfo {
-  color: #0f766e;
+  color: var(--brand);
   font-size: 13px;
   font-weight: 600;
 }

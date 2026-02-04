@@ -100,7 +100,7 @@
 }
 
 .reviewButton {
-  background: #00c2cc;
+  background: var(--brand);
   color: #fff;
   border: none;
   padding: 10px 14px;

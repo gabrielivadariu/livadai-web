@@ -111,8 +111,8 @@ export default function ExperiencesPage() {
     });
   }, [items, search]);
 
-  const totalSeconds = useMemo(() => Math.floor(80 * 365 * 24 * 60 * 60), []);
-  const [remainingSeconds, setRemainingSeconds] = useState(totalSeconds);
+  const totalMinutes = useMemo(() => Math.floor(80 * 365 * 24 * 60), []);
+  const [remainingMinutes, setRemainingMinutes] = useState(totalMinutes);
   const [timerStarted, setTimerStarted] = useState(false);
 
   useEffect(() => {
@@ -123,15 +123,15 @@ export default function ExperiencesPage() {
   useEffect(() => {
     if (!timerStarted) return;
     const tick = window.setInterval(() => {
-      setRemainingSeconds((prev) => Math.max(prev - 1, 0));
-    }, 1000);
+      setRemainingMinutes((prev) => Math.max(prev - 1, 0));
+    }, 60000);
     return () => window.clearInterval(tick);
   }, [timerStarted]);
 
-  const formattedSeconds = useMemo(() => {
+  const formattedMinutes = useMemo(() => {
     const locale = lang === "en" ? "en-US" : "ro-RO";
-    return new Intl.NumberFormat(locale).format(remainingSeconds);
-  }, [lang, remainingSeconds]);
+    return new Intl.NumberFormat(locale).format(remainingMinutes);
+  }, [lang, remainingMinutes]);
 
   return (
     <div className={styles.page}>
@@ -169,7 +169,7 @@ export default function ExperiencesPage() {
         <div className={`${styles.heroVisual} ${styles.fadeIn} ${styles.delay1}`}>
           <div className={styles.timerCard}>
             <div className={styles.timerLabel}>{t("hero_timer_label")}</div>
-            <div className={styles.heroTimer}>{formattedSeconds}</div>
+            <div className={styles.heroTimer}>{formattedMinutes}</div>
             <div className={styles.heroTimerNote}>{t("hero_timer_note")}</div>
           </div>
         </div>

@@ -27,45 +27,32 @@
 
 .hero {
   display: grid;
-  gap: 24px;
+  gap: 16px;
   grid-template-columns: 1fr;
   align-items: center;
-  padding: 48px 36px;
+  padding: 28px 32px;
   border-radius: 28px;
-  min-height: 80vh;
+  min-height: 55vh;
   position: relative;
   overflow: hidden;
-  background: radial-gradient(circle at top, rgba(16, 185, 200, 0.14), transparent 55%),
-    linear-gradient(160deg, #050708 0%, #0b1419 45%, #06151c 100%);
+  background: linear-gradient(140deg, #12c7d6 0%, #0aa0b4 55%, #0b7f9e 100%);
   border: 1px solid #e2f0f4;
   box-shadow: var(--shadow);
 }
 
 .hero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.12'/></svg>");
-  opacity: 0.18;
-  mix-blend-mode: soft-light;
-  pointer-events: none;
+  content: none;
 }
 
 .hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 70% 30%, rgba(0, 194, 212, 0.18), transparent 45%),
-    radial-gradient(circle at 30% 70%, rgba(9, 110, 140, 0.2), transparent 55%);
-  animation: heroBreath 14s ease-in-out infinite;
-  pointer-events: none;
+  content: none;
 }
 
 .heroCopy {
   position: relative;
   z-index: 2;
   display: grid;
-  gap: 10px;
+  gap: 8px;
   align-content: center;
   justify-items: center;
   text-align: center;
@@ -73,39 +60,48 @@
 
 .heroTitle {
   font-family: "Sora", "Segoe UI", sans-serif;
-  font-size: 52px;
-  line-height: 1.05;
+  font-size: 36px;
+  line-height: 1.15;
   margin: 0;
-  color: #f1fbff;
+  color: #f4feff;
+  font-weight: 600;
 }
 
 .heroSubtitle {
   margin: 0;
-  font-size: 18px;
-  line-height: 1.6;
-  color: rgba(230, 246, 255, 0.82);
+  font-size: 16px;
+  line-height: 1.5;
+  color: rgba(240, 253, 255, 0.82);
+  max-width: 520px;
 }
 
 .heroTimer {
-  font-size: 44px;
-  font-weight: 800;
-  color: #00c2d4;
-  text-shadow: 0 0 12px rgba(0, 194, 212, 0.25);
-  letter-spacing: 1px;
+  font-size: 28px;
+  font-weight: 600;
+  color: #eaffff;
+  letter-spacing: 0.6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(3, 42, 54, 0.2);
+  border: 1px solid rgba(234, 255, 255, 0.25);
+  animation: timerPulse 10s ease-in-out infinite;
 }
 
 .heroTimerNote {
   font-size: 12px;
-  color: rgba(230, 246, 255, 0.65);
+  color: rgba(234, 255, 255, 0.7);
 }
 
 .heroCta {
   width: fit-content;
-  margin-top: 14px;
-  background: #00c2d4;
+  margin-top: 10px;
+  background: #eaffff;
   border: none;
-  color: #041014;
-  box-shadow: 0 0 16px rgba(0, 194, 212, 0.3);
+  color: #03525f;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 14px;
+  box-shadow: none;
 }
 
 .heroCta:disabled {
@@ -114,12 +110,12 @@
 }
 
 .heroCta:hover {
-  box-shadow: 0 0 20px rgba(0, 194, 212, 0.45);
+  box-shadow: 0 6px 18px rgba(0, 67, 80, 0.2);
 }
 
 .heroMicrocopy {
   font-size: 12px;
-  color: rgba(230, 246, 255, 0.7);
+  color: rgba(234, 255, 255, 0.7);
   margin-top: 6px;
 }
 
@@ -156,7 +152,7 @@
 .fadeIn {
   opacity: 0;
   transform: translateY(6px);
-  animation: heroFade 0.36s ease forwards;
+  animation: heroFade 0.6s ease forwards;
 }
 
 .delay1 {
@@ -176,13 +172,23 @@
 
 @keyframes heroBreath {
   0% {
-    opacity: 0.55;
+    opacity: 0.9;
   }
   50% {
-    opacity: 0.85;
+    opacity: 1;
   }
   100% {
-    opacity: 0.55;
+    opacity: 0.9;
+  }
+}
+
+@keyframes timerPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.01);
   }
 }
 
@@ -200,16 +206,16 @@
 
 @media (max-width: 720px) {
   .hero {
-    min-height: 70vh;
-    padding: 36px 20px;
+    min-height: 55vh;
+    padding: 24px 18px;
   }
 
   .heroTitle {
-    font-size: 40px;
+    font-size: 30px;
   }
 
   .heroTimer {
-    font-size: 34px;
+    font-size: 22px;
   }
 }
 

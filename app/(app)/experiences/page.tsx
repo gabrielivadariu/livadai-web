@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { apiGet } from "@/lib/api";
 import { useLang } from "@/context/lang-context";
 import { useAuth } from "@/context/auth-context";
@@ -70,6 +71,7 @@ export default function ExperiencesPage() {
   const { lang } = useLang();
   const t = useT();
   const { user } = useAuth();
+  const router = useRouter();
   const [items, setItems] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -189,9 +191,18 @@ export default function ExperiencesPage() {
             </button>
           </div>
 
-          <Link className={`button ${styles.heroCta} ${styles.fadeIn} ${styles.delay2}`} href="#experiences-list">
-            {t("hero_cta")}
-          </Link>
+          <button
+            className={`button ${styles.heroCta} ${styles.fadeIn} ${styles.delay2}`}
+            type="button"
+            onClick={() => {
+              if (!items.length) return;
+              const pick = items[Math.floor(Math.random() * items.length)];
+              if (pick?._id) router.push(`/experiences/${pick._id}`);
+            }}
+            disabled={!items.length}
+          >
+            {t("hero_cta_surprise")}
+          </button>
         </div>
       </section>
       {!user ? <div className={styles.guestHint}>{t("guest_list_hint")}</div> : null}

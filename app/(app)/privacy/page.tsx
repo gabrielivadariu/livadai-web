@@ -1,3 +1,5 @@
+ "use client";
+
 import styles from "@/app/(app)/legal.module.css";
 import { useT } from "@/lib/i18n";
 

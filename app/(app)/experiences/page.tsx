@@ -147,18 +147,13 @@ export default function ExperiencesPage() {
         </div>
       ) : null}
       <section className={styles.hero}>
-        <div className={styles.heroCopy}>
+        <div className={styles.heroText}>
           <h1 className={`${styles.heroTitle} ${styles.fadeIn}`}>{t("hero_title")}</h1>
-          <div className={styles.heroLine} />
           <p className={`${styles.heroSubtitle} ${styles.fadeIn} ${styles.delay1}`}>
             {t("hero_subtitle_line1")}
             <br />
             {t("hero_subtitle_line2")}
           </p>
-
-          <div className={`${styles.heroTimer} ${styles.fadeIn} ${styles.delay2}`}>{formattedSeconds}</div>
-          <div className={styles.heroTimerNote}>{t("hero_timer_note")}</div>
-
           <button
             className={`button ${styles.heroCta} ${styles.fadeIn} ${styles.delay2}`}
             type="button"
@@ -170,6 +165,13 @@ export default function ExperiencesPage() {
             {t("hero_cta_primary")}
           </button>
           <div className={styles.heroMicrocopy}>{t("hero_cta_microcopy")}</div>
+        </div>
+        <div className={`${styles.heroVisual} ${styles.fadeIn} ${styles.delay1}`}>
+          <div className={styles.timerCard}>
+            <div className={styles.timerLabel}>{t("hero_timer_label")}</div>
+            <div className={styles.heroTimer}>{formattedSeconds}</div>
+            <div className={styles.heroTimerNote}>{t("hero_timer_note")}</div>
+          </div>
         </div>
       </section>
       {!user ? <div className={styles.guestHint}>{t("guest_list_hint")}</div> : null}

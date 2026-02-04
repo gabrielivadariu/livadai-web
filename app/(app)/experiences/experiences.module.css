@@ -27,15 +27,15 @@
 
 .hero {
   display: grid;
-  gap: 14px;
-  grid-template-columns: 1fr;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
   align-items: center;
-  padding: 18px 24px;
+  padding: 18px 28px;
   border-radius: 28px;
-  min-height: 42vh;
+  min-height: 40vh;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(150deg, #ffffff 0%, #f1feff 55%, #e7fbfd 100%);
+  background: linear-gradient(100deg, #ffffff 0%, #ffffff 55%, #e8fbfd 100%);
   border: 1px solid #e2f0f4;
   box-shadow: var(--shadow);
 }
@@ -48,51 +48,67 @@
   content: none;
 }
 
-.heroCopy {
+.heroText {
   position: relative;
   z-index: 2;
   display: grid;
-  gap: 8px;
+  gap: 10px;
   align-content: center;
-  justify-items: center;
-  text-align: center;
+  text-align: left;
+}
+
+.heroVisual {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .heroTitle {
   font-family: "Sora", "Segoe UI", sans-serif;
-  font-size: 32px;
-  line-height: 1.2;
+  font-size: 30px;
+  line-height: 1.25;
   margin: 0;
   color: #05313a;
   font-weight: 600;
 }
 
-.heroLine {
-  width: 72px;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #12c7d6, rgba(18, 199, 214, 0.2));
-  animation: linePulse 6s ease-in-out infinite;
-}
-
 .heroSubtitle {
   margin: 0;
-  font-size: 15px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.6;
   color: rgba(5, 49, 58, 0.7);
   max-width: 520px;
 }
 
 .heroTimer {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   color: #0aa0b4;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.6px;
 }
 
 .heroTimerNote {
   font-size: 12px;
   color: rgba(5, 49, 58, 0.6);
+}
+
+.timerCard {
+  background: #fff;
+  border-radius: 18px;
+  padding: 18px 20px;
+  box-shadow: 0 12px 24px rgba(5, 49, 58, 0.08);
+  border: 1px solid rgba(5, 49, 58, 0.08);
+  min-width: 240px;
+}
+
+.timerLabel {
+  font-size: 12px;
+  color: rgba(5, 49, 58, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
 }
 
 .heroCta {
@@ -185,18 +201,6 @@
   }
 }
 
-@keyframes linePulse {
-  0%,
-  100% {
-    opacity: 0.6;
-    transform: scaleX(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scaleX(1.08);
-  }
-}
-
 .grid {
   display: grid;
   gap: 24px;
@@ -213,6 +217,8 @@
   .hero {
     min-height: 40vh;
     padding: 16px 16px;
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 
   .heroTitle {
@@ -221,6 +227,10 @@
 
   .heroTimer {
     font-size: 16px;
+  }
+
+  .heroVisual {
+    justify-content: flex-start;
   }
 }
 

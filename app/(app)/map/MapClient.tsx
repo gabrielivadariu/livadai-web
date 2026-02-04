@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import styles from "./map.module.css";
 
@@ -26,11 +27,8 @@ const iconUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png";
 const iconRetinaUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png";
 const shadowUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png";
 
-const getDefaultIcon = () => {
-  if (typeof window === "undefined") return undefined;
-  const L = window.L;
-  if (!L?.Icon) return undefined;
-  return new L.Icon({
+const getDefaultIcon = () =>
+  new L.Icon({
     iconUrl,
     iconRetinaUrl,
     shadowUrl,
@@ -39,7 +37,6 @@ const getDefaultIcon = () => {
     popupAnchor: [1, -34],
     shadowSize: [41, 41],
   });
-};
 
 type MapPoint = {
   _id: string;
@@ -59,7 +56,7 @@ type MapPoint = {
 
 export default function MapClient({ points }: { points: MapPoint[] }) {
   const router = useRouter();
-  const defaultIcon = getDefaultIcon();
+  const defaultIcon = useMemo(() => getDefaultIcon(), []);
   const safePoints = useMemo(() => {
     return (points || []).filter((p) => {
       const lat = Number(p.latitude);
@@ -70,11 +67,8 @@ export default function MapClient({ points }: { points: MapPoint[] }) {
       return true;
     });
   }, [points]);
-  const markerIcon = useMemo(() => {
-    if (typeof window === "undefined") return null;
-    const L = window.L;
-    if (!L?.divIcon) return null;
-    return (imageUrl?: string) =>
+  const markerIcon = useMemo(
+    () => (imageUrl?: string) =>
       L.divIcon({
         className: styles.avatarMarker,
         html: `<div class="${styles.avatarRing}">${
@@ -84,8 +78,9 @@ export default function MapClient({ points }: { points: MapPoint[] }) {
         }</div>`,
         iconSize: [44, 44],
         iconAnchor: [22, 22],
-      });
-  }, []);
+      }),
+    []
+  );
   return (
     <MapContainer
       center={[45.9432, 24.9668]}
@@ -101,7 +96,7 @@ export default function MapClient({ points }: { points: MapPoint[] }) {
         <Marker
           key={p._id}
           position={[p.latitude, p.longitude]}
-          icon={markerIcon ? markerIcon(p.host?.profileImage || p.host?.avatar || p.host?.profilePhoto) : defaultIcon}
+          icon={markerIcon(p.host?.profileImage || p.host?.avatar || p.host?.profilePhoto) || defaultIcon}
           eventHandlers={{
             click: () => router.push(`/experiences/${p._id}`),
           }}

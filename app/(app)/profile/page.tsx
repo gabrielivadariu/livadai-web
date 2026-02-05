@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiGet, apiPost, apiPut, getApiOrigin } from "@/lib/api";
+import { apiGet, apiPost, apiPut } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { useAuth } from "@/context/auth-context";
 import styles from "./profile.module.css";
@@ -156,8 +156,7 @@ export default function ProfilePage() {
     setSaveError("");
     try {
       const token = window.localStorage.getItem("token");
-      const origin = getApiOrigin() || window.location.origin;
-      const res = await fetch(`${origin}/api/media/upload`, {
+      const res = await fetch("/api/media/upload", {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: (() => {

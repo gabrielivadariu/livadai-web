@@ -2,16 +2,13 @@
 
 export const getApiOrigin = () => {
   if (typeof window === "undefined") return null;
-  if (window.location.host === "livadai.com") {
-    return window.location.origin.replace("://livadai.com", "://www.livadai.com");
-  }
   return window.location.origin;
 };
 
 const getApiBase = () =>
   typeof window === "undefined"
     ? process.env.NEXT_PUBLIC_API_URL || "https://livadai-backend-production.up.railway.app"
-    : `${getApiOrigin()}/api`;
+    : "/api";
 
 let authToken: string | null = null;
 

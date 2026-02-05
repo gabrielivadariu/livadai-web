@@ -5,7 +5,7 @@ const API_BASE =
 
 const handler = async (req: NextRequest) => {
   const url = new URL(req.url);
-  const path = url.pathname.replace(/^\\/api/, "");
+  const path = url.pathname.replace(/^\/api/, "");
   const targetUrl = `${API_BASE}${path}${url.search}`;
 
   const headers = new Headers(req.headers);

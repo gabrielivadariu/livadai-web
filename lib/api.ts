@@ -1,7 +1,9 @@
 "use client";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "https://livadai-backend-production.up.railway.app";
+  typeof window === "undefined"
+    ? process.env.NEXT_PUBLIC_API_URL || "https://livadai-backend-production.up.railway.app"
+    : "/api";
 
 let authToken: string | null = null;
 

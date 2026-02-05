@@ -82,11 +82,17 @@ export default function ProfilePage() {
       if (!active) return;
       if (authLoading) return;
       if (!token) {
+        setLoading(false);
         router.replace("/login?reason=auth&next=/profile");
         return;
       }
       setLoading(true);
       setLoadError("");
+      const timeoutId = window.setTimeout(() => {
+        if (!active) return;
+        setLoadError("Nu am putut încărca profilul. Te rugăm să reîncerci.");
+        setLoading(false);
+      }, 12000);
       if (process.env.NODE_ENV !== "production") {
         console.debug("[profile] load start", { token: Boolean(token) });
       }
@@ -113,6 +119,7 @@ export default function ProfilePage() {
           setLoadError(message);
         }
       } finally {
+        window.clearTimeout(timeoutId);
         if (active) {
           setLoading(false);
           if (process.env.NODE_ENV !== "production") {

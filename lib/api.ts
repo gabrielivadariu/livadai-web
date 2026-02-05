@@ -1,9 +1,9 @@
 "use client";
 
-const API_BASE =
+const getApiBase = () =>
   typeof window === "undefined"
     ? process.env.NEXT_PUBLIC_API_URL || "https://livadai-backend-production.up.railway.app"
-    : "/api";
+    : `${window.location.origin}/api`;
 
 let authToken: string | null = null;
 
@@ -30,7 +30,7 @@ const apiRequest = async <T>(path: string, options: ApiOptions = {}) => {
   const timeout = window.setTimeout(() => controller.abort(), 10000);
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, {
+    res = await fetch(`${getApiBase()}${path}`, {
       ...options,
       headers,
       body: options.json ? JSON.stringify(options.json) : options.body,

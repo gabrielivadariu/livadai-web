@@ -223,8 +223,10 @@ function CreateExperienceContent() {
   const uploadFile = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "https://livadai-backend-production.up.railway.app"}/media/upload`, {
+    const token = window.localStorage.getItem("token");
+    const res = await fetch(`${window.location.origin}/api/media/upload`, {
       method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       body: formData,
     });
     if (!res.ok) throw new Error("Upload failed");

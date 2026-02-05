@@ -155,17 +155,16 @@ export default function ProfilePage() {
     setUploading(true);
     setSaveError("");
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "https://livadai-backend-production.up.railway.app"}/media/upload`,
-        {
-          method: "POST",
-          body: (() => {
-            const data = new FormData();
-            data.append("file", file);
-            return data;
-          })(),
-        }
-      );
+      const token = window.localStorage.getItem("token");
+      const res = await fetch(`${window.location.origin}/api/media/upload`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: (() => {
+          const data = new FormData();
+          data.append("file", file);
+          return data;
+        })(),
+      });
       if (!res.ok) throw new Error("Upload failed");
       const data = await res.json();
       const url = data?.url || data?.secure_url;

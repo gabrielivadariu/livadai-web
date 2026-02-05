@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiGet, apiPatch, apiPost } from "@/lib/api";
+import { apiGet, apiPatch, apiPost, getApiOrigin } from "@/lib/api";
 import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
 import styles from "./create-experience.module.css";
@@ -224,7 +224,8 @@ function CreateExperienceContent() {
     const formData = new FormData();
     formData.append("file", file);
     const token = window.localStorage.getItem("token");
-    const res = await fetch(`${window.location.origin}/api/media/upload`, {
+    const origin = getApiOrigin() || window.location.origin;
+    const res = await fetch(`${origin}/api/media/upload`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       body: formData,

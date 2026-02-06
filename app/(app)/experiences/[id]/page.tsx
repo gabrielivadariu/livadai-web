@@ -426,7 +426,7 @@ export default function ExperienceDetailPage() {
   const endLabel = end ? dateFormatter.format(new Date(end)) : "";
   const isFree = !item.price || Number(item.price) <= 0;
   const priceText = isFree ? t("experience_free_label") : `${item.price} ${item.currencyCode || "RON"}`;
-  const serviceFeeTotal = (item.activityType === "GROUP" ? quantity : 1) * 1;
+  const serviceFeeTotal = (item.activityType === "GROUP" ? quantity : 1) * 2;
   const serviceFeeTotalLabel = t("experience_service_fee_total").replace("{{amount}}", String(serviceFeeTotal));
   const isHost = user?.role === "HOST" || user?.role === "BOTH";
   const bookingDisabled = booking || (item.activityType === "GROUP" && availableSeats <= 0);

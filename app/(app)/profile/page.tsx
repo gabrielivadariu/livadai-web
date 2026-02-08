@@ -93,10 +93,6 @@ export default function ProfilePage() {
         setLoadError("Nu am putut încărca profilul. Te rugăm să reîncerci.");
         setLoading(false);
       }, 12000);
-      if (process.env.NODE_ENV !== "production") {
-        console.debug("[profile] load start", { token: Boolean(token) });
-      }
-      refresh().catch(() => undefined);
       try {
         const [profileRes, favRes, hostRes] = await Promise.all([
           apiGet<Profile>("/users/me/profile"),
@@ -122,9 +118,6 @@ export default function ProfilePage() {
         window.clearTimeout(timeoutId);
         if (active) {
           setLoading(false);
-          if (process.env.NODE_ENV !== "production") {
-            console.debug("[profile] load end");
-          }
         }
       }
     };
@@ -137,7 +130,7 @@ export default function ProfilePage() {
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onFocus);
     };
-  }, [refresh, user?.role, user, router, authLoading, token]);
+  }, [user?.role, router, authLoading, token]);
 
   const onChange = (key: keyof Profile, value: Profile[keyof Profile]) => {
     setForm((prev) => ({ ...prev, [key]: value }));

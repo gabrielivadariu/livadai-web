@@ -3,13 +3,34 @@ import { NextRequest } from "next/server";
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "https://livadai-backend-production.up.railway.app";
 
-const buildCorsHeaders = (origin: string) => ({
-  "Access-Control-Allow-Origin": origin,
-  "Access-Control-Allow-Credentials": "true",
-  "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  Vary: "Origin",
-});
+const DEFAULT_ALLOWED_ORIGINS = [
+  "https://livadai.com",
+  "https://www.livadai.com",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+];
+
+const allowedOrigins = new Set([
+  ...DEFAULT_ALLOWED_ORIGINS,
+  ...(process.env.ALLOWED_WEB_ORIGINS || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean),
+]);
+
+const isAllowedOrigin = (origin: string | null) => !origin || allowedOrigins.has(origin);
+
+const buildCorsHeaders = (origin: string | null): Record<string, string> => {
+  const headers: Record<string, string> = {
+    Vary: "Origin",
+  };
+  if (origin && allowedOrigins.has(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+    headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS";
+    headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization";
+  }
+  return headers;
+};
 
 const handler = async (req: NextRequest) => {
   const url = new URL(req.url);
@@ -19,7 +40,17 @@ const handler = async (req: NextRequest) => {
   const headers = new Headers(req.headers);
   headers.delete("host");
 
-  const origin = req.headers.get("origin") || "*";
+  const origin = req.headers.get("origin");
+  if (!isAllowedOrigin(origin)) {
+    return new Response(JSON.stringify({ message: "Origin not allowed" }), {
+      status: 403,
+      headers: {
+        "Content-Type": "application/json",
+        Vary: "Origin",
+      },
+    });
+  }
+
   const corsHeaders = buildCorsHeaders(origin);
 
   if (req.method === "OPTIONS") {

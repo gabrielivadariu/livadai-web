@@ -6,6 +6,12 @@
   box-shadow: var(--shadow-soft);
 }
 
+@supports (height: 100dvh) {
+  .mapWrap {
+    height: calc(100dvh - 220px);
+  }
+}
+
 .searchBar {
   display: flex;
   align-items: center;
@@ -52,4 +58,12 @@
 .avatarFallback {
   font-size: 18px;
   color: #334155;
+}
+
+@media (max-width: 959px) {
+  .mapWrap {
+    height: calc(100dvh - 300px - env(safe-area-inset-bottom));
+    min-height: 360px;
+    margin-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
 }

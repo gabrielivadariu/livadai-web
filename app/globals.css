@@ -103,7 +103,7 @@ a {
 .app-main {
   flex: 1;
   padding: 16px;
-  padding-bottom: 96px;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 
 .tab-bar {
@@ -116,7 +116,7 @@ a {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 10px 12px 14px;
+  padding: 10px 12px calc(14px + env(safe-area-inset-bottom));
   z-index: 10;
 }
 

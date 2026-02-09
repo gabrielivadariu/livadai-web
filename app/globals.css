@@ -121,7 +121,7 @@ a {
 }
 
 .tab-item {
-  color: rgba(var(--brand-rgb), 0.2);
+  color: rgba(255, 255, 255, 0.72);
   font-size: 12px;
   font-weight: 700;
   display: flex;

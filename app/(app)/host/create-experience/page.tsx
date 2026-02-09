@@ -223,11 +223,10 @@ function CreateExperienceContent() {
   const uploadFile = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    const token = window.localStorage.getItem("token");
     const res = await fetch("/api/media/upload", {
       method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       body: formData,
+      credentials: "include",
     });
     if (!res.ok) throw new Error("Upload failed");
     const data = await res.json();

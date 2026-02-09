@@ -16,7 +16,7 @@ type AuthContextValue = {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (payload: Record<string, unknown>) => Promise<{ message?: string; requiresEmailVerification?: boolean }>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refresh: () => Promise<void>;
 };
 
@@ -30,44 +30,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     try {
       const data = await apiGet<{ user: User }>("/auth/me");
-      setUser(data?.user || null);
+      const nextUser = data?.user || null;
+      setUser(nextUser);
+      setToken(nextUser ? "cookie-session" : null);
     } catch {
       if (process.env.NODE_ENV !== "production") {
         console.debug("[auth] refresh failed");
       }
       setUser(null);
+      setToken(null);
     }
   }, []);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("token");
-    if (process.env.NODE_ENV !== "production") {
-      console.debug("[auth] stored token", Boolean(stored));
-    }
-    if (stored) {
-      setToken(stored);
-      setAuthToken(stored);
-      refresh().finally(() => setLoading(false));
-      return;
-    }
-    setLoading(false);
+    let active = true;
+    const bootstrap = async () => {
+      const legacyToken = window.localStorage.getItem("token");
+      if (process.env.NODE_ENV !== "production") {
+        console.debug("[auth] legacy token", Boolean(legacyToken));
+      }
+      if (legacyToken) {
+        setAuthToken(legacyToken);
+      }
+      await refresh();
+      // Token no longer lives in localStorage.
+      if (legacyToken) {
+        window.localStorage.removeItem("token");
+      }
+      clearAuthToken();
+      if (active) setLoading(false);
+    };
+    bootstrap();
+    return () => {
+      active = false;
+    };
   }, [refresh]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const data = await apiPost<{ token: string; user: User }>("/auth/login", { email, password });
-    if (data?.token) {
-      window.localStorage.setItem("token", data.token);
-      setToken(data.token);
-      setAuthToken(data.token);
-      setUser(data.user || null);
+    const data = await apiPost<{ token?: string; user?: User }>("/auth/login", { email, password });
+    if (data?.user) {
+      setUser(data.user);
+      setToken("cookie-session");
+      window.localStorage.removeItem("token");
+      clearAuthToken();
+      return;
     }
-  }, []);
+    await refresh();
+  }, [refresh]);
 
   const register = useCallback(async (payload: Record<string, unknown>) => {
     return apiPost<{ message?: string; requiresEmailVerification?: boolean }>("/auth/register", payload);
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      await apiPost("/auth/logout", {});
+    } catch (_err) {
+      // best-effort logout
+    }
     window.localStorage.removeItem("token");
     clearAuthToken();
     setToken(null);

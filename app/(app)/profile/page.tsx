@@ -148,15 +148,14 @@ export default function ProfilePage() {
     setUploading(true);
     setSaveError("");
     try {
-      const token = window.localStorage.getItem("token");
       const res = await fetch("/api/media/upload", {
         method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: (() => {
           const data = new FormData();
           data.append("file", file);
           return data;
         })(),
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Upload failed");
       const data = await res.json();

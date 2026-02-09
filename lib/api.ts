@@ -23,12 +23,13 @@ export const clearAuthToken = () => {
 type ApiOptions = RequestInit & { json?: unknown };
 
 const apiRequest = async <T>(path: string, options: ApiOptions = {}) => {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(options.headers as Record<string, string>),
-  };
-  if (authToken) {
-    headers.Authorization = `Bearer ${authToken}`;
+  const headers = new Headers(options.headers || undefined);
+  if (options.json !== undefined && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  // Transitional fallback: allows one-time migration from legacy localStorage token to cookie session.
+  if (authToken && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${authToken}`);
   }
 
   const controller = new AbortController();
@@ -40,6 +41,7 @@ const apiRequest = async <T>(path: string, options: ApiOptions = {}) => {
       headers,
       body: options.json ? JSON.stringify(options.json) : options.body,
       signal: controller.signal,
+      credentials: options.credentials || "include",
     });
   } catch (error) {
     if (process.env.NODE_ENV !== "production") {

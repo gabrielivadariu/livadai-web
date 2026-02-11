@@ -59,7 +59,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (data?.user) {
       setUser(data.user);
       setToken("cookie-session");
-      window.localStorage.removeItem("token");
       clearAuthToken();
       return;
     }
@@ -76,7 +75,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (_err) {
       // best-effort logout
     }
-    window.localStorage.removeItem("token");
     clearAuthToken();
     setToken(null);
     setUser(null);

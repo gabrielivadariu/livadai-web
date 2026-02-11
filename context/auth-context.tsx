@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { apiGet, apiPost, clearAuthToken, setAuthToken } from "@/lib/api";
+import { apiGet, apiPost, clearAuthToken } from "@/lib/api";
 
 type User = {
   _id?: string;
@@ -45,19 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let active = true;
     const bootstrap = async () => {
-      const legacyToken = window.localStorage.getItem("token");
-      if (process.env.NODE_ENV !== "production") {
-        console.debug("[auth] legacy token", Boolean(legacyToken));
-      }
-      if (legacyToken) {
-        setAuthToken(legacyToken);
-      }
       await refresh();
-      // Token no longer lives in localStorage.
-      if (legacyToken) {
-        window.localStorage.removeItem("token");
-      }
-      clearAuthToken();
       if (active) setLoading(false);
     };
     bootstrap();

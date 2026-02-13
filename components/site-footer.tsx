@@ -15,7 +15,7 @@ export default function SiteFooter() {
     <footer className={styles.footer}>
       <div className={styles.inner}>
         <h2 className={styles.title}>LIVADAI</h2>
-        <p className={styles.subtitle}>Official platform documentation (placeholder).</p>
+        <p className={styles.subtitle}>© 2026 LIVADAI</p>
         <div className={styles.links}>
           {links.map((link) => (
             <Link key={link.href} href={link.href} className={styles.link}>

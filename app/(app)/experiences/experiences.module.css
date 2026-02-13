@@ -371,6 +371,23 @@
   font-weight: 600;
 }
 
+.metaPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #dbe7ef;
+  background: #f8fcff;
+  color: #64748b;
+}
+
+.groupLine {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .rating {
   color: #f59e0b;
 }

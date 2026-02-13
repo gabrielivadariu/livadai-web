@@ -28,6 +28,7 @@ type Experience = {
   startDate?: string;
   durationMinutes?: number;
   activityType?: string;
+  environment?: "INDOOR" | "OUTDOOR" | "BOTH" | string;
   maxParticipants?: number;
   remainingSpots?: number;
   availableSpots?: number;
@@ -64,6 +65,22 @@ const formatGroupInfo = (item: Experience, lang: string) => {
   const label = lang === "en" ? "Group" : "Grup";
   const people = lang === "en" ? "participants" : "participanți";
   return `👥 ${label} · ${occupied} / ${total} ${people}`;
+};
+
+const formatSeatsInfo = (item: Experience) => {
+  const total = item.maxParticipants || 0;
+  const available = item.availableSpots ?? item.remainingSpots ?? item.maxParticipants;
+  if (!total || typeof available !== "number") return "";
+  const occupied = Math.max(0, total - available);
+  return `${occupied}/${total}`;
+};
+
+const formatEnvironment = (item: Experience, t: (key: string) => string) => {
+  const env = String(item.environment || "").toUpperCase();
+  if (env === "INDOOR") return t("environment_indoor");
+  if (env === "OUTDOOR") return t("environment_outdoor");
+  if (env === "BOTH") return t("environment_both");
+  return "";
 };
 
 export default function ExperiencesPage() {
@@ -242,7 +259,8 @@ export default function ExperiencesPage() {
             const start = item.startsAt || item.startDate;
             const dateLabel = start ? new Date(start).toLocaleDateString(lang === "en" ? "en-US" : "ro-RO", { day: "numeric", month: "short" }) : "";
             const groupLabel = formatGroupInfo(item, lang);
-            const seats = groupLabel ? groupLabel.match(/\d+\/\d+/)?.[0] : null;
+            const seats = formatSeatsInfo(item);
+            const environmentLabel = formatEnvironment(item, t);
             return (
               <Link key={item._id} href={`/experiences/${item._id}`} className={styles.card}>
                 {item.coverImageUrl ? (
@@ -264,11 +282,13 @@ export default function ExperiencesPage() {
                     </div>
                   </div>
                   <div className={styles.cardMeta}>
-                    {dateLabel ? <span>📅 {dateLabel}</span> : null}
-                    {item.languages?.length ? <span>🗣 {item.languages.slice(0, 2).join(" · ")}</span> : null}
-                    {seats ? <span>👥 {seats}</span> : null}
+                    {dateLabel ? <span className={styles.metaPill}>📅 {dateLabel}</span> : null}
+                    {item.languages?.length ? <span className={styles.metaPill}>🗣 {item.languages.slice(0, 2).join(" · ")}</span> : null}
+                    {environmentLabel ? <span className={styles.metaPill}>🍃 {environmentLabel}</span> : null}
+                    {seats ? <span className={styles.metaPill}>👥 {seats}</span> : null}
                     {item.rating_avg ? <span className={styles.rating}>⭐ {Number(item.rating_avg).toFixed(1)}</span> : null}
                   </div>
+                  {groupLabel ? <div className={styles.groupLine}>{groupLabel}</div> : null}
                 </div>
               </Link>
             );

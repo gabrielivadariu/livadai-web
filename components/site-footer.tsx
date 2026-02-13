@@ -7,12 +7,12 @@ import { useT } from "@/lib/i18n";
 export default function SiteFooter() {
   const t = useT();
   const links = [
-    { href: "/about", label: t("menu_about_title") },
-    { href: "/privacy", label: t("menu_privacy_title") },
-    { href: "/terms", label: t("menu_terms_title") },
-    { href: "/community-guidelines", label: t("community_title").replace(" – LIVADAI", "") },
-    { href: "/cookies", label: t("cookies_title").replace(" – LIVADAI", "") },
-    { href: "/contact", label: t("menu_contact") },
+    { href: "/about", label: t("footer_about") },
+    { href: "/privacy", label: t("footer_privacy") },
+    { href: "/terms", label: t("footer_terms") },
+    { href: "/community-guidelines", label: t("footer_community") },
+    { href: "/cookies", label: t("footer_cookies") },
+    { href: "/contact", label: t("footer_contact") },
   ];
 
   return (

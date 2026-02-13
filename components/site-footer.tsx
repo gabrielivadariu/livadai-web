@@ -1,16 +1,20 @@
+"use client";
+
 import Link from "next/link";
 import styles from "./site-footer.module.css";
-
-const links = [
-  { href: "/about", label: "About LIVADAI" },
-  { href: "/privacy", label: "Privacy Policy" },
-  { href: "/terms", label: "Terms & Conditions" },
-  { href: "/community-guidelines", label: "Community Guidelines" },
-  { href: "/cookies", label: "Cookie Policy" },
-  { href: "/contact", label: "Contact" },
-];
+import { useT } from "@/lib/i18n";
 
 export default function SiteFooter() {
+  const t = useT();
+  const links = [
+    { href: "/about", label: t("menu_about_title") },
+    { href: "/privacy", label: t("menu_privacy_title") },
+    { href: "/terms", label: t("menu_terms_title") },
+    { href: "/community-guidelines", label: t("community_title").replace(" – LIVADAI", "") },
+    { href: "/cookies", label: t("cookies_title").replace(" – LIVADAI", "") },
+    { href: "/contact", label: t("menu_contact") },
+  ];
+
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>

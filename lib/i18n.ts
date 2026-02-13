@@ -16,6 +16,7 @@ const messages: Record<Lang, Messages> = {
     nav_profile: "Profil",
     nav_settings: "Setări",
     nav_logout: "Deconectare",
+    nav_download_ios: "Descarcă aplicația",
     app_search_placeholder: "Caută experiențe",
     bottom_experiences: "Experiențe",
     bottom_map: "Hartă",
@@ -80,6 +81,7 @@ const messages: Record<Lang, Messages> = {
     footer_community: "Ghid comunitate",
     footer_cookies: "Politica de cookie-uri",
     footer_contact: "Contact",
+    footer_download_ios: "Descarcă aplicația iOS",
     about_title: "Despre LIVADAI",
     about_last_updated: "Ultima actualizare: TBD",
     about_intro_1:
@@ -988,6 +990,7 @@ const messages: Record<Lang, Messages> = {
     nav_profile: "Profile",
     nav_settings: "Settings",
     nav_logout: "Log out",
+    nav_download_ios: "Download app",
     app_search_placeholder: "Search experiences",
     bottom_experiences: "Experiences",
     bottom_map: "Map",
@@ -1052,6 +1055,7 @@ const messages: Record<Lang, Messages> = {
     footer_community: "Community Guidelines",
     footer_cookies: "Cookie Policy",
     footer_contact: "Contact",
+    footer_download_ios: "Download iOS app",
     about_title: "About LIVADAI",
     about_last_updated: "Last updated: TBD",
     about_intro_1:

@@ -11,6 +11,8 @@ type Props = {
   pathname: string | null;
 };
 
+const IOS_APP_URL = "https://apps.apple.com/ro/app/livadai/id6758622116?l=ro";
+
 export default function TopNav({ pathname }: Props) {
   const router = useRouter();
   const t = useT();
@@ -114,6 +116,15 @@ export default function TopNav({ pathname }: Props) {
           );
         })}
       </nav>
+
+      <a
+        className="nav-download"
+        href={IOS_APP_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {t("nav_download_ios")}
+      </a>
 
       {user ? (
         <div className="nav-actions">

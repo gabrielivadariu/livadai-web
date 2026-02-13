@@ -246,6 +246,28 @@ a {
   background: var(--primary-dark);
 }
 
+.nav-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--brand-rgb), 0.35);
+  background: rgba(var(--brand-rgb), 0.08);
+  color: var(--primary-dark);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.nav-download:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+  color: #fff;
+}
+
 .nav-profile {
   min-width: 160px;
   display: flex;
@@ -396,5 +418,11 @@ a {
     max-width: 1200px;
     margin: 0 auto;
     width: 100%;
+  }
+}
+
+@media (max-width: 1280px) {
+  .nav-download {
+    display: none;
   }
 }

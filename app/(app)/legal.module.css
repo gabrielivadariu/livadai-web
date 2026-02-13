@@ -58,3 +58,97 @@
 .emailLink:hover {
   text-decoration: underline;
 }
+
+.termsDoc {
+  gap: 6px;
+}
+
+.spacer {
+  height: 10px;
+}
+
+.paragraph {
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.62;
+  font-size: 15px;
+}
+
+.paragraphIndented {
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.62;
+  font-size: 15px;
+  padding-left: 10px;
+}
+
+.bullet {
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.62;
+  font-size: 15px;
+  padding-left: 14px;
+}
+
+.article {
+  color: #0f172a;
+  font-weight: 800;
+  margin: 14px 0 2px;
+  line-height: 1.5;
+  font-size: 17px;
+}
+
+.chapter {
+  color: var(--primary);
+  font-weight: 800;
+  margin: 20px 0 4px;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  font-size: 18px;
+}
+
+@media (max-width: 768px) {
+  .header {
+    border-radius: 18px;
+    padding: 18px;
+  }
+
+  .card {
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+    line-height: 1.25;
+  }
+
+  .termsDoc {
+    gap: 5px;
+  }
+
+  .spacer {
+    height: 8px;
+  }
+
+  .paragraph,
+  .paragraphIndented,
+  .bullet {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .bullet {
+    padding-left: 12px;
+  }
+
+  .article {
+    font-size: 16px;
+    margin-top: 12px;
+  }
+
+  .chapter {
+    font-size: 16px;
+    margin-top: 16px;
+  }
+}

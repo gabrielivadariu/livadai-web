@@ -22,11 +22,22 @@ const isMostlyUppercase = (line: string) => {
   return upper / letters.length > 0.6;
 };
 
-const isSectionLine = (line: string) => {
-  if (/^Art\./i.test(line)) return true;
+const isChapterLine = (line: string) => {
   if (/^\d+\.\s*[A-ZĂÂÎȘȚ]/.test(line)) return true;
   if (line.length < 120 && isMostlyUppercase(line)) return true;
   return false;
+};
+
+const isArticleLine = (line: string) => /^Art\.\s*\d+/i.test(line);
+const isBulletLine = (line: string) => /^•/.test(line) || /^[a-z]\)/i.test(line) || /^-\s/.test(line);
+const isAlignedParagraph = (line: string) => /^\(\d+\)/.test(line);
+
+const getLineClass = (line: string) => {
+  if (isChapterLine(line)) return styles.chapter;
+  if (isArticleLine(line)) return styles.article;
+  if (isBulletLine(line)) return styles.bullet;
+  if (isAlignedParagraph(line)) return styles.paragraphIndented;
+  return styles.paragraph;
 };
 
 export default function TermsPage() {
@@ -44,10 +55,10 @@ export default function TermsPage() {
         <p className={styles.body}>{subtitle}</p>
       </div>
       <div className={styles.card}>
-        <div className={styles.stack}>
+        <div className={`${styles.stack} ${styles.termsDoc}`}>
           {bodyLines.map((line, index) => {
-            if (!line) return <div key={`spacer-${index}`} style={{ height: 8 }} />;
-            const className = isSectionLine(line) ? styles.section : styles.body;
+            if (!line) return <div key={`spacer-${index}`} className={styles.spacer} />;
+            const className = getLineClass(line);
             const key = `${index}-${line.slice(0, 24)}`;
             if (/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/i.test(line)) {
               return (

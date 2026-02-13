@@ -288,7 +288,6 @@ export default function ExperiencesPage() {
                     {seats ? <span className={styles.metaPill}>👥 {seats}</span> : null}
                     {item.rating_avg ? <span className={styles.rating}>⭐ {Number(item.rating_avg).toFixed(1)}</span> : null}
                   </div>
-                  {groupLabel ? <div className={styles.groupLine}>{groupLabel}</div> : null}
                 </div>
               </Link>
             );

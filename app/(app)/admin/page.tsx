@@ -93,12 +93,25 @@ type AdminExperiencesResponse = {
 
 type AdminAuditLogItem = {
   id: string;
+  actorId?: string;
   actorEmail?: string;
   actionType?: string;
   targetType?: string;
   targetId?: string;
   reason?: string;
+  diff?: Record<string, unknown> | null;
+  meta?: Record<string, unknown> | null;
+  ip?: string;
+  userAgent?: string;
   createdAt?: string;
+};
+
+type AdminAuditLogsResponse = {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+  items: AdminAuditLogItem[];
 };
 
 type AdminBooking = {
@@ -279,6 +292,15 @@ const formatDate = (value?: string | null) => {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(d);
+};
+
+const formatJson = (value: unknown) => {
+  if (value === null || value === undefined) return "—";
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
 };
 
 function StatCard({
@@ -613,6 +635,45 @@ function AdminReportRow({
   );
 }
 
+function AdminAuditRow({
+  item,
+  selected,
+  busy,
+  onSelect,
+}: {
+  item: AdminAuditLogItem;
+  selected?: boolean;
+  busy?: boolean;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`${styles.card} ${styles.rowCard} ${selected ? styles.rowCardSelected : ""} ${styles.auditRowButton}`}
+      onClick={() => onSelect(item.id)}
+      disabled={busy}
+    >
+      <div className={styles.rowTop}>
+        <div>
+          <div className={styles.rowTitle}>
+            {item.actionType || "ACTION"} <span className={styles.rowTitleMuted}>#{item.id.slice(-6)}</span>
+          </div>
+          <div className={styles.rowSub}>{item.actorEmail || "—"} · {formatDate(item.createdAt)}</div>
+        </div>
+        <div className={styles.badgeRow}>
+          <span className={styles.badge}>{item.targetType || "—"}</span>
+          {item.reason ? <span className={`${styles.badge} ${styles.badgeWarn}`}>reason</span> : null}
+        </div>
+      </div>
+      <div className={styles.metaGrid}>
+        <div><strong>Target ID:</strong> {item.targetId || "—"}</div>
+        <div><strong>IP:</strong> {item.ip || "—"}</div>
+        <div><strong>User agent:</strong> {item.userAgent ? item.userAgent.slice(0, 64) : "—"}</div>
+      </div>
+    </button>
+  );
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const { user, token, loading: authLoading } = useAuth();
@@ -659,12 +720,21 @@ export default function AdminPage() {
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [paymentsError, setPaymentsError] = useState("");
 
+  const [auditLogs, setAuditLogs] = useState<AdminAuditLogsResponse | null>(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState("");
+  const [auditQuery, setAuditQuery] = useState("");
+  const [auditActionTypeFilter, setAuditActionTypeFilter] = useState("all");
+  const [auditTargetTypeFilter, setAuditTargetTypeFilter] = useState("all");
+  const [auditActorEmailFilter, setAuditActorEmailFilter] = useState("");
+  const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
+
   const [actionError, setActionError] = useState("");
   const [actionInfo, setActionInfo] = useState("");
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [activeSection, setActiveSection] = useState<
-    "overview" | "users" | "experiences" | "bookings" | "reports" | "payments" | "messages" | "system"
+    "overview" | "users" | "experiences" | "bookings" | "reports" | "payments" | "audit" | "messages" | "system"
   >("overview");
   const [globalSearch, setGlobalSearch] = useState("");
   const [recentAdminActions, setRecentAdminActions] = useState<AdminAuditLogItem[]>([]);
@@ -827,6 +897,29 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadAuditLogs = useCallback(
+    async (page = 1) => {
+      setAuditLoading(true);
+      setAuditError("");
+      try {
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("limit", "15");
+        if (auditQuery.trim()) params.set("q", auditQuery.trim());
+        if (auditActionTypeFilter !== "all") params.set("actionType", auditActionTypeFilter);
+        if (auditTargetTypeFilter !== "all") params.set("targetType", auditTargetTypeFilter);
+        if (auditActorEmailFilter.trim()) params.set("actorEmail", auditActorEmailFilter.trim());
+        const data = await apiGet<AdminAuditLogsResponse>(`/admin/audit-logs?${params.toString()}`);
+        setAuditLogs(data || null);
+      } catch (err) {
+        setAuditError((err as Error)?.message || "Nu am putut încărca audit logs.");
+      } finally {
+        setAuditLoading(false);
+      }
+    },
+    [auditQuery, auditActionTypeFilter, auditTargetTypeFilter, auditActorEmailFilter]
+  );
+
   const refreshAll = useCallback(async () => {
     await Promise.all([
       loadDashboard(),
@@ -835,9 +928,10 @@ export default function AdminPage() {
       loadBookings(bookings?.page || 1),
       loadReports(reports?.page || 1),
       loadPaymentsHealth(),
+      loadAuditLogs(auditLogs?.page || 1),
       loadRecentAdminActions(),
     ]);
-  }, [loadDashboard, loadUsers, loadExperiences, loadBookings, loadReports, loadPaymentsHealth, loadRecentAdminActions, users?.page, experiences?.page, bookings?.page, reports?.page]);
+  }, [loadDashboard, loadUsers, loadExperiences, loadBookings, loadReports, loadPaymentsHealth, loadAuditLogs, loadRecentAdminActions, users?.page, experiences?.page, bookings?.page, reports?.page, auditLogs?.page]);
 
   useEffect(() => {
     if (authLoading || !token || !isAdmin) return;
@@ -966,7 +1060,12 @@ export default function AdminPage() {
     [reports?.items, selectedReportId]
   );
 
-  if (authLoading || (!token && !dashboard && !users && !experiences && !bookings && !reports && !paymentsHealth)) {
+  const selectedAudit = useMemo(
+    () => (auditLogs?.items || []).find((item) => item.id === selectedAuditId) || null,
+    [auditLogs?.items, selectedAuditId]
+  );
+
+  if (authLoading || (!token && !dashboard && !users && !experiences && !bookings && !reports && !paymentsHealth && !auditLogs)) {
     return <div className="muted">Se încarcă admin-ul...</div>;
   }
 
@@ -994,8 +1093,13 @@ export default function AdminPage() {
     void loadReports(1);
   };
 
+  const onAuditSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    void loadAuditLogs(1);
+  };
+
   const sidebarItems: Array<{
-    key: "overview" | "users" | "experiences" | "bookings" | "reports" | "payments" | "messages" | "system";
+    key: "overview" | "users" | "experiences" | "bookings" | "reports" | "payments" | "audit" | "messages" | "system";
     label: string;
     hint?: string;
   }> = [
@@ -1005,6 +1109,7 @@ export default function AdminPage() {
     { key: "bookings", label: "Bookings", hint: "Ops & refunds" },
     { key: "reports", label: "Reports / Moderation", hint: "Inbox & safety" },
     { key: "payments", label: "Payments & Refunds", hint: "Health & issues" },
+    { key: "audit", label: "Audit Log", hint: "Trace admin actions" },
     { key: "messages", label: "Messages", hint: "Coming next" },
     { key: "system", label: "System", hint: "Coming next" },
   ];
@@ -1062,11 +1167,14 @@ export default function AdminPage() {
                 <button type="button" className="button secondary" onClick={() => setActiveSection("payments")}>
                   Payments
                 </button>
+                <button type="button" className="button secondary" onClick={() => setActiveSection("audit")}>
+                  Audit
+                </button>
                 <button
                   type="button"
                   className="button"
                   onClick={() => void refreshAll()}
-                  disabled={dashboardLoading || usersLoading || experiencesLoading || bookingsLoading || reportsLoading || paymentsLoading || recentLoading}
+                  disabled={dashboardLoading || usersLoading || experiencesLoading || bookingsLoading || reportsLoading || paymentsLoading || auditLoading || recentLoading}
                 >
                   Refresh all
                 </button>
@@ -1946,6 +2054,200 @@ export default function AdminPage() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {activeSection === "audit" ? (
+        <section className={styles.sectionBlock}>
+          <div className={styles.sectionTitleRow}>
+            <h2 className={styles.sectionTitle}>Audit Log</h2>
+            <span className="muted">{auditLogs ? `${numberFmt(auditLogs.total)} acțiuni` : "—"}</span>
+          </div>
+
+          <form className={`${styles.card} ${styles.filtersCard}`} onSubmit={onAuditSubmit}>
+            <div className={styles.filtersGrid}>
+              <input
+                className="input"
+                placeholder="Caută după actor, action, target, reason, targetId"
+                value={auditQuery}
+                onChange={(e) => setAuditQuery(e.target.value)}
+              />
+              <input
+                className="input"
+                placeholder="Actor email"
+                value={auditActorEmailFilter}
+                onChange={(e) => setAuditActorEmailFilter(e.target.value)}
+              />
+              <select className={styles.select} value={auditActionTypeFilter} onChange={(e) => setAuditActionTypeFilter(e.target.value)}>
+                <option value="all">Toate acțiunile</option>
+                <option value="USER_ROLE_UPDATE">USER_ROLE_UPDATE</option>
+                <option value="USER_BLOCK_UPDATE">USER_BLOCK_UPDATE</option>
+                <option value="USER_BAN_UPDATE">USER_BAN_UPDATE</option>
+                <option value="USER_SESSIONS_INVALIDATED">USER_SESSIONS_INVALIDATED</option>
+                <option value="EXPERIENCE_ACTIVE_UPDATE">EXPERIENCE_ACTIVE_UPDATE</option>
+                <option value="EXPERIENCE_STATUS_UPDATE">EXPERIENCE_STATUS_UPDATE</option>
+                <option value="BOOKING_CANCEL_ADMIN">BOOKING_CANCEL_ADMIN</option>
+                <option value="BOOKING_REFUND_ADMIN">BOOKING_REFUND_ADMIN</option>
+                <option value="REPORT_ASSIGN_TO_ME">REPORT_ASSIGN_TO_ME</option>
+                <option value="REPORT_MARK_HANDLED">REPORT_MARK_HANDLED</option>
+                <option value="REPORT_MARK_IGNORED">REPORT_MARK_IGNORED</option>
+                <option value="REPORT_PAUSE_EXPERIENCE">REPORT_PAUSE_EXPERIENCE</option>
+                <option value="REPORT_SUSPEND_USER">REPORT_SUSPEND_USER</option>
+              </select>
+            </div>
+            <div className={styles.filtersGrid}>
+              <select className={styles.select} value={auditTargetTypeFilter} onChange={(e) => setAuditTargetTypeFilter(e.target.value)}>
+                <option value="all">Toate target-urile</option>
+                <option value="user">user</option>
+                <option value="experience">experience</option>
+                <option value="booking">booking</option>
+                <option value="report">report</option>
+              </select>
+              <div />
+              <div />
+            </div>
+            <div className={styles.filtersActions}>
+              <button
+                className="button secondary"
+                type="button"
+                onClick={() => {
+                  setAuditQuery("");
+                  setAuditActorEmailFilter("");
+                  setAuditActionTypeFilter("all");
+                  setAuditTargetTypeFilter("all");
+                  void loadAuditLogs(1);
+                }}
+              >
+                Reset
+              </button>
+              <button className="button" type="submit" disabled={auditLoading}>
+                {auditLoading ? "Se caută..." : "Caută"}
+              </button>
+            </div>
+          </form>
+
+          {auditError ? <div className={`${styles.card} ${styles.errorCard}`}>{auditError}</div> : null}
+
+          <div className={styles.splitGrid}>
+            <div className={styles.listStack}>
+              {(auditLogs?.items || []).map((item) => (
+                <AdminAuditRow
+                  key={item.id}
+                  item={item}
+                  selected={selectedAuditId === item.id}
+                  busy={false}
+                  onSelect={setSelectedAuditId}
+                />
+              ))}
+              {!auditLoading && (auditLogs?.items || []).length === 0 ? (
+                <div className={`${styles.card} ${styles.emptyCard}`}>Nu există acțiuni admin pentru filtrele selectate.</div>
+              ) : null}
+              <div className={styles.pagination}>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={!auditLogs || auditLogs.page <= 1 || auditLoading}
+                  onClick={() => void loadAuditLogs((auditLogs?.page || 1) - 1)}
+                >
+                  ← Anterior
+                </button>
+                <span className="muted">
+                  Pagina {auditLogs?.page || 1} / {auditLogs?.pages || 1}
+                </span>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={!auditLogs || (auditLogs?.page || 1) >= (auditLogs?.pages || 1) || auditLoading}
+                  onClick={() => void loadAuditLogs((auditLogs?.page || 1) + 1)}
+                >
+                  Următor →
+                </button>
+              </div>
+            </div>
+
+            <div className={`${styles.card} ${styles.detailsCard}`}>
+              <div className={styles.sectionTitleRow}>
+                <h3 className={styles.detailsTitle}>Audit details</h3>
+                {selectedAudit ? <span className="muted">#{selectedAudit.id.slice(-8)}</span> : null}
+              </div>
+
+              {!selectedAudit ? <div className="muted">Selectează o acțiune din audit log.</div> : null}
+              {selectedAudit ? (
+                <>
+                  <div className={styles.detailGrid}>
+                    <div><strong>Action</strong><span>{selectedAudit.actionType || "—"}</span></div>
+                    <div><strong>Actor</strong><span>{selectedAudit.actorEmail || "—"}</span></div>
+                    <div><strong>Target Type</strong><span>{selectedAudit.targetType || "—"}</span></div>
+                    <div><strong>Target ID</strong><span>{selectedAudit.targetId || "—"}</span></div>
+                    <div><strong>IP</strong><span>{selectedAudit.ip || "—"}</span></div>
+                    <div><strong>At</strong><span>{formatDate(selectedAudit.createdAt)}</span></div>
+                  </div>
+
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>Reason</div>
+                    <div className={styles.miniItem}>
+                      <div className="muted">{selectedAudit.reason || "Fără motiv"}</div>
+                    </div>
+                  </div>
+
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>Diff</div>
+                    <pre className={styles.codeBlock}>{formatJson(selectedAudit.diff)}</pre>
+                  </div>
+
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>Meta</div>
+                    <pre className={styles.codeBlock}>{formatJson(selectedAudit.meta)}</pre>
+                  </div>
+
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>Quick links</div>
+                    <div className={styles.buttonRow}>
+                      {selectedAudit.targetType === "booking" && selectedAudit.targetId ? (
+                        <button
+                          type="button"
+                          className="button secondary"
+                          onClick={() => {
+                            setActiveSection("bookings");
+                            setBookingQuery(selectedAudit.targetId || "");
+                            void loadBookings(1);
+                          }}
+                        >
+                          Open in Bookings
+                        </button>
+                      ) : null}
+                      {selectedAudit.targetType === "experience" && selectedAudit.targetId ? (
+                        <button
+                          type="button"
+                          className="button secondary"
+                          onClick={() => {
+                            setActiveSection("experiences");
+                            setExperienceQuery(selectedAudit.targetId || "");
+                            void loadExperiences(1);
+                          }}
+                        >
+                          Open in Experiences
+                        </button>
+                      ) : null}
+                      {selectedAudit.targetType === "user" && selectedAudit.targetId ? (
+                        <button
+                          type="button"
+                          className="button secondary"
+                          onClick={() => {
+                            setActiveSection("users");
+                            setUserQuery(selectedAudit.targetId || "");
+                            void loadUsers(1);
+                          }}
+                        >
+                          Open in Users
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                </>
+              ) : null}
             </div>
           </div>
         </section>

@@ -315,6 +315,12 @@
   box-shadow: 0 12px 28px rgba(0, 188, 212, 0.12);
 }
 
+.auditRowButton {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
 .rowTop {
   display: flex;
   justify-content: space-between;
@@ -547,6 +553,21 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.codeBlock {
+  margin: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 10px;
+  max-height: 260px;
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #334155;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 @media (max-width: 1180px) {

@@ -172,6 +172,7 @@ export default function TopNav({ pathname }: Props) {
             </summary>
             <div className="profile-dropdown">
               <Link href="/menu">{t("nav_menu")}</Link>
+              {user?.role === "ADMIN" ? <Link href="/admin">Admin</Link> : null}
               <Link href="/profile">{t("nav_profile")}</Link>
               <Link href="/settings">{t("nav_settings")}</Link>
               <button type="button" onClick={onLogout}>

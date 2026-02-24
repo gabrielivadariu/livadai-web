@@ -644,17 +644,21 @@ function AdminUserRow({
 function AdminExperienceRow({
   item,
   selected,
+  selectedForBulk,
   busy,
   onOpenDetails,
   onToggleActive,
   onSaveStatus,
+  onToggleSelect,
 }: {
   item: AdminExperience;
   selected?: boolean;
+  selectedForBulk?: boolean;
   busy?: boolean;
   onOpenDetails: (id: string) => Promise<void>;
   onToggleActive: (id: string, nextValue: boolean) => Promise<void>;
   onSaveStatus: (id: string, status: string) => Promise<void>;
+  onToggleSelect?: (id: string, checked: boolean) => void;
 }) {
   const [statusValue, setStatusValue] = useState(String(item.status || ""));
 
@@ -665,7 +669,17 @@ function AdminExperienceRow({
   return (
     <div className={`${styles.card} ${styles.rowCard} ${selected ? styles.rowCardSelected : ""}`}>
       <div className={styles.rowTop}>
-        <div>
+        <div className={styles.rowTopLead}>
+          <label className={styles.rowCheck}>
+            <input
+              type="checkbox"
+              checked={!!selectedForBulk}
+              onChange={(e) => onToggleSelect?.(item.id, e.target.checked)}
+              onClick={(e) => e.stopPropagation()}
+              disabled={busy}
+            />
+            <span>Select</span>
+          </label>
           <div className={styles.rowTitle}>{item.title || "Fără titlu"}</div>
           <div className={styles.rowSub}>
             Host: {item.host?.name || item.host?.email || "—"}
@@ -990,6 +1004,7 @@ export default function AdminPage() {
   const [experienceStatusFilter, setExperienceStatusFilter] = useState("all");
   const [experienceActiveFilter, setExperienceActiveFilter] = useState("all");
   const [selectedExperienceId, setSelectedExperienceId] = useState<string | null>(null);
+  const [selectedExperienceIds, setSelectedExperienceIds] = useState<string[]>([]);
   const [experienceDetails, setExperienceDetails] = useState<AdminExperienceDetailsResponse | null>(null);
   const [experienceDetailsLoading, setExperienceDetailsLoading] = useState(false);
   const [experienceDetailsError, setExperienceDetailsError] = useState("");
@@ -1044,6 +1059,7 @@ export default function AdminPage() {
   const [actionError, setActionError] = useState("");
   const [actionInfo, setActionInfo] = useState("");
   const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [csvExportingKey, setCsvExportingKey] = useState<string | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [activeSection, setActiveSection] = useState<
     "overview" | "users" | "experiences" | "bookings" | "reports" | "payments" | "audit" | "messages" | "system"
@@ -1441,6 +1457,233 @@ export default function AdminPage() {
     [globalSearch, loadExperiences, loadUsers, loadBookings, loadReports]
   );
 
+  const toggleExperienceSelection = useCallback((id: string, checked: boolean) => {
+    setSelectedExperienceIds((prev) => {
+      if (checked) {
+        if (prev.includes(id)) return prev;
+        return [...prev, id];
+      }
+      return prev.filter((x) => x !== id);
+    });
+  }, []);
+
+  const selectVisibleExperiences = useCallback(() => {
+    const ids = (experiences?.items || []).map((item) => item.id);
+    setSelectedExperienceIds((prev) => [...new Set([...prev, ...ids])]);
+  }, [experiences?.items]);
+
+  const clearSelectedExperiences = useCallback(() => {
+    setSelectedExperienceIds([]);
+  }, []);
+
+  const runExperienceBulkAction = useCallback(
+    async (action: "PAUSE" | "UNPAUSE") => {
+      if (!selectedExperienceIds.length) {
+        setActionError("Selectează cel puțin o experiență.");
+        return;
+      }
+      let reason: string | undefined;
+      if (action === "PAUSE") {
+        const r = getCriticalReason(`Bulk pause pentru ${selectedExperienceIds.length} experiențe`);
+        if (!r) return;
+        reason = r;
+      } else if (typeof window !== "undefined") {
+        const ok = window.confirm(`Confirmi bulk unpause pentru ${selectedExperienceIds.length} experiențe?`);
+        if (!ok) return;
+      }
+
+      await runAction(`exp:bulk:${action}`, async () => {
+        await apiPost("/admin/experiences/bulk-action", {
+          action,
+          ids: selectedExperienceIds,
+          ...(reason ? { reason } : {}),
+        });
+        setActionInfo(action === "PAUSE" ? "Experiențe puse pe pauză (bulk)" : "Experiențe reactivate (bulk)");
+        setSelectedExperienceIds([]);
+        await Promise.all([
+          loadExperiences(experiences?.page || 1),
+          loadDashboard(),
+          loadRecentAdminActions(),
+          selectedExperienceId ? loadExperienceDetails(selectedExperienceId) : Promise.resolve(),
+        ]);
+      });
+    },
+    [
+      selectedExperienceIds,
+      getCriticalReason,
+      runAction,
+      loadExperiences,
+      experiences?.page,
+      loadDashboard,
+      loadRecentAdminActions,
+      selectedExperienceId,
+      loadExperienceDetails,
+    ]
+  );
+
+  const csvEscape = useCallback((value: unknown) => {
+    const raw = value === null || value === undefined ? "" : String(value);
+    if (/[",\n;]/.test(raw)) return `"${raw.replace(/"/g, '""')}"`;
+    return raw;
+  }, []);
+
+  const csvFromRows = useCallback(
+    (headers: string[], rows: Array<Array<unknown>>) =>
+      [headers.map(csvEscape).join(","), ...rows.map((row) => row.map(csvEscape).join(","))].join("\n"),
+    [csvEscape]
+  );
+
+  const downloadCsv = useCallback((filename: string, csv: string) => {
+    if (typeof window === "undefined") return;
+    const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const exportPaginatedJson = useCallback(
+    async <T,>(key: string, fetchPage: (page: number) => Promise<{ items?: T[]; pages?: number }>, maxPages = 50) => {
+      setCsvExportingKey(key);
+      setActionError("");
+      setActionInfo("");
+      try {
+        const all: T[] = [];
+        let page = 1;
+        let pages = 1;
+        while (page <= pages && page <= maxPages) {
+          const data = await fetchPage(page);
+          const items = Array.isArray(data?.items) ? data.items : [];
+          all.push(...items);
+          pages = Math.max(1, Number(data?.pages || 1));
+          page += 1;
+        }
+        if (pages > maxPages) {
+          setActionInfo(`Export limitat la ${numberFmt(maxPages * 100)} rânduri (max ${maxPages} pagini).`);
+        }
+        return all;
+      } finally {
+        setCsvExportingKey(null);
+      }
+    },
+    []
+  );
+
+  const exportUsersCsv = useCallback(async () => {
+    const items = await exportPaginatedJson<AdminUser>("users", async (page) => {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("limit", "100");
+      if (userQuery.trim()) params.set("q", userQuery.trim());
+      if (userRoleFilter !== "all") params.set("role", userRoleFilter);
+      if (userStatusFilter !== "all") params.set("status", userStatusFilter);
+      return apiGet<AdminUsersResponse>(`/admin/users?${params.toString()}`);
+    });
+    if (!items || !items.length) {
+      setActionInfo("Nu există utilizatori de exportat pentru filtrele curente.");
+      return;
+    }
+    const rows = items.map((u) => [
+      u.id,
+      u.displayName || u.name || "",
+      u.email || "",
+      u.role || "",
+      u.isBanned ? "BANNED" : u.isBlocked ? "BLOCKED" : "ACTIVE",
+      u.emailVerified ? "true" : "false",
+      u.stripeConnected ? "true" : "false",
+      u.city || "",
+      u.country || "",
+      u.createdAt || "",
+    ]);
+    downloadCsv(`livadai-admin-users-${new Date().toISOString().slice(0, 10)}.csv`, csvFromRows(
+      ["id", "name", "email", "role", "status", "emailVerified", "stripeConnected", "city", "country", "createdAt"],
+      rows
+    ));
+    setActionInfo(`Export CSV users: ${numberFmt(items.length)} rânduri.`);
+  }, [csvFromRows, downloadCsv, exportPaginatedJson, userQuery, userRoleFilter, userStatusFilter]);
+
+  const exportExperiencesCsv = useCallback(async () => {
+    const items = await exportPaginatedJson<AdminExperience>("experiences", async (page) => {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("limit", "100");
+      if (experienceQuery.trim()) params.set("q", experienceQuery.trim());
+      if (experienceStatusFilter !== "all") params.set("status", experienceStatusFilter);
+      if (experienceActiveFilter !== "all") params.set("active", experienceActiveFilter);
+      return apiGet<AdminExperiencesResponse>(`/admin/experiences?${params.toString()}`);
+    });
+    if (!items || !items.length) {
+      setActionInfo("Nu există experiențe de exportat pentru filtrele curente.");
+      return;
+    }
+    const rows = items.map((exp) => [
+      exp.id,
+      exp.title || "",
+      exp.host?.email || "",
+      exp.status || "",
+      exp.isActive ? "true" : "false",
+      exp.city || "",
+      exp.country || "",
+      exp.environment || "",
+      exp.price ?? 0,
+      exp.startsAt || "",
+      exp.endsAt || "",
+      exp.maxParticipants ?? 0,
+      exp.participantsBooked ?? 0,
+      exp.remainingSpots ?? 0,
+      exp.soldOut ? "true" : "false",
+    ]);
+    downloadCsv(`livadai-admin-experiences-${new Date().toISOString().slice(0, 10)}.csv`, csvFromRows(
+      ["id", "title", "hostEmail", "status", "isActive", "city", "country", "environment", "price", "startsAt", "endsAt", "maxParticipants", "participantsBooked", "remainingSpots", "soldOut"],
+      rows
+    ));
+    setActionInfo(`Export CSV experiences: ${numberFmt(items.length)} rânduri.`);
+  }, [csvFromRows, downloadCsv, exportPaginatedJson, experienceQuery, experienceStatusFilter, experienceActiveFilter]);
+
+  const exportBookingsCsv = useCallback(async () => {
+    const items = await exportPaginatedJson<AdminBooking>("bookings", async (page) => {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("limit", "100");
+      if (bookingQuery.trim()) params.set("q", bookingQuery.trim());
+      if (bookingStatusFilter !== "all") params.set("status", bookingStatusFilter);
+      if (bookingPaidFilter !== "all") params.set("paid", bookingPaidFilter);
+      return apiGet<AdminBookingsResponse>(`/admin/bookings?${params.toString()}`);
+    });
+    if (!items || !items.length) {
+      setActionInfo("Nu există booking-uri de exportat pentru filtrele curente.");
+      return;
+    }
+    const rows = items.map((b) => [
+      b.id,
+      b.status || "",
+      b.attendanceStatus || "",
+      b.experience?.title || "",
+      b.host?.email || "",
+      b.explorer?.email || "",
+      b.quantity ?? 0,
+      b.amount ?? 0,
+      b.currency || "",
+      b.payment?.status || "",
+      b.payment?.paymentType || "",
+      b.payment?.amount ?? "",
+      b.reportsCount ?? 0,
+      b.messagesCount ?? 0,
+      b.createdAt || "",
+      b.refundedAt || "",
+      b.cancelledAt || "",
+    ]);
+    downloadCsv(`livadai-admin-bookings-${new Date().toISOString().slice(0, 10)}.csv`, csvFromRows(
+      ["id", "status", "attendanceStatus", "experienceTitle", "hostEmail", "explorerEmail", "quantity", "amount", "currency", "paymentStatus", "paymentType", "paymentAmount", "reportsCount", "messagesCount", "createdAt", "refundedAt", "cancelledAt"],
+      rows
+    ));
+    setActionInfo(`Export CSV bookings: ${numberFmt(items.length)} rânduri.`);
+  }, [csvFromRows, downloadCsv, exportPaginatedJson, bookingQuery, bookingStatusFilter, bookingPaidFilter]);
+
   const dashboardCards = useMemo(
     () => [
       { label: "Utilizatori total", value: dashboard?.users?.total, hint: `+${numberFmt(dashboard?.users?.newLast7d)} în ultimele 7 zile` },
@@ -1701,6 +1944,14 @@ export default function AdminPage() {
             </select>
           </div>
           <div className={styles.filtersActions}>
+            <button
+              className="button secondary"
+              type="button"
+              disabled={csvExportingKey === "users"}
+              onClick={() => void exportUsersCsv()}
+            >
+              {csvExportingKey === "users" ? "Export..." : "Export CSV"}
+            </button>
             <button className="button secondary" type="button" onClick={() => { setUserQuery(""); setUserRoleFilter("all"); setUserStatusFilter("all"); void loadUsers(1); }}>
               Reset
             </button>
@@ -1938,6 +2189,14 @@ export default function AdminPage() {
             </select>
           </div>
           <div className={styles.filtersActions}>
+            <button
+              className="button secondary"
+              type="button"
+              disabled={csvExportingKey === "experiences"}
+              onClick={() => void exportExperiencesCsv()}
+            >
+              {csvExportingKey === "experiences" ? "Export..." : "Export CSV"}
+            </button>
             <button className="button secondary" type="button" onClick={() => { setExperienceQuery(""); setExperienceStatusFilter("all"); setExperienceActiveFilter("all"); void loadExperiences(1); }}>
               Reset
             </button>
@@ -1948,6 +2207,40 @@ export default function AdminPage() {
         </form>
 
         {experiencesError ? <div className={`${styles.card} ${styles.errorCard}`}>{experiencesError}</div> : null}
+
+        <div className={`${styles.card} ${styles.bulkToolbar}`}>
+          <div className={styles.bulkToolbarInfo}>
+            <strong>Bulk actions (Experiences)</strong>
+            <span className="muted">
+              Selectate: {numberFmt(selectedExperienceIds.length)} · Pagina curentă: {numberFmt((experiences?.items || []).length)}
+            </span>
+          </div>
+          <div className={styles.buttonRow}>
+            <button type="button" className="button secondary" onClick={selectVisibleExperiences}>
+              Select page
+            </button>
+            <button type="button" className="button secondary" onClick={clearSelectedExperiences}>
+              Clear
+            </button>
+            <button
+              type="button"
+              className="button secondary"
+              disabled={!!pendingKey?.startsWith("exp:bulk:") || selectedExperienceIds.length === 0}
+              onClick={() => void runExperienceBulkAction("PAUSE")}
+            >
+              Pause selected
+            </button>
+            <button
+              type="button"
+              className="button secondary"
+              disabled={!!pendingKey?.startsWith("exp:bulk:") || selectedExperienceIds.length === 0}
+              onClick={() => void runExperienceBulkAction("UNPAUSE")}
+            >
+              Unpause selected
+            </button>
+          </div>
+        </div>
+
         <div className={styles.splitGrid}>
           <div className={styles.listStack}>
             {(experiences?.items || []).map((item) => (
@@ -1955,8 +2248,10 @@ export default function AdminPage() {
                 key={item.id}
                 item={item}
                 selected={selectedExperienceId === item.id}
+                selectedForBulk={selectedExperienceIds.includes(item.id)}
                 busy={!!pendingKey?.startsWith(`exp:${item.id}:`)}
                 onOpenDetails={loadExperienceDetails}
+                onToggleSelect={toggleExperienceSelection}
                 onToggleActive={(id, nextValue) =>
                   runAction(
                     `exp:${id}:active`,
@@ -2195,6 +2490,14 @@ export default function AdminPage() {
             </select>
           </div>
           <div className={styles.filtersActions}>
+            <button
+              className="button secondary"
+              type="button"
+              disabled={csvExportingKey === "bookings"}
+              onClick={() => void exportBookingsCsv()}
+            >
+              {csvExportingKey === "bookings" ? "Export..." : "Export CSV"}
+            </button>
             <button
               className="button secondary"
               type="button"

@@ -291,6 +291,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .filtersActions > button {
@@ -330,6 +331,28 @@
 
 .rowTop > * {
   min-width: 0;
+}
+
+.rowTopLead {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rowCheck {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rowCheck input {
+  width: 14px;
+  height: 14px;
+  accent-color: #00bcd4;
 }
 
 .rowTitle {
@@ -488,6 +511,20 @@
 
 .emptyCard {
   color: #64748b;
+}
+
+.bulkToolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bulkToolbarInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .unauthorized {
@@ -783,6 +820,10 @@
 
   .pagination > button {
     width: 100%;
+  }
+
+  .bulkToolbar {
+    align-items: stretch;
   }
 }
 

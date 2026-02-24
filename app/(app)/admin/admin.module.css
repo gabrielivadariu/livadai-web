@@ -310,6 +310,11 @@
   gap: 12px;
 }
 
+.rowCardSelected {
+  border-color: rgba(0, 188, 212, 0.35);
+  box-shadow: 0 12px 28px rgba(0, 188, 212, 0.12);
+}
+
 .rowTop {
   display: flex;
   justify-content: space-between;
@@ -321,6 +326,12 @@
   font-size: 18px;
   font-weight: 800;
   color: #0f172a;
+}
+
+.rowTitleMuted {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 700;
 }
 
 .rowSub {
@@ -462,6 +473,76 @@
   min-height: 220px;
 }
 
+.splitGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.9fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.detailsCard {
+  position: sticky;
+  top: 92px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detailsTitle {
+  margin: 0;
+  font-size: 18px;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.detailGrid > div {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detailGrid strong {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.detailGrid span {
+  color: #0f172a;
+  font-weight: 600;
+  font-size: 13px;
+  word-break: break-word;
+}
+
+.detailsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stackSm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.miniItem {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 @media (max-width: 1180px) {
   .adminShell {
     grid-template-columns: 1fr;
@@ -482,6 +563,14 @@
 
   .topbarPanels {
     grid-template-columns: 1fr;
+  }
+
+  .splitGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .detailsCard {
+    position: static;
   }
 }
 
@@ -508,6 +597,10 @@
   }
 
   .overviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .detailGrid {
     grid-template-columns: 1fr;
   }
 

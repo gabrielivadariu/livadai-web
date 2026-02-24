@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiGet, apiPatch } from "@/lib/api";
+import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
 import styles from "./admin.module.css";
 
@@ -101,7 +101,62 @@ type AdminAuditLogItem = {
   createdAt?: string;
 };
 
+type AdminBooking = {
+  id: string;
+  status?: string;
+  attendanceStatus?: string;
+  quantity?: number;
+  amount?: number;
+  currency?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  cancelledAt?: string | null;
+  refundedAt?: string | null;
+  payoutEligibleAt?: string | null;
+  disputeReason?: string | null;
+  host?: { id?: string; name?: string; email?: string } | null;
+  explorer?: { id?: string; name?: string; email?: string } | null;
+  experience?: {
+    id?: string;
+    title?: string;
+    startsAt?: string | null;
+    endsAt?: string | null;
+    city?: string;
+    country?: string;
+    price?: number;
+    status?: string;
+    isActive?: boolean;
+  } | null;
+  payment?: {
+    status?: string;
+    paymentType?: string;
+    amount?: number;
+    currency?: string;
+    hasStripePaymentIntent?: boolean;
+    stripeSessionId?: string | null;
+  } | null;
+  reportsCount?: number;
+  messagesCount?: number;
+};
+
+type AdminBookingsResponse = {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+  items: AdminBooking[];
+};
+
+type AdminBookingDetailsResponse = {
+  booking?: AdminBooking;
+  payments?: Array<Record<string, unknown>>;
+  reports?: Array<Record<string, unknown>>;
+  messagesCount?: number;
+};
+
 const numberFmt = (value?: number) => new Intl.NumberFormat("ro-RO").format(Number(value || 0));
+const formatMoney = (value?: number, currency?: string) =>
+  `${numberFmt(value)} ${String(currency || "RON").toUpperCase()}`;
 
 const formatDate = (value?: string | null) => {
   if (!value) return "—";
@@ -316,6 +371,69 @@ function AdminExperienceRow({
   );
 }
 
+function AdminBookingRow({
+  item,
+  selected,
+  busy,
+  onOpenDetails,
+  onCancel,
+  onRefund,
+}: {
+  item: AdminBooking;
+  selected?: boolean;
+  busy?: boolean;
+  onOpenDetails: (id: string) => Promise<void>;
+  onCancel: (id: string) => Promise<void>;
+  onRefund: (id: string) => Promise<void>;
+}) {
+  const canRefund = !!item.payment?.hasStripePaymentIntent && !["REFUNDED"].includes(String(item.payment?.status || "").toUpperCase());
+
+  return (
+    <div className={`${styles.card} ${styles.rowCard} ${selected ? styles.rowCardSelected : ""}`}>
+      <div className={styles.rowTop}>
+        <div>
+          <div className={styles.rowTitle}>
+            {item.experience?.title || "Booking"} <span className={styles.rowTitleMuted}>#{item.id.slice(-6)}</span>
+          </div>
+          <div className={styles.rowSub}>
+            Explorer: {item.explorer?.name || item.explorer?.email || "—"} · Host: {item.host?.name || item.host?.email || "—"}
+          </div>
+        </div>
+        <div className={styles.badgeRow}>
+          <span className={styles.badge}>{item.status || "—"}</span>
+          {item.payment?.status ? <span className={styles.badge}>Pay: {item.payment.status}</span> : null}
+          {(item.reportsCount || 0) > 0 ? <span className={`${styles.badge} ${styles.badgeWarn}`}>Reports {numberFmt(item.reportsCount)}</span> : null}
+          {(item.messagesCount || 0) > 0 ? <span className={styles.badge}>Msg {numberFmt(item.messagesCount)}</span> : null}
+        </div>
+      </div>
+
+      <div className={styles.metaGrid}>
+        <div><strong>ID:</strong> {item.id}</div>
+        <div><strong>Creat:</strong> {formatDate(item.createdAt)}</div>
+        <div><strong>Status prezență:</strong> {item.attendanceStatus || "—"}</div>
+        <div><strong>Cantitate:</strong> {numberFmt(item.quantity)}</div>
+        <div><strong>Sumă booking:</strong> {formatMoney(item.amount, item.currency)}</div>
+        <div><strong>Plată:</strong> {item.payment ? formatMoney(item.payment.amount, item.payment.currency) : "—"}</div>
+        <div><strong>Experiență:</strong> {[item.experience?.city, item.experience?.country].filter(Boolean).join(", ") || "—"}</div>
+        <div><strong>Start:</strong> {formatDate(item.experience?.startsAt || null)}</div>
+        <div><strong>Refundat:</strong> {formatDate(item.refundedAt || null)}</div>
+      </div>
+
+      <div className={styles.buttonRow}>
+        <button type="button" className="button secondary" disabled={busy} onClick={() => void onOpenDetails(item.id)}>
+          {selected ? "Reîncarcă detalii" : "Detalii"}
+        </button>
+        <button type="button" className="button secondary" disabled={busy} onClick={() => void onCancel(item.id)}>
+          Anulează booking
+        </button>
+        <button type="button" className="button secondary" disabled={busy || !canRefund} onClick={() => void onRefund(item.id)}>
+          Refund manual
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const { user, token, loading: authLoading } = useAuth();
@@ -337,6 +455,17 @@ export default function AdminPage() {
   const [experienceQuery, setExperienceQuery] = useState("");
   const [experienceStatusFilter, setExperienceStatusFilter] = useState("all");
   const [experienceActiveFilter, setExperienceActiveFilter] = useState("all");
+
+  const [bookings, setBookings] = useState<AdminBookingsResponse | null>(null);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [bookingsError, setBookingsError] = useState("");
+  const [bookingQuery, setBookingQuery] = useState("");
+  const [bookingStatusFilter, setBookingStatusFilter] = useState("all");
+  const [bookingPaidFilter, setBookingPaidFilter] = useState("all");
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+  const [bookingDetails, setBookingDetails] = useState<AdminBookingDetailsResponse | null>(null);
+  const [bookingDetailsLoading, setBookingDetailsLoading] = useState(false);
+  const [bookingDetailsError, setBookingDetailsError] = useState("");
 
   const [actionError, setActionError] = useState("");
   const [actionInfo, setActionInfo] = useState("");
@@ -434,14 +563,51 @@ export default function AdminPage() {
     [experienceQuery, experienceStatusFilter, experienceActiveFilter]
   );
 
+  const loadBookings = useCallback(
+    async (page = 1) => {
+      setBookingsLoading(true);
+      setBookingsError("");
+      try {
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("limit", "12");
+        if (bookingQuery.trim()) params.set("q", bookingQuery.trim());
+        if (bookingStatusFilter !== "all") params.set("status", bookingStatusFilter);
+        if (bookingPaidFilter !== "all") params.set("paid", bookingPaidFilter);
+        const data = await apiGet<AdminBookingsResponse>(`/admin/bookings?${params.toString()}`);
+        setBookings(data);
+      } catch (err) {
+        setBookingsError((err as Error)?.message || "Nu am putut încărca rezervările.");
+      } finally {
+        setBookingsLoading(false);
+      }
+    },
+    [bookingQuery, bookingStatusFilter, bookingPaidFilter]
+  );
+
+  const loadBookingDetails = useCallback(async (id: string) => {
+    setSelectedBookingId(id);
+    setBookingDetailsLoading(true);
+    setBookingDetailsError("");
+    try {
+      const data = await apiGet<AdminBookingDetailsResponse>(`/admin/bookings/${id}`);
+      setBookingDetails(data || null);
+    } catch (err) {
+      setBookingDetailsError((err as Error)?.message || "Nu am putut încărca detaliile booking-ului.");
+    } finally {
+      setBookingDetailsLoading(false);
+    }
+  }, []);
+
   const refreshAll = useCallback(async () => {
     await Promise.all([
       loadDashboard(),
       loadUsers(users?.page || 1),
       loadExperiences(experiences?.page || 1),
+      loadBookings(bookings?.page || 1),
       loadRecentAdminActions(),
     ]);
-  }, [loadDashboard, loadUsers, loadExperiences, loadRecentAdminActions, users?.page, experiences?.page]);
+  }, [loadDashboard, loadUsers, loadExperiences, loadBookings, loadRecentAdminActions, users?.page, experiences?.page, bookings?.page]);
 
   useEffect(() => {
     if (authLoading || !token || !isAdmin) return;
@@ -496,6 +662,18 @@ export default function AdminPage() {
     [loadExperiences, loadDashboard, experiences?.page]
   );
 
+  const postBookingAction = useCallback(
+    async (id: string, action: "cancel" | "refund", reason: string, info: string) => {
+      await apiPost(`/admin/bookings/${id}/${action}`, { reason });
+      setActionInfo(info);
+      await Promise.all([loadBookings(bookings?.page || 1), loadDashboard(), loadRecentAdminActions()]);
+      if (selectedBookingId === id) {
+        await loadBookingDetails(id);
+      }
+    },
+    [loadBookings, loadDashboard, loadRecentAdminActions, bookings?.page, selectedBookingId, loadBookingDetails]
+  );
+
   const onGlobalSearchSubmit = useCallback(
     (e: FormEvent) => {
       e.preventDefault();
@@ -507,11 +685,17 @@ export default function AdminPage() {
         void loadUsers(1);
         return;
       }
+      if (/^[a-f\d]{24}$/i.test(q)) {
+        setActiveSection("bookings");
+        setBookingQuery(q);
+        void loadBookings(1);
+        return;
+      }
       setExperienceQuery(q);
       setActiveSection("experiences");
       void loadExperiences(1);
     },
-    [globalSearch, loadExperiences, loadUsers]
+    [globalSearch, loadExperiences, loadUsers, loadBookings]
   );
 
   const dashboardCards = useMemo(
@@ -528,7 +712,7 @@ export default function AdminPage() {
     [dashboard]
   );
 
-  if (authLoading || (!token && !dashboard && !users && !experiences)) {
+  if (authLoading || (!token && !dashboard && !users && !experiences && !bookings)) {
     return <div className="muted">Se încarcă admin-ul...</div>;
   }
 
@@ -546,6 +730,11 @@ export default function AdminPage() {
     void loadExperiences(1);
   };
 
+  const onBookingsSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    void loadBookings(1);
+  };
+
   const sidebarItems: Array<{
     key: "overview" | "users" | "experiences" | "bookings" | "reports" | "payments" | "messages" | "system";
     label: string;
@@ -554,7 +743,7 @@ export default function AdminPage() {
     { key: "overview", label: "Overview", hint: "Control room" },
     { key: "users", label: "Users", hint: "Support & roles" },
     { key: "experiences", label: "Experiences", hint: "Quality & safety" },
-    { key: "bookings", label: "Bookings", hint: "Coming next" },
+    { key: "bookings", label: "Bookings", hint: "Ops & refunds" },
     { key: "reports", label: "Reports / Moderation", hint: "Coming next" },
     { key: "payments", label: "Payments & Refunds", hint: "Coming next" },
     { key: "messages", label: "Messages", hint: "Coming next" },
@@ -605,11 +794,14 @@ export default function AdminPage() {
                 <button type="button" className="button secondary" onClick={() => setActiveSection("experiences")}>
                   Experiences
                 </button>
+                <button type="button" className="button secondary" onClick={() => setActiveSection("bookings")}>
+                  Bookings
+                </button>
                 <button
                   type="button"
                   className="button"
                   onClick={() => void refreshAll()}
-                  disabled={dashboardLoading || usersLoading || experiencesLoading || recentLoading}
+                  disabled={dashboardLoading || usersLoading || experiencesLoading || bookingsLoading || recentLoading}
                 >
                   Refresh all
                 </button>
@@ -884,7 +1076,197 @@ export default function AdminPage() {
         </div>
       </section> : null}
 
-        {["bookings", "reports", "payments", "messages", "system"].includes(activeSection) ? (
+      {activeSection === "bookings" ? <section className={styles.sectionBlock}>
+        <div className={styles.sectionTitleRow}>
+          <h2 className={styles.sectionTitle}>Bookings</h2>
+          <span className="muted">
+            {bookings ? `${numberFmt(bookings.total)} rezultate` : "—"}
+          </span>
+        </div>
+
+        <form className={`${styles.card} ${styles.filtersCard}`} onSubmit={onBookingsSubmit}>
+          <div className={styles.filtersGrid}>
+            <input
+              className="input"
+              placeholder="Caută booking / email / titlu experiență / id"
+              value={bookingQuery}
+              onChange={(e) => setBookingQuery(e.target.value)}
+            />
+            <select className={styles.select} value={bookingStatusFilter} onChange={(e) => setBookingStatusFilter(e.target.value)}>
+              <option value="all">Toate statusurile</option>
+              <option value="PENDING">PENDING</option>
+              <option value="PAID">PAID</option>
+              <option value="DEPOSIT_PAID">DEPOSIT_PAID</option>
+              <option value="PENDING_ATTENDANCE">PENDING_ATTENDANCE</option>
+              <option value="DISPUTED">DISPUTED</option>
+              <option value="COMPLETED">COMPLETED</option>
+              <option value="AUTO_COMPLETED">AUTO_COMPLETED</option>
+              <option value="CANCELLED">CANCELLED</option>
+              <option value="REFUNDED">REFUNDED</option>
+              <option value="REFUND_FAILED">REFUND_FAILED</option>
+            </select>
+            <select className={styles.select} value={bookingPaidFilter} onChange={(e) => setBookingPaidFilter(e.target.value)}>
+              <option value="all">Paid + unpaid</option>
+              <option value="true">Doar paid</option>
+              <option value="false">Doar unpaid</option>
+            </select>
+          </div>
+          <div className={styles.filtersActions}>
+            <button
+              className="button secondary"
+              type="button"
+              onClick={() => {
+                setBookingQuery("");
+                setBookingStatusFilter("all");
+                setBookingPaidFilter("all");
+                void loadBookings(1);
+              }}
+            >
+              Reset
+            </button>
+            <button className="button" type="submit" disabled={bookingsLoading}>
+              {bookingsLoading ? "Se caută..." : "Caută"}
+            </button>
+          </div>
+        </form>
+
+        {bookingsError ? <div className={`${styles.card} ${styles.errorCard}`}>{bookingsError}</div> : null}
+
+        <div className={styles.splitGrid}>
+          <div className={styles.listStack}>
+            {(bookings?.items || []).map((item) => (
+              <AdminBookingRow
+                key={item.id}
+                item={item}
+                selected={selectedBookingId === item.id}
+                busy={pendingKey?.startsWith(`booking:${item.id}:`)}
+                onOpenDetails={loadBookingDetails}
+                onCancel={(id) =>
+                  runAction(`booking:${id}:cancel`, async () => {
+                    const reason = getCriticalReason("Anulare booking (admin)");
+                    if (!reason) return;
+                    await postBookingAction(id, "cancel", reason, "Booking anulat (admin)");
+                  })
+                }
+                onRefund={(id) =>
+                  runAction(`booking:${id}:refund`, async () => {
+                    const reason = getCriticalReason("Refund booking (admin)");
+                    if (!reason) return;
+                    await postBookingAction(id, "refund", reason, "Refund declanșat (admin)");
+                  })
+                }
+              />
+            ))}
+            {!bookingsLoading && (bookings?.items || []).length === 0 ? (
+              <div className={`${styles.card} ${styles.emptyCard}`}>Nu există booking-uri pentru filtrele selectate.</div>
+            ) : null}
+            <div className={styles.pagination}>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={!bookings || bookings.page <= 1 || bookingsLoading}
+                onClick={() => void loadBookings((bookings?.page || 1) - 1)}
+              >
+                ← Anterior
+              </button>
+              <span className="muted">
+                Pagina {bookings?.page || 1} / {bookings?.pages || 1}
+              </span>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={!bookings || (bookings?.page || 1) >= (bookings?.pages || 1) || bookingsLoading}
+                onClick={() => void loadBookings((bookings?.page || 1) + 1)}
+              >
+                Următor →
+              </button>
+            </div>
+          </div>
+
+          <div className={`${styles.card} ${styles.detailsCard}`}>
+            <div className={styles.sectionTitleRow}>
+              <h3 className={styles.detailsTitle}>Booking details</h3>
+              {selectedBookingId ? <span className="muted">#{selectedBookingId.slice(-8)}</span> : null}
+            </div>
+
+            {!selectedBookingId ? <div className="muted">Selectează un booking pentru detalii.</div> : null}
+            {bookingDetailsLoading ? <div className="muted">Se încarcă detaliile...</div> : null}
+            {!bookingDetailsLoading && bookingDetailsError ? (
+              <div className={`${styles.banner} ${styles.bannerError}`}>{bookingDetailsError}</div>
+            ) : null}
+            {!bookingDetailsLoading && !bookingDetailsError && bookingDetails?.booking ? (
+              <>
+                <div className={styles.detailGrid}>
+                  <div><strong>Status</strong><span>{bookingDetails.booking.status || "—"}</span></div>
+                  <div><strong>Attendance</strong><span>{bookingDetails.booking.attendanceStatus || "—"}</span></div>
+                  <div><strong>Cantitate</strong><span>{numberFmt(bookingDetails.booking.quantity)}</span></div>
+                  <div><strong>Sumă</strong><span>{formatMoney(bookingDetails.booking.amount, bookingDetails.booking.currency)}</span></div>
+                  <div><strong>Host</strong><span>{bookingDetails.booking.host?.email || bookingDetails.booking.host?.name || "—"}</span></div>
+                  <div><strong>Explorer</strong><span>{bookingDetails.booking.explorer?.email || bookingDetails.booking.explorer?.name || "—"}</span></div>
+                  <div><strong>Experiență</strong><span>{bookingDetails.booking.experience?.title || "—"}</span></div>
+                  <div><strong>Creat</strong><span>{formatDate(bookingDetails.booking.createdAt)}</span></div>
+                  <div><strong>Anulat</strong><span>{formatDate(bookingDetails.booking.cancelledAt)}</span></div>
+                  <div><strong>Refundat</strong><span>{formatDate(bookingDetails.booking.refundedAt)}</span></div>
+                </div>
+
+                <div className={styles.detailsSection}>
+                  <div className={styles.panelTitle}>Payments ({numberFmt((bookingDetails.payments || []).length)})</div>
+                  {(bookingDetails.payments || []).length === 0 ? (
+                    <div className="muted">Fără payments legate.</div>
+                  ) : (
+                    <div className={styles.stackSm}>
+                      {(bookingDetails.payments || []).slice(0, 5).map((payment, idx) => {
+                        const row = payment as Record<string, unknown>;
+                        return (
+                          <div key={`${String(row._id || idx)}`} className={styles.miniItem}>
+                            <div>
+                              <strong>{String(row.status || "—")}</strong> · {String(row.paymentType || "—")}
+                            </div>
+                            <div className="muted">
+                              {formatMoney(Number(row.totalAmount || row.amount || 0), String(row.currency || "RON"))}
+                              {row.stripePaymentIntentId ? " · PI" : ""} {row.stripeSessionId ? " · Session" : ""}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.detailsSection}>
+                  <div className={styles.panelTitle}>Reports ({numberFmt((bookingDetails.reports || []).length)})</div>
+                  {(bookingDetails.reports || []).length === 0 ? (
+                    <div className="muted">Fără rapoarte pe booking.</div>
+                  ) : (
+                    <div className={styles.stackSm}>
+                      {(bookingDetails.reports || []).slice(0, 5).map((report, idx) => {
+                        const row = report as Record<string, unknown>;
+                        return (
+                          <div key={`${String(row._id || idx)}`} className={styles.miniItem}>
+                            <div>
+                              <strong>{String(row.status || "—")}</strong> · {String(row.type || "report")}
+                            </div>
+                            <div className="muted">
+                              {String(row.reason || row.comment || "fără motiv")}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.detailsSection}>
+                  <div className={styles.panelTitle}>Mesaje</div>
+                  <div className="muted">{numberFmt(bookingDetails.messagesCount)} mesaje în conversație</div>
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
+      </section> : null}
+
+        {["reports", "payments", "messages", "system"].includes(activeSection) ? (
           <section className={styles.sectionBlock}>
             <div className={`${styles.card} ${styles.placeholderCard}`}>
               <h2 className={styles.sectionTitle} style={{ marginTop: 0 }}>

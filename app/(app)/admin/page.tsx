@@ -91,6 +91,16 @@ type AdminExperiencesResponse = {
   items: AdminExperience[];
 };
 
+type AdminAuditLogItem = {
+  id: string;
+  actorEmail?: string;
+  actionType?: string;
+  targetType?: string;
+  targetId?: string;
+  reason?: string;
+  createdAt?: string;
+};
+
 const numberFmt = (value?: number) => new Intl.NumberFormat("ro-RO").format(Number(value || 0));
 
 const formatDate = (value?: string | null) => {
@@ -332,6 +342,12 @@ export default function AdminPage() {
   const [actionInfo, setActionInfo] = useState("");
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
+  const [activeSection, setActiveSection] = useState<
+    "overview" | "users" | "experiences" | "bookings" | "reports" | "payments" | "messages" | "system"
+  >("overview");
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [recentAdminActions, setRecentAdminActions] = useState<AdminAuditLogItem[]>([]);
+  const [recentLoading, setRecentLoading] = useState(false);
 
   const isAdmin = user?.role === "ADMIN";
 
@@ -341,6 +357,13 @@ export default function AdminPage() {
       router.replace("/login?reason=auth&next=/admin");
     }
   }, [authLoading, token, router]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (token && user && user.role !== "ADMIN") {
+      router.replace("/");
+    }
+  }, [authLoading, token, user, router]);
 
   const loadDashboard = useCallback(async () => {
     setDashboardLoading(true);
@@ -352,6 +375,18 @@ export default function AdminPage() {
       setDashboardError((err as Error)?.message || "Nu am putut încărca dashboard-ul admin.");
     } finally {
       setDashboardLoading(false);
+    }
+  }, []);
+
+  const loadRecentAdminActions = useCallback(async () => {
+    setRecentLoading(true);
+    try {
+      const data = await apiGet<{ items?: AdminAuditLogItem[] }>("/admin/audit-logs/recent?limit=12");
+      setRecentAdminActions(Array.isArray(data?.items) ? data.items : []);
+    } catch {
+      setRecentAdminActions([]);
+    } finally {
+      setRecentLoading(false);
     }
   }, []);
 
@@ -400,8 +435,13 @@ export default function AdminPage() {
   );
 
   const refreshAll = useCallback(async () => {
-    await Promise.all([loadDashboard(), loadUsers(users?.page || 1), loadExperiences(experiences?.page || 1)]);
-  }, [loadDashboard, loadUsers, loadExperiences, users?.page, experiences?.page]);
+    await Promise.all([
+      loadDashboard(),
+      loadUsers(users?.page || 1),
+      loadExperiences(experiences?.page || 1),
+      loadRecentAdminActions(),
+    ]);
+  }, [loadDashboard, loadUsers, loadExperiences, loadRecentAdminActions, users?.page, experiences?.page]);
 
   useEffect(() => {
     if (authLoading || !token || !isAdmin) return;
@@ -426,6 +466,18 @@ export default function AdminPage() {
     []
   );
 
+  const getCriticalReason = useCallback((title: string) => {
+    if (typeof window === "undefined") return null;
+    const confirmed = window.confirm(`${title}\n\nConfirmi acțiunea?`);
+    if (!confirmed) return null;
+    const reason = window.prompt("Motiv (obligatoriu):", "");
+    if (!reason || !reason.trim()) {
+      setActionError("Motivul este obligatoriu pentru această acțiune.");
+      return null;
+    }
+    return reason.trim();
+  }, []);
+
   const patchUser = useCallback(
     async (id: string, payload: Record<string, unknown>, info = "Utilizator actualizat") => {
       await apiPatch(`/admin/users/${id}`, payload);
@@ -442,6 +494,24 @@ export default function AdminPage() {
       await Promise.all([loadExperiences(experiences?.page || 1), loadDashboard()]);
     },
     [loadExperiences, loadDashboard, experiences?.page]
+  );
+
+  const onGlobalSearchSubmit = useCallback(
+    (e: FormEvent) => {
+      e.preventDefault();
+      const q = globalSearch.trim();
+      if (!q) return;
+      if (q.includes("@")) {
+        setActiveSection("users");
+        setUserQuery(q);
+        void loadUsers(1);
+        return;
+      }
+      setExperienceQuery(q);
+      setActiveSection("experiences");
+      void loadExperiences(1);
+    },
+    [globalSearch, loadExperiences, loadUsers]
   );
 
   const dashboardCards = useMemo(
@@ -464,14 +534,7 @@ export default function AdminPage() {
 
   if (!token) return null;
 
-  if (!isAdmin) {
-    return (
-      <div className={`${styles.card} ${styles.unauthorized}`}>
-        <h1>Admin</h1>
-        <p>Nu ai acces la acest panou.</p>
-      </div>
-    );
-  }
+  if (!isAdmin) return null;
 
   const onUsersSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -483,40 +546,150 @@ export default function AdminPage() {
     void loadExperiences(1);
   };
 
+  const sidebarItems: Array<{
+    key: "overview" | "users" | "experiences" | "bookings" | "reports" | "payments" | "messages" | "system";
+    label: string;
+    hint?: string;
+  }> = [
+    { key: "overview", label: "Overview", hint: "Control room" },
+    { key: "users", label: "Users", hint: "Support & roles" },
+    { key: "experiences", label: "Experiences", hint: "Quality & safety" },
+    { key: "bookings", label: "Bookings", hint: "Coming next" },
+    { key: "reports", label: "Reports / Moderation", hint: "Coming next" },
+    { key: "payments", label: "Payments & Refunds", hint: "Coming next" },
+    { key: "messages", label: "Messages", hint: "Coming next" },
+    { key: "system", label: "System", hint: "Coming next" },
+  ];
+
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Admin Control</h1>
-          <p className={styles.subtitle}>
-            Dashboard intern LIVADAI pentru utilizatori, experiențe și monitorizare operațională.
-          </p>
-          {dashboard?.generatedAt ? (
-            <p className={styles.generatedAt}>Actualizat: {formatDate(dashboard.generatedAt)}</p>
-          ) : null}
-        </div>
-        <button className="button" type="button" onClick={() => void refreshAll()} disabled={dashboardLoading || usersLoading || experiencesLoading}>
-          Reîmprospătează
-        </button>
-      </div>
-
-      {actionError ? <div className={`${styles.banner} ${styles.bannerError}`}>{actionError}</div> : null}
-      {actionInfo ? <div className={`${styles.banner} ${styles.bannerInfo}`}>{actionInfo}</div> : null}
-
-      <section>
-        <div className={styles.sectionTitleRow}>
-          <h2 className={styles.sectionTitle}>Dashboard</h2>
-          {dashboardLoading ? <span className="muted">Se încarcă...</span> : null}
-        </div>
-        {dashboardError ? <div className={`${styles.card} ${styles.errorCard}`}>{dashboardError}</div> : null}
-        <div className={styles.statsGrid}>
-          {dashboardCards.map((card) => (
-            <StatCard key={card.label} label={card.label} value={card.value} hint={card.hint} />
+    <div className={styles.adminShell}>
+      <aside className={styles.sidebar}>
+        <div className={styles.sidebarBrand}>LIVADAI Admin</div>
+        <div className={styles.sidebarSub}>Internal control panel</div>
+        <nav className={styles.sidebarNav}>
+          {sidebarItems.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={`${styles.sidebarItem} ${activeSection === item.key ? styles.sidebarItemActive : ""}`}
+              onClick={() => setActiveSection(item.key)}
+            >
+              <span>{item.label}</span>
+              {item.hint ? <small>{item.hint}</small> : null}
+            </button>
           ))}
-        </div>
-      </section>
+        </nav>
+      </aside>
 
-      <section className={styles.sectionBlock}>
+      <div className={styles.page}>
+        <div className={styles.topbar}>
+          <form className={styles.topbarSearch} onSubmit={onGlobalSearchSubmit}>
+            <input
+              className="input"
+              placeholder="Search global (email / experience / user id)"
+              value={globalSearch}
+              onChange={(e) => setGlobalSearch(e.target.value)}
+            />
+            <button type="submit" className="button secondary">
+              Search
+            </button>
+          </form>
+
+          <div className={styles.topbarPanels}>
+            <div className={`${styles.card} ${styles.quickActions}`}>
+              <div className={styles.panelTitle}>Quick actions</div>
+              <div className={styles.quickActionsRow}>
+                <button type="button" className="button secondary" onClick={() => setActiveSection("users")}>
+                  Users
+                </button>
+                <button type="button" className="button secondary" onClick={() => setActiveSection("experiences")}>
+                  Experiences
+                </button>
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => void refreshAll()}
+                  disabled={dashboardLoading || usersLoading || experiencesLoading || recentLoading}
+                >
+                  Refresh all
+                </button>
+              </div>
+            </div>
+
+            <div className={`${styles.card} ${styles.recentCard}`}>
+              <div className={styles.panelTitle}>Recent admin actions</div>
+              <div className={styles.recentList}>
+                {recentLoading ? <div className="muted">Se încarcă...</div> : null}
+                {!recentLoading && recentAdminActions.length === 0 ? (
+                  <div className="muted">Nu există încă acțiuni admin.</div>
+                ) : null}
+                {recentAdminActions.slice(0, 6).map((row) => (
+                  <div key={row.id} className={styles.recentItem}>
+                    <div className={styles.recentLine}>
+                      <strong>{row.actionType}</strong> · {row.targetType}
+                    </div>
+                    <div className={styles.recentMeta}>
+                      {row.actorEmail} · {formatDate(row.createdAt)}{row.reason ? ` · ${row.reason}` : ""}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.header}>
+          <div>
+            <h1 className={styles.title}>Admin Control</h1>
+            <p className={styles.subtitle}>
+              Dashboard intern LIVADAI pentru moderare, suport, operațiuni și plăți.
+            </p>
+            {dashboard?.generatedAt ? (
+              <p className={styles.generatedAt}>Actualizat: {formatDate(dashboard.generatedAt)}</p>
+            ) : null}
+          </div>
+        </div>
+
+        {actionError ? <div className={`${styles.banner} ${styles.bannerError}`}>{actionError}</div> : null}
+        {actionInfo ? <div className={`${styles.banner} ${styles.bannerInfo}`}>{actionInfo}</div> : null}
+
+        {activeSection === "overview" ? (
+          <section>
+            <div className={styles.sectionTitleRow}>
+              <h2 className={styles.sectionTitle}>Overview</h2>
+              {dashboardLoading ? <span className="muted">Se încarcă...</span> : null}
+            </div>
+            {dashboardError ? <div className={`${styles.card} ${styles.errorCard}`}>{dashboardError}</div> : null}
+            <div className={styles.statsGrid}>
+              {dashboardCards.map((card) => (
+                <StatCard key={card.label} label={card.label} value={card.value} hint={card.hint} />
+              ))}
+            </div>
+            <div className={styles.overviewGrid}>
+              <div className={`${styles.card} ${styles.inboxCard}`}>
+                <div className={styles.panelTitle}>Needs attention (MVP)</div>
+                <ul className={styles.inboxList}>
+                  <li>Refund failed: {numberFmt(dashboard?.bookings?.refundFailed)}</li>
+                  <li>Reports open: {numberFmt(dashboard?.reports?.open)}</li>
+                  <li>Experiențe inactive: {numberFmt(dashboard?.experiences?.inactive)}</li>
+                  <li>Users blocked: {numberFmt(dashboard?.users?.blocked)}</li>
+                  <li>Users banned: {numberFmt(dashboard?.users?.banned)}</li>
+                </ul>
+              </div>
+              <div className={`${styles.card} ${styles.inboxCard}`}>
+                <div className={styles.panelTitle}>Roadmap tabs</div>
+                <ul className={styles.inboxList}>
+                  <li>Bookings tab (admin cancel/refund workflows)</li>
+                  <li>Reports inbox (assign/investigate/handled)</li>
+                  <li>Payments & Refunds health view</li>
+                  <li>Audit logs full table + filters</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {activeSection === "users" ? <section className={styles.sectionBlock}>
         <div className={styles.sectionTitleRow}>
           <h2 className={styles.sectionTitle}>Utilizatori</h2>
           <span className="muted">
@@ -567,10 +740,18 @@ export default function AdminPage() {
                 runAction(`user:${id}:role`, () => patchUser(id, { role }, `Rol actualizat (${role})`))
               }
               onToggleBlocked={(id, nextValue) =>
-                runAction(`user:${id}:block`, () => patchUser(id, { isBlocked: nextValue }, nextValue ? "Utilizator blocat" : "Utilizator deblocat"))
+                runAction(`user:${id}:block`, async () => {
+                  const reason = getCriticalReason(nextValue ? "Blocare utilizator" : "Deblocare utilizator");
+                  if (!reason) return;
+                  await patchUser(id, { isBlocked: nextValue, reason }, nextValue ? "Utilizator blocat" : "Utilizator deblocat");
+                })
               }
               onToggleBanned={(id, nextValue) =>
-                runAction(`user:${id}:ban`, () => patchUser(id, { isBanned: nextValue }, nextValue ? "Utilizator banat" : "Ban scos"))
+                runAction(`user:${id}:ban`, async () => {
+                  const reason = getCriticalReason(nextValue ? "Ban utilizator" : "Unban utilizator");
+                  if (!reason) return;
+                  await patchUser(id, { isBanned: nextValue, reason }, nextValue ? "Utilizator banat" : "Ban scos");
+                })
               }
               onInvalidateSessions={(id) =>
                 runAction(`user:${id}:invalidate`, () => patchUser(id, { invalidateSessions: true }, "Sesiuni invalidate"))
@@ -602,9 +783,9 @@ export default function AdminPage() {
             Următor →
           </button>
         </div>
-      </section>
+      </section> : null}
 
-      <section className={styles.sectionBlock}>
+      {activeSection === "experiences" ? <section className={styles.sectionBlock}>
         <div className={styles.sectionTitleRow}>
           <h2 className={styles.sectionTitle}>Experiențe</h2>
           <span className="muted">
@@ -652,11 +833,27 @@ export default function AdminPage() {
               onToggleActive={(id, nextValue) =>
                 runAction(
                   `exp:${id}:active`,
-                  () => patchExperience(id, { isActive: nextValue }, nextValue ? "Experiență activată" : "Experiență dezactivată")
+                  async () => {
+                    let reason: string | null = null;
+                    if (!nextValue) {
+                      reason = getCriticalReason("Dezactivare experiență");
+                      if (!reason) return;
+                    }
+                    await patchExperience(
+                      id,
+                      { isActive: nextValue, ...(reason ? { reason } : {}) },
+                      nextValue ? "Experiență activată" : "Experiență dezactivată"
+                    );
+                  }
                 )
               }
               onSaveStatus={(id, status) =>
-                runAction(`exp:${id}:status`, () => patchExperience(id, { status }, `Status salvat (${status})`))
+                runAction(`exp:${id}:status`, async () => {
+                  const critical = ["DISABLED", "CANCELLED", "cancelled"].includes(status);
+                  const reason = critical ? getCriticalReason(`Schimbare status experiență la ${status}`) : null;
+                  if (critical && !reason) return;
+                  await patchExperience(id, { status, ...(reason ? { reason } : {}) }, `Status salvat (${status})`);
+                })
               }
             />
           ))}
@@ -685,7 +882,26 @@ export default function AdminPage() {
             Următor →
           </button>
         </div>
-      </section>
+      </section> : null}
+
+        {["bookings", "reports", "payments", "messages", "system"].includes(activeSection) ? (
+          <section className={styles.sectionBlock}>
+            <div className={`${styles.card} ${styles.placeholderCard}`}>
+              <h2 className={styles.sectionTitle} style={{ marginTop: 0 }}>
+                {sidebarItems.find((item) => item.key === activeSection)?.label}
+              </h2>
+              <p className="muted">
+                Secțiunea este pregătită în layout-ul nou. Următorul pas: endpoint-uri + workflows dedicate.
+              </p>
+              <ul className={styles.inboxList}>
+                <li>Filters + DataTable + details drawer</li>
+                <li>Acțiuni cu confirm + reason</li>
+                <li>Audit log pe toate mutațiile</li>
+              </ul>
+            </div>
+          </section>
+        ) : null}
+      </div>
     </div>
   );
 }

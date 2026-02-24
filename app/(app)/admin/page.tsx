@@ -61,6 +61,65 @@ type AdminUsersResponse = {
   items: AdminUser[];
 };
 
+type AdminUserDetails = AdminUser & {
+  phone?: string;
+  phoneCountryCode?: string;
+  phoneVerified?: boolean;
+  languages?: string[];
+  aboutMe?: string;
+  shortBio?: string;
+  experience?: string;
+  tokenVersion?: number;
+  lastAuthAt?: string | null;
+  isTrustedParticipant?: boolean;
+  clientFaultCancelsCount?: number;
+  totalParticipants?: number;
+  totalEvents?: number;
+  ratingAvg?: number;
+  ratingCount?: number;
+  stripe?: {
+    accountId?: string | null;
+    connected?: boolean;
+    chargesEnabled?: boolean;
+    payoutsEnabled?: boolean;
+    detailsSubmitted?: boolean;
+  };
+  hostProfile?: {
+    displayName?: string;
+    bio?: string;
+    languages?: string[];
+    city?: string;
+    country?: string;
+    phone?: string;
+    avatar?: string;
+  } | null;
+};
+
+type AdminUserTimelineItem = {
+  kind: string;
+  at?: string | null;
+  label?: string;
+  targetId?: string;
+};
+
+type AdminUserDetailsResponse = {
+  user?: AdminUserDetails;
+  counts?: {
+    bookingsAsExplorer?: number;
+    bookingsAsHost?: number;
+    bookingsTotal?: number;
+    experiencesHosted?: number;
+    reportsCreated?: number;
+    reportsAgainstUser?: number;
+    messagesSent?: number;
+  };
+  recentBookings?: AdminBooking[];
+  recentExperiences?: AdminExperience[];
+  recentReports?: AdminReport[];
+  recentAudit?: AdminAuditLogItem[];
+  timeline?: AdminUserTimelineItem[];
+};
+
 type AdminExperience = {
   id: string;
   title?: string;
@@ -76,6 +135,7 @@ type AdminExperience = {
   remainingSpots?: number;
   soldOut?: boolean;
   participantsBooked?: number;
+  createdAt?: string | null;
   host?: {
     id?: string;
     name?: string;
@@ -379,14 +439,18 @@ function StatCard({
 
 function AdminUserRow({
   item,
+  selected,
   busy,
+  onOpenDetails,
   onSaveRole,
   onToggleBlocked,
   onToggleBanned,
   onInvalidateSessions,
 }: {
   item: AdminUser;
+  selected?: boolean;
   busy?: boolean;
+  onOpenDetails: (id: string) => Promise<void>;
   onSaveRole: (id: string, role: string) => Promise<void>;
   onToggleBlocked: (id: string, nextValue: boolean) => Promise<void>;
   onToggleBanned: (id: string, nextValue: boolean) => Promise<void>;
@@ -399,7 +463,7 @@ function AdminUserRow({
   }, [item.role]);
 
   return (
-    <div className={`${styles.card} ${styles.rowCard}`}>
+    <div className={`${styles.card} ${styles.rowCard} ${selected ? styles.rowCardSelected : ""}`}>
       <div className={styles.rowTop}>
         <div>
           <div className={styles.rowTitle}>{item.displayName || item.name || "Fără nume"}</div>
@@ -445,6 +509,14 @@ function AdminUserRow({
         </div>
 
         <div className={styles.buttonRow}>
+          <button
+            type="button"
+            className="button secondary"
+            disabled={busy}
+            onClick={() => void onOpenDetails(item.id)}
+          >
+            {selected ? "Reîncarcă detalii" : "Detalii"}
+          </button>
           <button
             type="button"
             className="button secondary"
@@ -744,6 +816,10 @@ export default function AdminPage() {
   const [userQuery, setUserQuery] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("all");
   const [userStatusFilter, setUserStatusFilter] = useState("all");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [userDetails, setUserDetails] = useState<AdminUserDetailsResponse | null>(null);
+  const [userDetailsLoading, setUserDetailsLoading] = useState(false);
+  const [userDetailsError, setUserDetailsError] = useState("");
 
   const [experiences, setExperiences] = useState<AdminExperiencesResponse | null>(null);
   const [experiencesLoading, setExperiencesLoading] = useState(false);
@@ -862,6 +938,20 @@ export default function AdminPage() {
     },
     [userQuery, userRoleFilter, userStatusFilter]
   );
+
+  const loadUserDetails = useCallback(async (id: string) => {
+    setSelectedUserId(id);
+    setUserDetailsLoading(true);
+    setUserDetailsError("");
+    try {
+      const data = await apiGet<AdminUserDetailsResponse>(`/admin/users/${id}`);
+      setUserDetails(data || null);
+    } catch (err) {
+      setUserDetailsError((err as Error)?.message || "Nu am putut încărca detaliile utilizatorului.");
+    } finally {
+      setUserDetailsLoading(false);
+    }
+  }, []);
 
   const loadExperiences = useCallback(
     async (page = 1) => {
@@ -1046,9 +1136,14 @@ export default function AdminPage() {
     async (id: string, payload: Record<string, unknown>, info = "Utilizator actualizat") => {
       await apiPatch(`/admin/users/${id}`, payload);
       setActionInfo(info);
-      await Promise.all([loadUsers(users?.page || 1), loadDashboard()]);
+      await Promise.all([
+        loadUsers(users?.page || 1),
+        loadDashboard(),
+        ...(selectedUserId === id ? [loadUserDetails(id)] : []),
+        loadRecentAdminActions(),
+      ]);
     },
-    [loadUsers, loadDashboard, users?.page]
+    [loadUsers, loadDashboard, loadUserDetails, loadRecentAdminActions, users?.page, selectedUserId]
   );
 
   const patchExperience = useCallback(
@@ -1372,58 +1467,201 @@ export default function AdminPage() {
         </form>
 
         {usersError ? <div className={`${styles.card} ${styles.errorCard}`}>{usersError}</div> : null}
-        <div className={styles.listStack}>
-          {(users?.items || []).map((item) => (
-            <AdminUserRow
-              key={item.id}
-              item={item}
-              busy={pendingKey?.startsWith(`user:${item.id}:`)}
-              onSaveRole={(id, role) =>
-                runAction(`user:${id}:role`, () => patchUser(id, { role }, `Rol actualizat (${role})`))
-              }
-              onToggleBlocked={(id, nextValue) =>
-                runAction(`user:${id}:block`, async () => {
-                  const reason = getCriticalReason(nextValue ? "Blocare utilizator" : "Deblocare utilizator");
-                  if (!reason) return;
-                  await patchUser(id, { isBlocked: nextValue, reason }, nextValue ? "Utilizator blocat" : "Utilizator deblocat");
-                })
-              }
-              onToggleBanned={(id, nextValue) =>
-                runAction(`user:${id}:ban`, async () => {
-                  const reason = getCriticalReason(nextValue ? "Ban utilizator" : "Unban utilizator");
-                  if (!reason) return;
-                  await patchUser(id, { isBanned: nextValue, reason }, nextValue ? "Utilizator banat" : "Ban scos");
-                })
-              }
-              onInvalidateSessions={(id) =>
-                runAction(`user:${id}:invalidate`, () => patchUser(id, { invalidateSessions: true }, "Sesiuni invalidate"))
-              }
-            />
-          ))}
-          {!usersLoading && (users?.items || []).length === 0 ? (
-            <div className={`${styles.card} ${styles.emptyCard}`}>Nu există utilizatori pentru filtrele selectate.</div>
-          ) : null}
-        </div>
-        <div className={styles.pagination}>
-          <button
-            type="button"
-            className="button secondary"
-            disabled={!users || users.page <= 1 || usersLoading}
-            onClick={() => void loadUsers((users?.page || 1) - 1)}
-          >
-            ← Anterior
-          </button>
-          <span className="muted">
-            Pagina {users?.page || 1} / {users?.pages || 1}
-          </span>
-          <button
-            type="button"
-            className="button secondary"
-            disabled={!users || (users?.page || 1) >= (users?.pages || 1) || usersLoading}
-            onClick={() => void loadUsers((users?.page || 1) + 1)}
-          >
-            Următor →
-          </button>
+        <div className={styles.splitGrid}>
+          <div className={styles.listStack}>
+            {(users?.items || []).map((item) => (
+              <AdminUserRow
+                key={item.id}
+                item={item}
+                selected={selectedUserId === item.id}
+                busy={!!pendingKey?.startsWith(`user:${item.id}:`)}
+                onOpenDetails={loadUserDetails}
+                onSaveRole={(id, role) =>
+                  runAction(`user:${id}:role`, () => patchUser(id, { role }, `Rol actualizat (${role})`))
+                }
+                onToggleBlocked={(id, nextValue) =>
+                  runAction(`user:${id}:block`, async () => {
+                    const reason = getCriticalReason(nextValue ? "Blocare utilizator" : "Deblocare utilizator");
+                    if (!reason) return;
+                    await patchUser(id, { isBlocked: nextValue, reason }, nextValue ? "Utilizator blocat" : "Utilizator deblocat");
+                  })
+                }
+                onToggleBanned={(id, nextValue) =>
+                  runAction(`user:${id}:ban`, async () => {
+                    const reason = getCriticalReason(nextValue ? "Ban utilizator" : "Unban utilizator");
+                    if (!reason) return;
+                    await patchUser(id, { isBanned: nextValue, reason }, nextValue ? "Utilizator banat" : "Ban scos");
+                  })
+                }
+                onInvalidateSessions={(id) =>
+                  runAction(`user:${id}:invalidate`, () => patchUser(id, { invalidateSessions: true }, "Sesiuni invalidate"))
+                }
+              />
+            ))}
+            {!usersLoading && (users?.items || []).length === 0 ? (
+              <div className={`${styles.card} ${styles.emptyCard}`}>Nu există utilizatori pentru filtrele selectate.</div>
+            ) : null}
+            <div className={styles.pagination}>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={!users || users.page <= 1 || usersLoading}
+                onClick={() => void loadUsers((users?.page || 1) - 1)}
+              >
+                ← Anterior
+              </button>
+              <span className="muted">
+                Pagina {users?.page || 1} / {users?.pages || 1}
+              </span>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={!users || (users?.page || 1) >= (users?.pages || 1) || usersLoading}
+                onClick={() => void loadUsers((users?.page || 1) + 1)}
+              >
+                Următor →
+              </button>
+            </div>
+          </div>
+
+          <div className={`${styles.card} ${styles.detailsCard}`}>
+            <div className={styles.sectionTitleRow}>
+              <h3 className={styles.detailsTitle}>User details</h3>
+              {userDetails?.user?.id ? <span className="muted">#{userDetails.user.id.slice(-8)}</span> : null}
+            </div>
+
+            {!selectedUserId ? <div className="muted">Selectează un utilizator din listă.</div> : null}
+            {selectedUserId && userDetailsLoading ? <div className="muted">Se încarcă detaliile...</div> : null}
+            {selectedUserId && userDetailsError ? <div className={`${styles.card} ${styles.errorCard}`}>{userDetailsError}</div> : null}
+
+            {selectedUserId && !userDetailsLoading && !userDetailsError && userDetails?.user ? (
+              <>
+                <div className={styles.detailGrid}>
+                  <div><strong>Nume</strong><span>{userDetails.user.displayName || userDetails.user.name || "—"}</span></div>
+                  <div><strong>Email</strong><span>{userDetails.user.email || "—"}</span></div>
+                  <div><strong>Rol</strong><span>{userDetails.user.role || "—"}</span></div>
+                  <div><strong>Creat</strong><span>{formatDate(userDetails.user.createdAt)}</span></div>
+                  <div><strong>Last auth</strong><span>{formatDate(userDetails.user.lastAuthAt || null)}</span></div>
+                  <div><strong>Token version</strong><span>{numberFmt(userDetails.user.tokenVersion)}</span></div>
+                  <div><strong>Oraș / Țară</strong><span>{[userDetails.user.city, userDetails.user.country].filter(Boolean).join(", ") || "—"}</span></div>
+                  <div><strong>Telefon</strong><span>{[userDetails.user.phoneCountryCode, userDetails.user.phone].filter(Boolean).join(" ") || "—"}</span></div>
+                </div>
+
+                <div className={styles.detailsSection}>
+                  <div className={styles.panelTitle}>Status & Stripe</div>
+                  <div className={styles.badgeRow}>
+                    <span className={`${styles.badge} ${userDetails.user.emailVerified ? styles.badgeOk : styles.badgeWarn}`}>Email {userDetails.user.emailVerified ? "OK" : "NO"}</span>
+                    <span className={`${styles.badge} ${userDetails.user.phoneVerified ? styles.badgeOk : styles.badgeWarn}`}>Phone {userDetails.user.phoneVerified ? "OK" : "NO"}</span>
+                    <span className={`${styles.badge} ${userDetails.user.isBlocked ? styles.badgeWarn : styles.badgeOk}`}>{userDetails.user.isBlocked ? "BLOCKED" : "ACTIVE"}</span>
+                    {userDetails.user.isBanned ? <span className={`${styles.badge} ${styles.badgeDanger}`}>BANNED</span> : null}
+                    <span className={`${styles.badge} ${userDetails.user.stripe?.connected ? styles.badgeOk : styles.badgeWarn}`}>Stripe account</span>
+                    <span className={`${styles.badge} ${userDetails.user.stripe?.chargesEnabled ? styles.badgeOk : styles.badgeWarn}`}>Charges</span>
+                    <span className={`${styles.badge} ${userDetails.user.stripe?.payoutsEnabled ? styles.badgeOk : styles.badgeWarn}`}>Payouts</span>
+                    <span className={`${styles.badge} ${userDetails.user.stripe?.detailsSubmitted ? styles.badgeOk : styles.badgeWarn}`}>Details</span>
+                  </div>
+                  {userDetails.user.stripe?.accountId ? (
+                    <div className="muted">Stripe account: {userDetails.user.stripe.accountId}</div>
+                  ) : null}
+                </div>
+
+                <div className={styles.detailsSection}>
+                  <div className={styles.panelTitle}>Counts</div>
+                  <div className={styles.detailGrid}>
+                    <div><strong>Bookings total</strong><span>{numberFmt(userDetails.counts?.bookingsTotal)}</span></div>
+                    <div><strong>As explorer</strong><span>{numberFmt(userDetails.counts?.bookingsAsExplorer)}</span></div>
+                    <div><strong>As host</strong><span>{numberFmt(userDetails.counts?.bookingsAsHost)}</span></div>
+                    <div><strong>Experiences hosted</strong><span>{numberFmt(userDetails.counts?.experiencesHosted)}</span></div>
+                    <div><strong>Reports created</strong><span>{numberFmt(userDetails.counts?.reportsCreated)}</span></div>
+                    <div><strong>Reports against user</strong><span>{numberFmt(userDetails.counts?.reportsAgainstUser)}</span></div>
+                    <div><strong>Messages sent</strong><span>{numberFmt(userDetails.counts?.messagesSent)}</span></div>
+                    <div><strong>Trusted participant</strong><span>{userDetails.user.isTrustedParticipant ? "Da" : "Nu"}</span></div>
+                  </div>
+                </div>
+
+                {(userDetails.user.languages?.length || 0) > 0 || userDetails.user.shortBio || userDetails.user.aboutMe ? (
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>Profile notes</div>
+                    {(userDetails.user.languages?.length || 0) > 0 ? (
+                      <div className={styles.badgeRow}>
+                        {(userDetails.user.languages || []).map((lang) => (
+                          <span key={`${userDetails.user?.id}-${lang}`} className={styles.badge}>{lang}</span>
+                        ))}
+                      </div>
+                    ) : null}
+                    {userDetails.user.shortBio ? <div className={styles.miniItem}><div>{userDetails.user.shortBio}</div></div> : null}
+                    {userDetails.user.aboutMe ? <div className={styles.miniItem}><div className="muted">{userDetails.user.aboutMe}</div></div> : null}
+                  </div>
+                ) : null}
+
+                <div className={styles.detailsSection}>
+                  <div className={styles.panelTitle}>Timeline (latest)</div>
+                  {(userDetails.timeline || []).length === 0 ? (
+                    <div className="muted">Fără evenimente recente.</div>
+                  ) : (
+                    <div className={styles.stackSm}>
+                      {(userDetails.timeline || []).slice(0, 10).map((event, idx) => (
+                        <div key={`${event.kind}-${event.targetId || idx}-${event.at || idx}`} className={styles.miniItem}>
+                          <div><strong>{event.kind}</strong></div>
+                          <div className="muted">{event.label || "—"}</div>
+                          <div className="muted">{formatDate(event.at || null)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.detailsSection}>
+                  <div className={styles.panelTitle}>Recent entities</div>
+                  <div className={styles.stackSm}>
+                    <div className={styles.miniItem}>
+                      <div><strong>Bookings</strong></div>
+                      {(userDetails.recentBookings || []).length === 0 ? (
+                        <div className="muted">Fără booking-uri recente.</div>
+                      ) : (
+                        <div className={styles.stackSm}>
+                          {(userDetails.recentBookings || []).slice(0, 4).map((b) => (
+                            <div key={b.id} className="muted">
+                              {b.status || "—"} · {b.experience?.title || "Experiență"} · {formatDate(b.createdAt)}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className={styles.miniItem}>
+                      <div><strong>Experiences</strong></div>
+                      {(userDetails.recentExperiences || []).length === 0 ? (
+                        <div className="muted">Fără experiențe recente.</div>
+                      ) : (
+                        <div className={styles.stackSm}>
+                          {(userDetails.recentExperiences || []).slice(0, 4).map((exp) => (
+                            <div key={exp.id} className="muted">
+                              {exp.title || "Fără titlu"} · {exp.status || "—"} · {formatDate(exp.createdAt || exp.startsAt || null)}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className={styles.miniItem}>
+                      <div><strong>Reports</strong></div>
+                      {(userDetails.recentReports || []).length === 0 ? (
+                        <div className="muted">Fără reports recente.</div>
+                      ) : (
+                        <div className={styles.stackSm}>
+                          {(userDetails.recentReports || []).slice(0, 4).map((r) => (
+                            <div key={r.id} className="muted">
+                              {r.type || "REPORT"} · {r.status || "—"} · {formatDate(r.createdAt)}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </div>
         </div>
       </section> : null}
 

@@ -350,6 +350,7 @@
   color: #64748b;
   font-size: 13px;
   overflow-wrap: anywhere;
+  line-height: 1.4;
 }
 
 .badgeRow {
@@ -398,7 +399,7 @@
 
 .metaGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 8px 12px;
   font-size: 13px;
   color: #475569;
@@ -407,6 +408,13 @@
 .metaGrid > div {
   min-width: 0;
   overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.metaGrid > div > strong {
+  display: inline-block;
+  margin-right: 4px;
+  color: #334155;
 }
 
 .actionsGrid {
@@ -492,7 +500,7 @@
 
 .splitGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(360px, 0.9fr);
+  grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
   gap: 12px;
   align-items: start;
 }
@@ -613,6 +621,55 @@
   word-break: break-word;
 }
 
+.threadList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 420px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.threadItem {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.threadItemHost {
+  border-color: rgba(0, 188, 212, 0.28);
+  background: rgba(0, 188, 212, 0.04);
+}
+
+.threadItemExplorer {
+  border-color: rgba(14, 165, 233, 0.2);
+  background: rgba(14, 165, 233, 0.04);
+}
+
+.threadMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.threadMeta > span {
+  overflow-wrap: anywhere;
+}
+
+.threadBody {
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 1180px) {
   .adminShell {
     grid-template-columns: 1fr;
@@ -696,6 +753,12 @@
 
   .metaGrid {
     grid-template-columns: 1fr;
+  }
+
+  .metaGrid > div > strong {
+    display: block;
+    margin-right: 0;
+    margin-bottom: 2px;
   }
 
   .inlineControl {

@@ -278,6 +278,49 @@ type AdminBookingDetailsResponse = {
   messagesCount?: number;
 };
 
+type AdminMessageConversationItem = {
+  bookingId: string;
+  messagesCount?: number;
+  lastMessageAt?: string | null;
+  lastMessageText?: string;
+  lastSender?: { id?: string; name?: string; email?: string } | null;
+  reportsCount?: number;
+  openReportsCount?: number;
+  booking?: AdminBooking | null;
+};
+
+type AdminMessagesResponse = {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+  items: AdminMessageConversationItem[];
+};
+
+type AdminMessageThreadMessage = {
+  id: string;
+  bookingId?: string;
+  sender?: { id?: string; name?: string; email?: string } | null;
+  senderProfile?: { name?: string; profileImage?: string } | null;
+  message?: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+type AdminMessageThreadResponse = {
+  booking?: AdminBooking;
+  summary?: {
+    firstMessageAt?: string | null;
+    lastMessageAt?: string | null;
+    messagesCount?: number;
+    reportsOpen?: number;
+    reportsTotal?: number;
+  };
+  messages?: AdminMessageThreadMessage[];
+  reports?: Array<Record<string, unknown>>;
+  payments?: Array<Record<string, unknown>>;
+};
+
 type AdminReport = {
   id: string;
   type?: string;
@@ -826,6 +869,62 @@ function AdminReportRow({
   );
 }
 
+function AdminMessageConversationRow({
+  item,
+  selected,
+  busy,
+  onOpen,
+}: {
+  item: AdminMessageConversationItem;
+  selected?: boolean;
+  busy?: boolean;
+  onOpen: (bookingId: string) => Promise<void>;
+}) {
+  return (
+    <div className={`${styles.card} ${styles.rowCard} ${selected ? styles.rowCardSelected : ""}`}>
+      <div className={styles.rowTop}>
+        <div>
+          <div className={styles.rowTitle}>
+            {item.booking?.experience?.title || "Conversation"}{" "}
+            <span className={styles.rowTitleMuted}>#{item.bookingId.slice(-6)}</span>
+          </div>
+          <div className={styles.rowSub}>
+            Explorer: {item.booking?.explorer?.email || item.booking?.explorer?.name || "—"} · Host:{" "}
+            {item.booking?.host?.email || item.booking?.host?.name || "—"}
+          </div>
+        </div>
+        <div className={styles.badgeRow}>
+          <span className={styles.badge}>Msg {numberFmt(item.messagesCount)}</span>
+          {(item.reportsCount || 0) > 0 ? <span className={`${styles.badge} ${styles.badgeWarn}`}>Reports {numberFmt(item.reportsCount)}</span> : null}
+          {(item.openReportsCount || 0) > 0 ? <span className={`${styles.badge} ${styles.badgeDanger}`}>Open {numberFmt(item.openReportsCount)}</span> : null}
+          {item.booking?.status ? <span className={styles.badge}>{item.booking.status}</span> : null}
+        </div>
+      </div>
+
+      <div className={styles.metaGrid}>
+        <div><strong>Last message:</strong> {formatDate(item.lastMessageAt || null)}</div>
+        <div><strong>Last sender:</strong> {item.lastSender?.email || item.lastSender?.name || "—"}</div>
+        <div><strong>Locație:</strong> {[item.booking?.experience?.city, item.booking?.experience?.country].filter(Boolean).join(", ") || "—"}</div>
+      </div>
+
+      <div className={styles.rowSub}>{item.lastMessageText || "—"}</div>
+
+      <div className={styles.buttonRow}>
+        <button type="button" className="button secondary" disabled={busy} onClick={() => void onOpen(item.bookingId)}>
+          {selected ? "Reîncarcă thread" : "Open thread"}
+        </button>
+        <button
+          type="button"
+          className="button secondary"
+          onClick={() => window.open(`/messages/${item.bookingId}`, "_blank", "noopener,noreferrer")}
+        >
+          Open user chat
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AdminAuditRow({
   item,
   selected,
@@ -927,6 +1026,16 @@ export default function AdminPage() {
   const [auditTargetTypeFilter, setAuditTargetTypeFilter] = useState("all");
   const [auditActorEmailFilter, setAuditActorEmailFilter] = useState("");
   const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
+
+  const [messagesData, setMessagesData] = useState<AdminMessagesResponse | null>(null);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [messagesError, setMessagesError] = useState("");
+  const [messagesQuery, setMessagesQuery] = useState("");
+  const [messagesHasReportsFilter, setMessagesHasReportsFilter] = useState("all");
+  const [selectedMessageBookingId, setSelectedMessageBookingId] = useState<string | null>(null);
+  const [messageThread, setMessageThread] = useState<AdminMessageThreadResponse | null>(null);
+  const [messageThreadLoading, setMessageThreadLoading] = useState(false);
+  const [messageThreadError, setMessageThreadError] = useState("");
 
   const [systemHealth, setSystemHealth] = useState<AdminSystemHealthResponse | null>(null);
   const [systemLoading, setSystemLoading] = useState(false);
@@ -1151,6 +1260,41 @@ export default function AdminPage() {
     [auditQuery, auditActionTypeFilter, auditTargetTypeFilter, auditActorEmailFilter]
   );
 
+  const loadMessages = useCallback(
+    async (page = 1) => {
+      setMessagesLoading(true);
+      setMessagesError("");
+      try {
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("limit", "12");
+        if (messagesQuery.trim()) params.set("q", messagesQuery.trim());
+        if (messagesHasReportsFilter !== "all") params.set("hasReports", messagesHasReportsFilter);
+        const data = await apiGet<AdminMessagesResponse>(`/admin/messages?${params.toString()}`);
+        setMessagesData(data || null);
+      } catch (err) {
+        setMessagesError((err as Error)?.message || "Nu am putut încărca conversațiile.");
+      } finally {
+        setMessagesLoading(false);
+      }
+    },
+    [messagesQuery, messagesHasReportsFilter]
+  );
+
+  const loadMessageThread = useCallback(async (bookingId: string) => {
+    setSelectedMessageBookingId(bookingId);
+    setMessageThreadLoading(true);
+    setMessageThreadError("");
+    try {
+      const data = await apiGet<AdminMessageThreadResponse>(`/admin/messages/${bookingId}`);
+      setMessageThread(data || null);
+    } catch (err) {
+      setMessageThreadError((err as Error)?.message || "Nu am putut încărca thread-ul.");
+    } finally {
+      setMessageThreadLoading(false);
+    }
+  }, []);
+
   const loadSystemHealth = useCallback(async () => {
     setSystemLoading(true);
     setSystemError("");
@@ -1173,10 +1317,11 @@ export default function AdminPage() {
       loadReports(reports?.page || 1),
       loadPaymentsHealth(),
       loadAuditLogs(auditLogs?.page || 1),
+      loadMessages(messagesData?.page || 1),
       loadSystemHealth(),
       loadRecentAdminActions(),
     ]);
-  }, [loadDashboard, loadUsers, loadExperiences, loadBookings, loadReports, loadPaymentsHealth, loadAuditLogs, loadSystemHealth, loadRecentAdminActions, users?.page, experiences?.page, bookings?.page, reports?.page, auditLogs?.page]);
+  }, [loadDashboard, loadUsers, loadExperiences, loadBookings, loadReports, loadPaymentsHealth, loadAuditLogs, loadMessages, loadSystemHealth, loadRecentAdminActions, users?.page, experiences?.page, bookings?.page, reports?.page, auditLogs?.page, messagesData?.page]);
 
   useEffect(() => {
     if (authLoading || !token || !isAdmin) return;
@@ -1320,6 +1465,11 @@ export default function AdminPage() {
     [auditLogs?.items, selectedAuditId]
   );
 
+  const selectedMessageConversation = useMemo(
+    () => (messagesData?.items || []).find((item) => item.bookingId === selectedMessageBookingId) || null,
+    [messagesData?.items, selectedMessageBookingId]
+  );
+
   if (authLoading || (!token && !dashboard && !users && !experiences && !bookings && !reports && !paymentsHealth && !auditLogs && !systemHealth)) {
     return <div className="muted">Se încarcă admin-ul...</div>;
   }
@@ -1353,6 +1503,11 @@ export default function AdminPage() {
     void loadAuditLogs(1);
   };
 
+  const onMessagesSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    void loadMessages(1);
+  };
+
   const sidebarItems: Array<{
     key: "overview" | "users" | "experiences" | "bookings" | "reports" | "payments" | "audit" | "messages" | "system";
     label: string;
@@ -1365,7 +1520,7 @@ export default function AdminPage() {
     { key: "reports", label: "Reports / Moderation", hint: "Inbox & safety" },
     { key: "payments", label: "Payments & Refunds", hint: "Health & issues" },
     { key: "audit", label: "Audit Log", hint: "Trace admin actions" },
-    { key: "messages", label: "Messages", hint: "Coming next" },
+    { key: "messages", label: "Messages", hint: "Conversations" },
     { key: "system", label: "System", hint: "Health & config" },
   ];
 
@@ -1425,6 +1580,9 @@ export default function AdminPage() {
                 <button type="button" className="button secondary" onClick={() => setActiveSection("audit")}>
                   Audit
                 </button>
+                <button type="button" className="button secondary" onClick={() => setActiveSection("messages")}>
+                  Messages
+                </button>
                 <button type="button" className="button secondary" onClick={() => setActiveSection("system")}>
                   System
                 </button>
@@ -1432,7 +1590,7 @@ export default function AdminPage() {
                   type="button"
                   className="button"
                   onClick={() => void refreshAll()}
-                  disabled={dashboardLoading || usersLoading || experiencesLoading || bookingsLoading || reportsLoading || paymentsLoading || auditLoading || systemLoading || recentLoading}
+                  disabled={dashboardLoading || usersLoading || experiencesLoading || bookingsLoading || reportsLoading || paymentsLoading || auditLoading || messagesLoading || systemLoading || recentLoading}
                 >
                   Refresh all
                 </button>
@@ -2805,6 +2963,222 @@ export default function AdminPage() {
         </section>
       ) : null}
 
+      {activeSection === "messages" ? (
+        <section className={styles.sectionBlock}>
+          <div className={styles.sectionTitleRow}>
+            <h2 className={styles.sectionTitle}>Messages / Conversations</h2>
+            <span className="muted">{messagesData ? `${numberFmt(messagesData.total)} conversații` : "—"}</span>
+          </div>
+
+          <form className={`${styles.card} ${styles.filtersCard}`} onSubmit={onMessagesSubmit}>
+            <div className={styles.filtersGrid}>
+              <input
+                className="input"
+                placeholder="Caută după mesaj, email, experiență sau booking id"
+                value={messagesQuery}
+                onChange={(e) => setMessagesQuery(e.target.value)}
+              />
+              <select className={styles.select} value={messagesHasReportsFilter} onChange={(e) => setMessagesHasReportsFilter(e.target.value)}>
+                <option value="all">Toate conversațiile</option>
+                <option value="true">Doar cu reports</option>
+                <option value="false">Fără reports</option>
+              </select>
+              <div />
+            </div>
+            <div className={styles.filtersActions}>
+              <button
+                className="button secondary"
+                type="button"
+                onClick={() => {
+                  setMessagesQuery("");
+                  setMessagesHasReportsFilter("all");
+                  void loadMessages(1);
+                }}
+              >
+                Reset
+              </button>
+              <button className="button" type="submit" disabled={messagesLoading}>
+                {messagesLoading ? "Se caută..." : "Caută"}
+              </button>
+            </div>
+          </form>
+
+          {messagesError ? <div className={`${styles.card} ${styles.errorCard}`}>{messagesError}</div> : null}
+
+          <div className={styles.splitGrid}>
+            <div className={styles.listStack}>
+              {(messagesData?.items || []).map((item) => (
+                <AdminMessageConversationRow
+                  key={item.bookingId}
+                  item={item}
+                  selected={selectedMessageBookingId === item.bookingId}
+                  busy={false}
+                  onOpen={loadMessageThread}
+                />
+              ))}
+              {!messagesLoading && (messagesData?.items || []).length === 0 ? (
+                <div className={`${styles.card} ${styles.emptyCard}`}>Nu există conversații pentru filtrele selectate.</div>
+              ) : null}
+              <div className={styles.pagination}>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={!messagesData || messagesData.page <= 1 || messagesLoading}
+                  onClick={() => void loadMessages((messagesData?.page || 1) - 1)}
+                >
+                  ← Anterior
+                </button>
+                <span className="muted">
+                  Pagina {messagesData?.page || 1} / {messagesData?.pages || 1}
+                </span>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={!messagesData || (messagesData?.page || 1) >= (messagesData?.pages || 1) || messagesLoading}
+                  onClick={() => void loadMessages((messagesData?.page || 1) + 1)}
+                >
+                  Următor →
+                </button>
+              </div>
+            </div>
+
+            <div className={`${styles.card} ${styles.detailsCard}`}>
+              <div className={styles.sectionTitleRow}>
+                <h3 className={styles.detailsTitle}>Conversation details</h3>
+                {selectedMessageBookingId ? <span className="muted">#{selectedMessageBookingId.slice(-8)}</span> : null}
+              </div>
+
+              {!selectedMessageBookingId ? <div className="muted">Selectează o conversație din listă.</div> : null}
+              {selectedMessageBookingId && messageThreadLoading ? <div className="muted">Se încarcă thread-ul...</div> : null}
+              {selectedMessageBookingId && messageThreadError ? <div className={`${styles.banner} ${styles.bannerError}`}>{messageThreadError}</div> : null}
+
+              {selectedMessageBookingId && !messageThreadLoading && !messageThreadError && messageThread ? (
+                <>
+                  <div className={styles.detailGrid}>
+                    <div><strong>Booking</strong><span>{messageThread.booking?.id || selectedMessageBookingId}</span></div>
+                    <div><strong>Status</strong><span>{messageThread.booking?.status || "—"}</span></div>
+                    <div><strong>Host</strong><span>{messageThread.booking?.host?.email || messageThread.booking?.host?.name || "—"}</span></div>
+                    <div><strong>Explorer</strong><span>{messageThread.booking?.explorer?.email || messageThread.booking?.explorer?.name || "—"}</span></div>
+                    <div><strong>Experiență</strong><span>{messageThread.booking?.experience?.title || "—"}</span></div>
+                    <div><strong>Locație</strong><span>{[messageThread.booking?.experience?.city, messageThread.booking?.experience?.country].filter(Boolean).join(", ") || "—"}</span></div>
+                    <div><strong>Mesaje</strong><span>{numberFmt(messageThread.summary?.messagesCount)}</span></div>
+                    <div><strong>Reports</strong><span>{numberFmt(messageThread.summary?.reportsOpen)} open / {numberFmt(messageThread.summary?.reportsTotal)} total</span></div>
+                    <div><strong>Primul mesaj</strong><span>{formatDate(messageThread.summary?.firstMessageAt || null)}</span></div>
+                    <div><strong>Ultimul mesaj</strong><span>{formatDate(messageThread.summary?.lastMessageAt || null)}</span></div>
+                  </div>
+
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>Quick links</div>
+                    <div className={styles.buttonRow}>
+                      {messageThread.booking?.experience?.id ? (
+                        <a className={styles.linkButton} href={`/experiences/${messageThread.booking.experience.id}`} target="_blank" rel="noreferrer">
+                          Deschide experiența
+                        </a>
+                      ) : null}
+                      {messageThread.booking?.id ? (
+                        <button
+                          type="button"
+                          className="button secondary"
+                          onClick={() => {
+                            setActiveSection("bookings");
+                            setBookingQuery(messageThread.booking?.id || "");
+                            void loadBookings(1);
+                          }}
+                        >
+                          Vezi booking în Bookings
+                        </button>
+                      ) : null}
+                      {(selectedMessageConversation?.openReportsCount || 0) > 0 ? (
+                        <button
+                          type="button"
+                          className="button secondary"
+                          onClick={() => {
+                            setActiveSection("reports");
+                            setReportStatusFilter("OPEN_INBOX");
+                            setReportQuery(messageThread.booking?.id || selectedMessageBookingId || "");
+                            void loadReports(1);
+                          }}
+                        >
+                          Vezi reports
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>Thread ({numberFmt(messageThread.messages?.length)} mesaje încărcate)</div>
+                    {!Array.isArray(messageThread.messages) || messageThread.messages.length === 0 ? (
+                      <div className="muted">Nu există mesaje în conversație.</div>
+                    ) : (
+                      <div className={styles.threadList}>
+                        {messageThread.messages.map((msg) => {
+                          const senderId = msg.sender?.id || "";
+                          const isHost = !!senderId && senderId === (messageThread.booking?.host?.id || "");
+                          const isExplorer = !!senderId && senderId === (messageThread.booking?.explorer?.id || "");
+                          return (
+                            <div
+                              key={msg.id}
+                              className={`${styles.threadItem} ${isHost ? styles.threadItemHost : ""} ${isExplorer ? styles.threadItemExplorer : ""}`}
+                            >
+                              <div className={styles.threadMeta}>
+                                <span>{msg.sender?.email || msg.sender?.name || "Unknown sender"}</span>
+                                <span>{isHost ? "HOST" : isExplorer ? "EXPLORER" : "USER"}</span>
+                                <span>{formatDate(msg.createdAt || null)}</span>
+                              </div>
+                              <div className={styles.threadBody}>{msg.message || "—"}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>Reports (latest)</div>
+                    {!Array.isArray(messageThread.reports) || messageThread.reports.length === 0 ? (
+                      <div className="muted">Fără reports legate de acest booking.</div>
+                    ) : (
+                      <div className={styles.stackSm}>
+                        {messageThread.reports.slice(0, 8).map((report, index) => {
+                          const row = report as Record<string, unknown>;
+                          return (
+                            <div key={String(row.id || row._id || `report-${index}`)} className={styles.miniItem}>
+                              <div><strong>{String(row.type || "REPORT")}</strong> · {String(row.status || "—")}</div>
+                              <div className="muted">{String(row.reason || row.comment || "Fără motiv")}</div>
+                              <div className="muted">{formatDate((row.createdAt as string) || null)}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>Payments (latest)</div>
+                    {!Array.isArray(messageThread.payments) || messageThread.payments.length === 0 ? (
+                      <div className="muted">Fără plăți atașate booking-ului.</div>
+                    ) : (
+                      <div className={styles.stackSm}>
+                        {messageThread.payments.map((payment, index) => {
+                          const p = payment as Record<string, unknown>;
+                          return (
+                            <div key={String(p.id || p._id || `payment-${index}`)} className={styles.miniItem}>
+                              <div><strong>{String(p.status || "—")}</strong> · {String(p.paymentType || "PAYMENT")}</div>
+                              <div className="muted">{formatMoney(Number(p.amount || 0), String(p.currency || "RON"))}</div>
+                              <div className="muted">{String(p.stripePaymentIntentId || p.stripeSessionId || "fără Stripe ref")}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       {activeSection === "system" ? (
         <section className={styles.sectionBlock}>
           <div className={styles.sectionTitleRow}>
@@ -2920,23 +3294,6 @@ export default function AdminPage() {
         </section>
       ) : null}
 
-        {["messages"].includes(activeSection) ? (
-          <section className={styles.sectionBlock}>
-            <div className={`${styles.card} ${styles.placeholderCard}`}>
-              <h2 className={styles.sectionTitle} style={{ marginTop: 0 }}>
-                {sidebarItems.find((item) => item.key === activeSection)?.label}
-              </h2>
-              <p className="muted">
-                Secțiunea este pregătită în layout-ul nou. Următorul pas: endpoint-uri + workflows dedicate.
-              </p>
-              <ul className={styles.inboxList}>
-                <li>Filters + DataTable + details drawer</li>
-                <li>Acțiuni cu confirm + reason</li>
-                <li>Audit log pe toate mutațiile</li>
-              </ul>
-            </div>
-          </section>
-        ) : null}
       </div>
     </div>
   );

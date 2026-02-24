@@ -154,6 +154,39 @@ type AdminBookingDetailsResponse = {
   messagesCount?: number;
 };
 
+type AdminReport = {
+  id: string;
+  type?: string;
+  status?: string;
+  reason?: string;
+  comment?: string;
+  affectsPayout?: boolean;
+  actionTaken?: string;
+  createdAt?: string | null;
+  deadlineAt?: string | null;
+  handledAt?: string | null;
+  handledBy?: string;
+  assignedTo?: string;
+  assignedAt?: string | null;
+  ageHours?: number;
+  overdue?: boolean;
+  targetType?: string | null;
+  reporter?: { id?: string; name?: string; email?: string } | null;
+  host?: { id?: string; name?: string; email?: string } | null;
+  targetUser?: { id?: string; name?: string; email?: string; isBlocked?: boolean; isBanned?: boolean } | null;
+  experience?: { id?: string; title?: string; status?: string; isActive?: boolean; city?: string; country?: string } | null;
+  booking?: { id?: string; status?: string; quantity?: number } | null;
+  messagesCount?: number;
+};
+
+type AdminReportsResponse = {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+  items: AdminReport[];
+};
+
 const numberFmt = (value?: number) => new Intl.NumberFormat("ro-RO").format(Number(value || 0));
 const formatMoney = (value?: number, currency?: string) =>
   `${numberFmt(value)} ${String(currency || "RON").toUpperCase()}`;
@@ -434,6 +467,72 @@ function AdminBookingRow({
   );
 }
 
+function AdminReportRow({
+  item,
+  selected,
+  busy,
+  onSelect,
+  onAction,
+}: {
+  item: AdminReport;
+  selected?: boolean;
+  busy?: boolean;
+  onSelect: (id: string) => void;
+  onAction: (id: string, action: string) => Promise<void>;
+}) {
+  const isOpenInbox = ["OPEN", "INVESTIGATING"].includes(String(item.status || "").toUpperCase());
+  return (
+    <div className={`${styles.card} ${styles.rowCard} ${selected ? styles.rowCardSelected : ""}`}>
+      <div className={styles.rowTop}>
+        <div>
+          <div className={styles.rowTitle}>
+            {item.type || "REPORT"} <span className={styles.rowTitleMuted}>#{item.id.slice(-6)}</span>
+          </div>
+          <div className={styles.rowSub}>
+            {item.experience?.title || "Fără experiență"} · Reporter: {item.reporter?.email || item.reporter?.name || "—"}
+          </div>
+        </div>
+        <div className={styles.badgeRow}>
+          <span className={styles.badge}>{item.status || "—"}</span>
+          {item.assignedTo ? <span className={styles.badge}>👤 {item.assignedTo}</span> : null}
+          {item.overdue ? <span className={`${styles.badge} ${styles.badgeDanger}`}>Overdue</span> : null}
+          {item.affectsPayout ? <span className={`${styles.badge} ${styles.badgeWarn}`}>Payout</span> : null}
+        </div>
+      </div>
+
+      <div className={styles.metaGrid}>
+        <div><strong>Creat:</strong> {formatDate(item.createdAt)}</div>
+        <div><strong>Age:</strong> {numberFmt(item.ageHours)}h</div>
+        <div><strong>Deadline:</strong> {formatDate(item.deadlineAt)}</div>
+        <div><strong>Host:</strong> {item.host?.email || item.host?.name || "—"}</div>
+        <div><strong>Target user:</strong> {item.targetUser?.email || item.targetUser?.name || "—"}</div>
+        <div><strong>Booking:</strong> {item.booking?.id ? `#${item.booking.id.slice(-6)} · ${item.booking.status || "—"}` : "—"}</div>
+      </div>
+
+      <div className={styles.rowSub}>
+        {item.reason || item.comment || "Fără motiv/comentariu"}
+      </div>
+
+      <div className={styles.buttonRow}>
+        <button type="button" className="button secondary" disabled={busy} onClick={() => onSelect(item.id)}>
+          {selected ? "Selectat" : "Detalii"}
+        </button>
+        <button type="button" className="button secondary" disabled={busy} onClick={() => void onAction(item.id, "ASSIGN_TO_ME")}>
+          Assign to me
+        </button>
+        {isOpenInbox ? (
+          <button type="button" className="button secondary" disabled={busy} onClick={() => void onAction(item.id, "MARK_HANDLED")}>
+            Mark handled
+          </button>
+        ) : null}
+        <button type="button" className="button secondary" disabled={busy} onClick={() => void onAction(item.id, "MARK_IGNORED")}>
+          Ignore
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const { user, token, loading: authLoading } = useAuth();
@@ -466,6 +565,15 @@ export default function AdminPage() {
   const [bookingDetails, setBookingDetails] = useState<AdminBookingDetailsResponse | null>(null);
   const [bookingDetailsLoading, setBookingDetailsLoading] = useState(false);
   const [bookingDetailsError, setBookingDetailsError] = useState("");
+
+  const [reports, setReports] = useState<AdminReportsResponse | null>(null);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportsError, setReportsError] = useState("");
+  const [reportQuery, setReportQuery] = useState("");
+  const [reportStatusFilter, setReportStatusFilter] = useState("OPEN_INBOX");
+  const [reportTypeFilter, setReportTypeFilter] = useState("all");
+  const [reportAssignedFilter, setReportAssignedFilter] = useState("all");
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
 
   const [actionError, setActionError] = useState("");
   const [actionInfo, setActionInfo] = useState("");
@@ -599,15 +707,39 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadReports = useCallback(
+    async (page = 1) => {
+      setReportsLoading(true);
+      setReportsError("");
+      try {
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("limit", "12");
+        if (reportQuery.trim()) params.set("q", reportQuery.trim());
+        if (reportStatusFilter !== "all") params.set("status", reportStatusFilter);
+        if (reportTypeFilter !== "all") params.set("type", reportTypeFilter);
+        if (reportAssignedFilter !== "all") params.set("assigned", reportAssignedFilter);
+        const data = await apiGet<AdminReportsResponse>(`/admin/reports?${params.toString()}`);
+        setReports(data);
+      } catch (err) {
+        setReportsError((err as Error)?.message || "Nu am putut încărca reports.");
+      } finally {
+        setReportsLoading(false);
+      }
+    },
+    [reportQuery, reportStatusFilter, reportTypeFilter, reportAssignedFilter]
+  );
+
   const refreshAll = useCallback(async () => {
     await Promise.all([
       loadDashboard(),
       loadUsers(users?.page || 1),
       loadExperiences(experiences?.page || 1),
       loadBookings(bookings?.page || 1),
+      loadReports(reports?.page || 1),
       loadRecentAdminActions(),
     ]);
-  }, [loadDashboard, loadUsers, loadExperiences, loadBookings, loadRecentAdminActions, users?.page, experiences?.page, bookings?.page]);
+  }, [loadDashboard, loadUsers, loadExperiences, loadBookings, loadReports, loadRecentAdminActions, users?.page, experiences?.page, bookings?.page, reports?.page]);
 
   useEffect(() => {
     if (authLoading || !token || !isAdmin) return;
@@ -674,6 +806,18 @@ export default function AdminPage() {
     [loadBookings, loadDashboard, loadRecentAdminActions, bookings?.page, selectedBookingId, loadBookingDetails]
   );
 
+  const postReportAction = useCallback(
+    async (id: string, action: string, reason?: string) => {
+      await apiPost(`/admin/reports/${id}/action`, {
+        action,
+        ...(reason ? { reason } : {}),
+      });
+      setActionInfo(`Report actualizat (${action})`);
+      await Promise.all([loadReports(reports?.page || 1), loadDashboard(), loadRecentAdminActions()]);
+    },
+    [loadReports, reports?.page, loadDashboard, loadRecentAdminActions]
+  );
+
   const onGlobalSearchSubmit = useCallback(
     (e: FormEvent) => {
       e.preventDefault();
@@ -683,6 +827,13 @@ export default function AdminPage() {
         setActiveSection("users");
         setUserQuery(q);
         void loadUsers(1);
+        return;
+      }
+      if (/^report[:\s]/i.test(q)) {
+        const reportQ = q.replace(/^report[:\s]*/i, "").trim();
+        setActiveSection("reports");
+        setReportQuery(reportQ);
+        void loadReports(1);
         return;
       }
       if (/^[a-f\d]{24}$/i.test(q)) {
@@ -695,7 +846,7 @@ export default function AdminPage() {
       setActiveSection("experiences");
       void loadExperiences(1);
     },
-    [globalSearch, loadExperiences, loadUsers, loadBookings]
+    [globalSearch, loadExperiences, loadUsers, loadBookings, loadReports]
   );
 
   const dashboardCards = useMemo(
@@ -712,7 +863,12 @@ export default function AdminPage() {
     [dashboard]
   );
 
-  if (authLoading || (!token && !dashboard && !users && !experiences && !bookings)) {
+  const selectedReport = useMemo(
+    () => (reports?.items || []).find((item) => item.id === selectedReportId) || null,
+    [reports?.items, selectedReportId]
+  );
+
+  if (authLoading || (!token && !dashboard && !users && !experiences && !bookings && !reports)) {
     return <div className="muted">Se încarcă admin-ul...</div>;
   }
 
@@ -735,6 +891,11 @@ export default function AdminPage() {
     void loadBookings(1);
   };
 
+  const onReportsSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    void loadReports(1);
+  };
+
   const sidebarItems: Array<{
     key: "overview" | "users" | "experiences" | "bookings" | "reports" | "payments" | "messages" | "system";
     label: string;
@@ -744,7 +905,7 @@ export default function AdminPage() {
     { key: "users", label: "Users", hint: "Support & roles" },
     { key: "experiences", label: "Experiences", hint: "Quality & safety" },
     { key: "bookings", label: "Bookings", hint: "Ops & refunds" },
-    { key: "reports", label: "Reports / Moderation", hint: "Coming next" },
+    { key: "reports", label: "Reports / Moderation", hint: "Inbox & safety" },
     { key: "payments", label: "Payments & Refunds", hint: "Coming next" },
     { key: "messages", label: "Messages", hint: "Coming next" },
     { key: "system", label: "System", hint: "Coming next" },
@@ -797,11 +958,14 @@ export default function AdminPage() {
                 <button type="button" className="button secondary" onClick={() => setActiveSection("bookings")}>
                   Bookings
                 </button>
+                <button type="button" className="button secondary" onClick={() => setActiveSection("reports")}>
+                  Reports
+                </button>
                 <button
                   type="button"
                   className="button"
                   onClick={() => void refreshAll()}
-                  disabled={dashboardLoading || usersLoading || experiencesLoading || bookingsLoading || recentLoading}
+                  disabled={dashboardLoading || usersLoading || experiencesLoading || bookingsLoading || reportsLoading || recentLoading}
                 >
                   Refresh all
                 </button>
@@ -1266,7 +1430,225 @@ export default function AdminPage() {
         </div>
       </section> : null}
 
-        {["reports", "payments", "messages", "system"].includes(activeSection) ? (
+      {activeSection === "reports" ? <section className={styles.sectionBlock}>
+        <div className={styles.sectionTitleRow}>
+          <h2 className={styles.sectionTitle}>Reports / Moderation</h2>
+          <span className="muted">
+            {reports ? `${numberFmt(reports.total)} rezultate` : "—"}
+          </span>
+        </div>
+
+        <form className={`${styles.card} ${styles.filtersCard}`} onSubmit={onReportsSubmit}>
+          <div className={styles.filtersGrid}>
+            <input
+              className="input"
+              placeholder="Caută după motiv, email, experiență sau id"
+              value={reportQuery}
+              onChange={(e) => setReportQuery(e.target.value)}
+            />
+            <select className={styles.select} value={reportStatusFilter} onChange={(e) => setReportStatusFilter(e.target.value)}>
+              <option value="OPEN_INBOX">Inbox (OPEN + INVESTIGATING)</option>
+              <option value="all">Toate statusurile</option>
+              <option value="OPEN">OPEN</option>
+              <option value="INVESTIGATING">INVESTIGATING</option>
+              <option value="HANDLED">HANDLED</option>
+              <option value="IGNORED">IGNORED</option>
+            </select>
+            <select className={styles.select} value={reportTypeFilter} onChange={(e) => setReportTypeFilter(e.target.value)}>
+              <option value="all">Toate tipurile</option>
+              <option value="CONTENT">CONTENT</option>
+              <option value="BOOKING_DISPUTE">BOOKING_DISPUTE</option>
+              <option value="USER">USER</option>
+              <option value="STRIPE_DISPUTE">STRIPE_DISPUTE</option>
+            </select>
+          </div>
+          <div className={styles.filtersGrid}>
+            <select className={styles.select} value={reportAssignedFilter} onChange={(e) => setReportAssignedFilter(e.target.value)}>
+              <option value="all">Assignment: all</option>
+              <option value="me">Assigned to me</option>
+              <option value="unassigned">Unassigned</option>
+            </select>
+            <div />
+            <div />
+          </div>
+          <div className={styles.filtersActions}>
+            <button
+              className="button secondary"
+              type="button"
+              onClick={() => {
+                setReportQuery("");
+                setReportStatusFilter("OPEN_INBOX");
+                setReportTypeFilter("all");
+                setReportAssignedFilter("all");
+                void loadReports(1);
+              }}
+            >
+              Reset
+            </button>
+            <button className="button" type="submit" disabled={reportsLoading}>
+              {reportsLoading ? "Se caută..." : "Caută"}
+            </button>
+          </div>
+        </form>
+
+        {reportsError ? <div className={`${styles.card} ${styles.errorCard}`}>{reportsError}</div> : null}
+
+        <div className={styles.splitGrid}>
+          <div className={styles.listStack}>
+            {(reports?.items || []).map((item) => (
+              <AdminReportRow
+                key={item.id}
+                item={item}
+                selected={selectedReportId === item.id}
+                busy={pendingKey?.startsWith(`report:${item.id}:`)}
+                onSelect={(id) => setSelectedReportId(id)}
+                onAction={(id, action) =>
+                  runAction(`report:${id}:${action}`, async () => {
+                    const needsReason = ["PAUSE_EXPERIENCE", "SUSPEND_USER"].includes(action) || action === "MARK_IGNORED";
+                    const reason = needsReason ? getCriticalReason(`Report action: ${action}`) : undefined;
+                    if (needsReason && !reason) return;
+                    await postReportAction(id, action, reason || undefined);
+                  })
+                }
+              />
+            ))}
+            {!reportsLoading && (reports?.items || []).length === 0 ? (
+              <div className={`${styles.card} ${styles.emptyCard}`}>Nu există reports pentru filtrele selectate.</div>
+            ) : null}
+            <div className={styles.pagination}>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={!reports || reports.page <= 1 || reportsLoading}
+                onClick={() => void loadReports((reports?.page || 1) - 1)}
+              >
+                ← Anterior
+              </button>
+              <span className="muted">
+                Pagina {reports?.page || 1} / {reports?.pages || 1}
+              </span>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={!reports || (reports?.page || 1) >= (reports?.pages || 1) || reportsLoading}
+                onClick={() => void loadReports((reports?.page || 1) + 1)}
+              >
+                Următor →
+              </button>
+            </div>
+          </div>
+
+          <div className={`${styles.card} ${styles.detailsCard}`}>
+            <div className={styles.sectionTitleRow}>
+              <h3 className={styles.detailsTitle}>Moderation details</h3>
+              {selectedReport ? <span className="muted">#{selectedReport.id.slice(-8)}</span> : null}
+            </div>
+
+            {!selectedReport ? <div className="muted">Selectează un report din inbox.</div> : null}
+            {selectedReport ? (
+              <>
+                <div className={styles.detailGrid}>
+                  <div><strong>Status</strong><span>{selectedReport.status || "—"}</span></div>
+                  <div><strong>Type</strong><span>{selectedReport.type || "—"}</span></div>
+                  <div><strong>Assigned</strong><span>{selectedReport.assignedTo || "—"}</span></div>
+                  <div><strong>Handled by</strong><span>{selectedReport.handledBy || "—"}</span></div>
+                  <div><strong>Age</strong><span>{numberFmt(selectedReport.ageHours)}h</span></div>
+                  <div><strong>Deadline</strong><span>{formatDate(selectedReport.deadlineAt)}</span></div>
+                  <div><strong>Reporter</strong><span>{selectedReport.reporter?.email || selectedReport.reporter?.name || "—"}</span></div>
+                  <div><strong>Host</strong><span>{selectedReport.host?.email || selectedReport.host?.name || "—"}</span></div>
+                  <div><strong>Target user</strong><span>{selectedReport.targetUser?.email || selectedReport.targetUser?.name || "—"}</span></div>
+                  <div><strong>Booking</strong><span>{selectedReport.booking?.id ? `#${selectedReport.booking.id.slice(-6)} · ${selectedReport.booking.status || "—"}` : "—"}</span></div>
+                </div>
+
+                <div className={styles.detailsSection}>
+                  <div className={styles.panelTitle}>Motiv</div>
+                  <div className={styles.miniItem}>
+                    <div><strong>{selectedReport.reason || "—"}</strong></div>
+                    <div className="muted">{selectedReport.comment || "Fără comentariu"}</div>
+                  </div>
+                </div>
+
+                <div className={styles.detailsSection}>
+                  <div className={styles.panelTitle}>Entity links</div>
+                  <div className={styles.buttonRow}>
+                    {selectedReport.experience?.id ? (
+                      <a className={styles.linkButton} href={`/experiences/${selectedReport.experience.id}`} target="_blank" rel="noreferrer">
+                        Deschide experiența
+                      </a>
+                    ) : null}
+                    {selectedReport.booking?.id ? (
+                      <button type="button" className="button secondary" onClick={() => { setActiveSection("bookings"); setBookingQuery(selectedReport.booking?.id || ""); void loadBookings(1); }}>
+                        Vezi booking în tab
+                      </button>
+                    ) : null}
+                    {selectedReport.reporter?.email ? (
+                      <button type="button" className="button secondary" onClick={() => { setActiveSection("users"); setUserQuery(selectedReport.reporter?.email || ""); void loadUsers(1); }}>
+                        Vezi reporter în users
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className={styles.detailsSection}>
+                  <div className={styles.panelTitle}>Quick moderation actions</div>
+                  <div className={styles.buttonRow}>
+                    <button
+                      type="button"
+                      className="button secondary"
+                      disabled={!!pendingKey?.startsWith(`report:${selectedReport.id}:`)}
+                      onClick={() =>
+                        void runAction(`report:${selectedReport.id}:MARK_INVESTIGATING`, () => postReportAction(selectedReport.id, "MARK_INVESTIGATING"))
+                      }
+                    >
+                      Investigating
+                    </button>
+                    <button
+                      type="button"
+                      className="button secondary"
+                      disabled={!!pendingKey?.startsWith(`report:${selectedReport.id}:`)}
+                      onClick={() =>
+                        void runAction(`report:${selectedReport.id}:MARK_HANDLED`, () => postReportAction(selectedReport.id, "MARK_HANDLED"))
+                      }
+                    >
+                      Mark handled
+                    </button>
+                    <button
+                      type="button"
+                      className="button secondary"
+                      disabled={!!pendingKey?.startsWith(`report:${selectedReport.id}:`)}
+                      onClick={() =>
+                        void runAction(`report:${selectedReport.id}:PAUSE_EXPERIENCE`, async () => {
+                          const reason = getCriticalReason("Pause experience from report");
+                          if (!reason) return;
+                          await postReportAction(selectedReport.id, "PAUSE_EXPERIENCE", reason);
+                        })
+                      }
+                    >
+                      Pause experience
+                    </button>
+                    <button
+                      type="button"
+                      className="button secondary"
+                      disabled={!!pendingKey?.startsWith(`report:${selectedReport.id}:`)}
+                      onClick={() =>
+                        void runAction(`report:${selectedReport.id}:SUSPEND_USER`, async () => {
+                          const reason = getCriticalReason("Suspend user from report");
+                          if (!reason) return;
+                          await postReportAction(selectedReport.id, "SUSPEND_USER", reason);
+                        })
+                      }
+                    >
+                      Suspend user
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
+      </section> : null}
+
+        {["payments", "messages", "system"].includes(activeSection) ? (
           <section className={styles.sectionBlock}>
             <div className={`${styles.card} ${styles.placeholderCard}`}>
               <h2 className={styles.sectionTitle} style={{ marginTop: 0 }}>

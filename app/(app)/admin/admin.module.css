@@ -488,6 +488,12 @@
   gap: 12px;
 }
 
+.detailsCardStatic {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .detailsTitle {
   margin: 0;
   font-size: 18px;

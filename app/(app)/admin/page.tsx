@@ -187,6 +187,86 @@ type AdminReportsResponse = {
   items: AdminReport[];
 };
 
+type AdminPaymentsHealthBooking = {
+  id: string;
+  status?: string;
+  quantity?: number;
+  amount?: number;
+  currency?: string;
+  payoutEligibleAt?: string | null;
+  refundedAt?: string | null;
+  cancelledAt?: string | null;
+  refundAttempts?: number;
+  lastRefundAttemptAt?: string | null;
+  createdAt?: string | null;
+  issueReason?: string;
+  host?: {
+    id?: string;
+    name?: string;
+    email?: string;
+    stripeAccountId?: string | null;
+    isStripeChargesEnabled?: boolean;
+    isStripePayoutsEnabled?: boolean;
+    isStripeDetailsSubmitted?: boolean;
+  } | null;
+  explorer?: { id?: string; name?: string; email?: string } | null;
+  experience?: { id?: string; title?: string; city?: string; country?: string; startsAt?: string | null; status?: string; isActive?: boolean } | null;
+  payment?: {
+    status?: string;
+    paymentType?: string;
+    amount?: number;
+    currency?: string;
+    hasStripePaymentIntent?: boolean;
+    stripeSessionId?: string | null;
+  } | null;
+};
+
+type AdminPaymentsHostIssue = {
+  id: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  isBlocked?: boolean;
+  isBanned?: boolean;
+  stripeAccountId?: string | null;
+  isStripeChargesEnabled?: boolean;
+  isStripePayoutsEnabled?: boolean;
+  isStripeDetailsSubmitted?: boolean;
+  totalEvents?: number;
+  totalParticipants?: number;
+  createdAt?: string | null;
+  issues?: string[];
+};
+
+type AdminDisputedPaymentItem = {
+  paymentId: string;
+  bookingId?: string | null;
+  status?: string;
+  paymentType?: string;
+  amount?: number;
+  currency?: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  booking?: AdminPaymentsHealthBooking | null;
+};
+
+type AdminPaymentsHealthResponse = {
+  generatedAt?: string;
+  summary?: {
+    refundFailedBookings?: number;
+    refundFailedLast7d?: number;
+    disputedPayments?: number;
+    stripeOnboardingIncompleteHosts?: number;
+    stripeMissingAccountHosts?: number;
+    payoutEligibleBookings?: number;
+    payoutAttentionBookings?: number;
+  };
+  refundFailedBookings?: AdminPaymentsHealthBooking[];
+  stripeOnboardingIncompleteHosts?: AdminPaymentsHostIssue[];
+  payoutAttentionBookings?: AdminPaymentsHealthBooking[];
+  disputedPayments?: AdminDisputedPaymentItem[];
+};
+
 const numberFmt = (value?: number) => new Intl.NumberFormat("ro-RO").format(Number(value || 0));
 const formatMoney = (value?: number, currency?: string) =>
   `${numberFmt(value)} ${String(currency || "RON").toUpperCase()}`;
@@ -575,6 +655,10 @@ export default function AdminPage() {
   const [reportAssignedFilter, setReportAssignedFilter] = useState("all");
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
 
+  const [paymentsHealth, setPaymentsHealth] = useState<AdminPaymentsHealthResponse | null>(null);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [paymentsError, setPaymentsError] = useState("");
+
   const [actionError, setActionError] = useState("");
   const [actionInfo, setActionInfo] = useState("");
   const [pendingKey, setPendingKey] = useState<string | null>(null);
@@ -730,6 +814,19 @@ export default function AdminPage() {
     [reportQuery, reportStatusFilter, reportTypeFilter, reportAssignedFilter]
   );
 
+  const loadPaymentsHealth = useCallback(async () => {
+    setPaymentsLoading(true);
+    setPaymentsError("");
+    try {
+      const data = await apiGet<AdminPaymentsHealthResponse>("/admin/payments/health");
+      setPaymentsHealth(data || null);
+    } catch (err) {
+      setPaymentsError((err as Error)?.message || "Nu am putut încărca Payments health.");
+    } finally {
+      setPaymentsLoading(false);
+    }
+  }, []);
+
   const refreshAll = useCallback(async () => {
     await Promise.all([
       loadDashboard(),
@@ -737,9 +834,10 @@ export default function AdminPage() {
       loadExperiences(experiences?.page || 1),
       loadBookings(bookings?.page || 1),
       loadReports(reports?.page || 1),
+      loadPaymentsHealth(),
       loadRecentAdminActions(),
     ]);
-  }, [loadDashboard, loadUsers, loadExperiences, loadBookings, loadReports, loadRecentAdminActions, users?.page, experiences?.page, bookings?.page, reports?.page]);
+  }, [loadDashboard, loadUsers, loadExperiences, loadBookings, loadReports, loadPaymentsHealth, loadRecentAdminActions, users?.page, experiences?.page, bookings?.page, reports?.page]);
 
   useEffect(() => {
     if (authLoading || !token || !isAdmin) return;
@@ -868,7 +966,7 @@ export default function AdminPage() {
     [reports?.items, selectedReportId]
   );
 
-  if (authLoading || (!token && !dashboard && !users && !experiences && !bookings && !reports)) {
+  if (authLoading || (!token && !dashboard && !users && !experiences && !bookings && !reports && !paymentsHealth)) {
     return <div className="muted">Se încarcă admin-ul...</div>;
   }
 
@@ -906,7 +1004,7 @@ export default function AdminPage() {
     { key: "experiences", label: "Experiences", hint: "Quality & safety" },
     { key: "bookings", label: "Bookings", hint: "Ops & refunds" },
     { key: "reports", label: "Reports / Moderation", hint: "Inbox & safety" },
-    { key: "payments", label: "Payments & Refunds", hint: "Coming next" },
+    { key: "payments", label: "Payments & Refunds", hint: "Health & issues" },
     { key: "messages", label: "Messages", hint: "Coming next" },
     { key: "system", label: "System", hint: "Coming next" },
   ];
@@ -961,11 +1059,14 @@ export default function AdminPage() {
                 <button type="button" className="button secondary" onClick={() => setActiveSection("reports")}>
                   Reports
                 </button>
+                <button type="button" className="button secondary" onClick={() => setActiveSection("payments")}>
+                  Payments
+                </button>
                 <button
                   type="button"
                   className="button"
                   onClick={() => void refreshAll()}
-                  disabled={dashboardLoading || usersLoading || experiencesLoading || bookingsLoading || reportsLoading || recentLoading}
+                  disabled={dashboardLoading || usersLoading || experiencesLoading || bookingsLoading || reportsLoading || paymentsLoading || recentLoading}
                 >
                   Refresh all
                 </button>
@@ -1648,7 +1749,209 @@ export default function AdminPage() {
         </div>
       </section> : null}
 
-        {["payments", "messages", "system"].includes(activeSection) ? (
+      {activeSection === "payments" ? (
+        <section className={styles.sectionBlock}>
+          <div className={styles.sectionTitleRow}>
+            <h2 className={styles.sectionTitle}>Payments & Refunds</h2>
+            <span className="muted">
+              {paymentsHealth?.generatedAt ? `Actualizat: ${formatDate(paymentsHealth.generatedAt)}` : "—"}
+            </span>
+          </div>
+
+          {paymentsError ? <div className={`${styles.card} ${styles.errorCard}`}>{paymentsError}</div> : null}
+          {paymentsLoading ? <div className={`${styles.card} ${styles.emptyCard}`}>Se încarcă health checks...</div> : null}
+
+          <div className={styles.statsGrid}>
+            <StatCard
+              label="Refund failed"
+              value={paymentsHealth?.summary?.refundFailedBookings}
+              hint={`+${numberFmt(paymentsHealth?.summary?.refundFailedLast7d)} în 7 zile`}
+            />
+            <StatCard
+              label="Disputes"
+              value={paymentsHealth?.summary?.disputedPayments}
+              hint="Plăți în dispută Stripe"
+            />
+            <StatCard
+              label="Stripe incomplete hosts"
+              value={paymentsHealth?.summary?.stripeOnboardingIncompleteHosts}
+              hint={`Fără cont: ${numberFmt(paymentsHealth?.summary?.stripeMissingAccountHosts)}`}
+            />
+            <StatCard
+              label="Payout attention"
+              value={paymentsHealth?.summary?.payoutAttentionBookings}
+              hint={`Eligible bookings: ${numberFmt(paymentsHealth?.summary?.payoutEligibleBookings)}`}
+            />
+          </div>
+
+          <div className={styles.overviewGrid}>
+            <div className={`${styles.card} ${styles.inboxCard}`}>
+              <div className={styles.panelTitle}>Refund failed (top 20)</div>
+              {(paymentsHealth?.refundFailedBookings || []).length === 0 ? (
+                <div className="muted">Nu există booking-uri cu REFUND_FAILED.</div>
+              ) : (
+                <div className={styles.stackSm}>
+                  {(paymentsHealth?.refundFailedBookings || []).slice(0, 8).map((row) => (
+                    <div key={row.id} className={styles.miniItem}>
+                      <div>
+                        <strong>{row.experience?.title || "Booking"}</strong> · {row.status}
+                      </div>
+                      <div className="muted">
+                        Host: {row.host?.email || row.host?.name || "—"} · Attempts: {numberFmt(row.refundAttempts)}
+                      </div>
+                      <div className="muted">
+                        {formatMoney(row.payment?.amount ?? row.amount, row.payment?.currency || row.currency)} · Last try: {formatDate(row.lastRefundAttemptAt)}
+                      </div>
+                      <div className={styles.buttonRow}>
+                        <button
+                          type="button"
+                          className="button secondary"
+                          onClick={() => {
+                            setActiveSection("bookings");
+                            setBookingQuery(row.id);
+                            void loadBookings(1);
+                          }}
+                        >
+                          Deschide în Bookings
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className={`${styles.card} ${styles.inboxCard}`}>
+              <div className={styles.panelTitle}>Stripe onboarding incomplete (hosts)</div>
+              {(paymentsHealth?.stripeOnboardingIncompleteHosts || []).length === 0 ? (
+                <div className="muted">Toți host-ii verificați par OK în Stripe.</div>
+              ) : (
+                <div className={styles.stackSm}>
+                  {(paymentsHealth?.stripeOnboardingIncompleteHosts || []).slice(0, 8).map((host) => (
+                    <div key={host.id} className={styles.miniItem}>
+                      <div>
+                        <strong>{host.email || host.name || "Host"}</strong>
+                      </div>
+                      <div className="muted">
+                        Role: {host.role || "—"} · Events: {numberFmt(host.totalEvents)} · Participants: {numberFmt(host.totalParticipants)}
+                      </div>
+                      <div className={styles.badgeRow}>
+                        {(host.issues || []).map((issue) => (
+                          <span key={`${host.id}-${issue}`} className={`${styles.badge} ${styles.badgeWarn}`}>{issue}</span>
+                        ))}
+                      </div>
+                      <div className={styles.buttonRow}>
+                        <button
+                          type="button"
+                          className="button secondary"
+                          onClick={() => {
+                            setActiveSection("users");
+                            setUserQuery(host.email || host.id);
+                            void loadUsers(1);
+                          }}
+                        >
+                          Vezi host în Users
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.splitGrid}>
+            <div className={`${styles.card} ${styles.detailsCardStatic}`}>
+              <div className={styles.panelTitle}>Payout attention (eligible but blocked)</div>
+              {(paymentsHealth?.payoutAttentionBookings || []).length === 0 ? (
+                <div className="muted">Nu există payout-uri eligibile blocate.</div>
+              ) : (
+                <div className={styles.stackSm}>
+                  {(paymentsHealth?.payoutAttentionBookings || []).map((row) => (
+                    <div key={row.id} className={styles.miniItem}>
+                      <div>
+                        <strong>{row.experience?.title || "Booking"}</strong> · #{row.id.slice(-6)}
+                      </div>
+                      <div className="muted">
+                        Payout eligible: {formatDate(row.payoutEligibleAt)} · Host: {row.host?.email || row.host?.name || "—"}
+                      </div>
+                      <div className={styles.badgeRow}>
+                        {String(row.issueReason || "").split(",").filter(Boolean).map((issue) => (
+                          <span key={`${row.id}-${issue}`} className={`${styles.badge} ${styles.badgeWarn}`}>{issue}</span>
+                        ))}
+                      </div>
+                      <div className={styles.buttonRow}>
+                        <button
+                          type="button"
+                          className="button secondary"
+                          onClick={() => {
+                            setActiveSection("bookings");
+                            setBookingQuery(row.id);
+                            void loadBookings(1);
+                          }}
+                        >
+                          Booking
+                        </button>
+                        <button
+                          type="button"
+                          className="button secondary"
+                          onClick={() => {
+                            setActiveSection("users");
+                            setUserQuery(row.host?.email || row.host?.id || "");
+                            void loadUsers(1);
+                          }}
+                        >
+                          Host
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className={`${styles.card} ${styles.detailsCardStatic}`}>
+              <div className={styles.panelTitle}>Stripe disputes (latest)</div>
+              {(paymentsHealth?.disputedPayments || []).length === 0 ? (
+                <div className="muted">Nu există plăți în dispută.</div>
+              ) : (
+                <div className={styles.stackSm}>
+                  {(paymentsHealth?.disputedPayments || []).map((row) => (
+                    <div key={row.paymentId} className={styles.miniItem}>
+                      <div>
+                        <strong>{row.status || "DISPUTE"}</strong> · {row.paymentType || "PAYMENT"}
+                      </div>
+                      <div className="muted">
+                        {formatMoney(row.amount, row.currency)} · {formatDate(row.updatedAt || row.createdAt)}
+                      </div>
+                      <div className="muted">
+                        Booking: {row.bookingId ? `#${row.bookingId.slice(-6)}` : "—"} · {row.booking?.experience?.title || "fără booking"}
+                      </div>
+                      <div className={styles.buttonRow}>
+                        {row.bookingId ? (
+                          <button
+                            type="button"
+                            className="button secondary"
+                            onClick={() => {
+                              setActiveSection("bookings");
+                              setBookingQuery(row.bookingId || "");
+                              void loadBookings(1);
+                            }}
+                          >
+                            Vezi booking
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+        {["messages", "system"].includes(activeSection) ? (
           <section className={styles.sectionBlock}>
             <div className={`${styles.card} ${styles.placeholderCard}`}>
               <h2 className={styles.sectionTitle} style={{ marginTop: 0 }}>

@@ -566,6 +566,38 @@
   gap: 4px;
 }
 
+.mediaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mediaCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 8px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mediaPreview {
+  width: 100%;
+  height: 120px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+}
+
+.mediaMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .codeBlock {
   margin: 0;
   border: 1px solid #e5e7eb;
@@ -639,6 +671,10 @@
   }
 
   .detailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .mediaGrid {
     grid-template-columns: 1fr;
   }
 

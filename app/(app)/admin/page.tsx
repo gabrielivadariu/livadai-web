@@ -151,6 +151,57 @@ type AdminExperiencesResponse = {
   items: AdminExperience[];
 };
 
+type AdminExperienceMediaItem = {
+  url: string;
+  kind?: "image" | "video" | string;
+  source?: string;
+  publicId?: string | null;
+  resourceType?: string;
+};
+
+type AdminExperienceDetails = AdminExperience & {
+  shortDescription?: string;
+  description?: string;
+  category?: string;
+  durationMinutes?: number;
+  currencyCode?: string;
+  activityType?: string;
+  languages?: string[];
+  address?: string;
+  street?: string;
+  streetNumber?: string;
+  countryCode?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  reminderHostSent?: boolean;
+  mediaCleanedAt?: string | null;
+  host?: (AdminExperience["host"] & {
+    stripeAccountId?: string | null;
+    isStripeChargesEnabled?: boolean;
+    isStripePayoutsEnabled?: boolean;
+    isStripeDetailsSubmitted?: boolean;
+  }) | null;
+};
+
+type AdminExperienceDetailsResponse = {
+  experience?: AdminExperienceDetails;
+  counts?: {
+    bookingsTotal?: number;
+    bookingsActive?: number;
+    bookingsPaidLike?: number;
+    participantsBooked?: number;
+    reportsTotal?: number;
+    reportsOpen?: number;
+    messagesCount?: number;
+    mediaItems?: number;
+  };
+  media?: AdminExperienceMediaItem[];
+  recentBookings?: AdminBooking[];
+  recentReports?: AdminReport[];
+  recentAudit?: AdminAuditLogItem[];
+  timeline?: AdminUserTimelineItem[];
+};
+
 type AdminAuditLogItem = {
   id: string;
   actorId?: string;
@@ -549,12 +600,16 @@ function AdminUserRow({
 
 function AdminExperienceRow({
   item,
+  selected,
   busy,
+  onOpenDetails,
   onToggleActive,
   onSaveStatus,
 }: {
   item: AdminExperience;
+  selected?: boolean;
   busy?: boolean;
+  onOpenDetails: (id: string) => Promise<void>;
   onToggleActive: (id: string, nextValue: boolean) => Promise<void>;
   onSaveStatus: (id: string, status: string) => Promise<void>;
 }) {
@@ -565,7 +620,7 @@ function AdminExperienceRow({
   }, [item.status]);
 
   return (
-    <div className={`${styles.card} ${styles.rowCard}`}>
+    <div className={`${styles.card} ${styles.rowCard} ${selected ? styles.rowCardSelected : ""}`}>
       <div className={styles.rowTop}>
         <div>
           <div className={styles.rowTitle}>{item.title || "Fără titlu"}</div>
@@ -617,6 +672,14 @@ function AdminExperienceRow({
           </button>
         </div>
         <div className={styles.buttonRow}>
+          <button
+            type="button"
+            className="button secondary"
+            disabled={busy}
+            onClick={() => void onOpenDetails(item.id)}
+          >
+            {selected ? "Reîncarcă detalii" : "Detalii"}
+          </button>
           <button
             type="button"
             className="button secondary"
@@ -827,6 +890,10 @@ export default function AdminPage() {
   const [experienceQuery, setExperienceQuery] = useState("");
   const [experienceStatusFilter, setExperienceStatusFilter] = useState("all");
   const [experienceActiveFilter, setExperienceActiveFilter] = useState("all");
+  const [selectedExperienceId, setSelectedExperienceId] = useState<string | null>(null);
+  const [experienceDetails, setExperienceDetails] = useState<AdminExperienceDetailsResponse | null>(null);
+  const [experienceDetailsLoading, setExperienceDetailsLoading] = useState(false);
+  const [experienceDetailsError, setExperienceDetailsError] = useState("");
 
   const [bookings, setBookings] = useState<AdminBookingsResponse | null>(null);
   const [bookingsLoading, setBookingsLoading] = useState(false);
@@ -974,6 +1041,20 @@ export default function AdminPage() {
     },
     [experienceQuery, experienceStatusFilter, experienceActiveFilter]
   );
+
+  const loadExperienceDetails = useCallback(async (id: string) => {
+    setSelectedExperienceId(id);
+    setExperienceDetailsLoading(true);
+    setExperienceDetailsError("");
+    try {
+      const data = await apiGet<AdminExperienceDetailsResponse>(`/admin/experiences/${id}`);
+      setExperienceDetails(data || null);
+    } catch (err) {
+      setExperienceDetailsError((err as Error)?.message || "Nu am putut încărca detaliile experienței.");
+    } finally {
+      setExperienceDetailsLoading(false);
+    }
+  }, []);
 
   const loadBookings = useCallback(
     async (page = 1) => {
@@ -1150,9 +1231,14 @@ export default function AdminPage() {
     async (id: string, payload: Record<string, unknown>, info = "Experiență actualizată") => {
       await apiPatch(`/admin/experiences/${id}`, payload);
       setActionInfo(info);
-      await Promise.all([loadExperiences(experiences?.page || 1), loadDashboard()]);
+      await Promise.all([
+        loadExperiences(experiences?.page || 1),
+        loadDashboard(),
+        ...(selectedExperienceId === id ? [loadExperienceDetails(id)] : []),
+        loadRecentAdminActions(),
+      ]);
     },
-    [loadExperiences, loadDashboard, experiences?.page]
+    [loadExperiences, loadDashboard, loadExperienceDetails, loadRecentAdminActions, experiences?.page, selectedExperienceId]
   );
 
   const postBookingAction = useCallback(
@@ -1704,63 +1790,214 @@ export default function AdminPage() {
         </form>
 
         {experiencesError ? <div className={`${styles.card} ${styles.errorCard}`}>{experiencesError}</div> : null}
-        <div className={styles.listStack}>
-          {(experiences?.items || []).map((item) => (
-            <AdminExperienceRow
-              key={item.id}
-              item={item}
-              busy={pendingKey?.startsWith(`exp:${item.id}:`)}
-              onToggleActive={(id, nextValue) =>
-                runAction(
-                  `exp:${id}:active`,
-                  async () => {
-                    let reason: string | null = null;
-                    if (!nextValue) {
-                      reason = getCriticalReason("Dezactivare experiență");
-                      if (!reason) return;
+        <div className={styles.splitGrid}>
+          <div className={styles.listStack}>
+            {(experiences?.items || []).map((item) => (
+              <AdminExperienceRow
+                key={item.id}
+                item={item}
+                selected={selectedExperienceId === item.id}
+                busy={!!pendingKey?.startsWith(`exp:${item.id}:`)}
+                onOpenDetails={loadExperienceDetails}
+                onToggleActive={(id, nextValue) =>
+                  runAction(
+                    `exp:${id}:active`,
+                    async () => {
+                      let reason: string | null = null;
+                      if (!nextValue) {
+                        reason = getCriticalReason("Dezactivare experiență");
+                        if (!reason) return;
+                      }
+                      await patchExperience(
+                        id,
+                        { isActive: nextValue, ...(reason ? { reason } : {}) },
+                        nextValue ? "Experiență activată" : "Experiență dezactivată"
+                      );
                     }
-                    await patchExperience(
-                      id,
-                      { isActive: nextValue, ...(reason ? { reason } : {}) },
-                      nextValue ? "Experiență activată" : "Experiență dezactivată"
-                    );
-                  }
-                )
-              }
-              onSaveStatus={(id, status) =>
-                runAction(`exp:${id}:status`, async () => {
-                  const critical = ["DISABLED", "CANCELLED", "cancelled"].includes(status);
-                  const reason = critical ? getCriticalReason(`Schimbare status experiență la ${status}`) : null;
-                  if (critical && !reason) return;
-                  await patchExperience(id, { status, ...(reason ? { reason } : {}) }, `Status salvat (${status})`);
-                })
-              }
-            />
-          ))}
-          {!experiencesLoading && (experiences?.items || []).length === 0 ? (
-            <div className={`${styles.card} ${styles.emptyCard}`}>Nu există experiențe pentru filtrele selectate.</div>
-          ) : null}
-        </div>
-        <div className={styles.pagination}>
-          <button
-            type="button"
-            className="button secondary"
-            disabled={!experiences || experiences.page <= 1 || experiencesLoading}
-            onClick={() => void loadExperiences((experiences?.page || 1) - 1)}
-          >
-            ← Anterior
-          </button>
-          <span className="muted">
-            Pagina {experiences?.page || 1} / {experiences?.pages || 1}
-          </span>
-          <button
-            type="button"
-            className="button secondary"
-            disabled={!experiences || (experiences?.page || 1) >= (experiences?.pages || 1) || experiencesLoading}
-            onClick={() => void loadExperiences((experiences?.page || 1) + 1)}
-          >
-            Următor →
-          </button>
+                  )
+                }
+                onSaveStatus={(id, status) =>
+                  runAction(`exp:${id}:status`, async () => {
+                    const critical = ["DISABLED", "CANCELLED", "cancelled"].includes(status);
+                    const reason = critical ? getCriticalReason(`Schimbare status experiență la ${status}`) : null;
+                    if (critical && !reason) return;
+                    await patchExperience(id, { status, ...(reason ? { reason } : {}) }, `Status salvat (${status})`);
+                  })
+                }
+              />
+            ))}
+            {!experiencesLoading && (experiences?.items || []).length === 0 ? (
+              <div className={`${styles.card} ${styles.emptyCard}`}>Nu există experiențe pentru filtrele selectate.</div>
+            ) : null}
+            <div className={styles.pagination}>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={!experiences || experiences.page <= 1 || experiencesLoading}
+                onClick={() => void loadExperiences((experiences?.page || 1) - 1)}
+              >
+                ← Anterior
+              </button>
+              <span className="muted">
+                Pagina {experiences?.page || 1} / {experiences?.pages || 1}
+              </span>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={!experiences || (experiences?.page || 1) >= (experiences?.pages || 1) || experiencesLoading}
+                onClick={() => void loadExperiences((experiences?.page || 1) + 1)}
+              >
+                Următor →
+              </button>
+            </div>
+          </div>
+
+          <div className={`${styles.card} ${styles.detailsCard}`}>
+            <div className={styles.sectionTitleRow}>
+              <h3 className={styles.detailsTitle}>Experience details</h3>
+              {experienceDetails?.experience?.id ? <span className="muted">#{experienceDetails.experience.id.slice(-8)}</span> : null}
+            </div>
+
+            {!selectedExperienceId ? <div className="muted">Selectează o experiență din listă.</div> : null}
+            {selectedExperienceId && experienceDetailsLoading ? <div className="muted">Se încarcă detaliile...</div> : null}
+            {selectedExperienceId && experienceDetailsError ? <div className={`${styles.banner} ${styles.bannerError}`}>{experienceDetailsError}</div> : null}
+
+            {selectedExperienceId && !experienceDetailsLoading && !experienceDetailsError && experienceDetails?.experience ? (
+              <>
+                <div className={styles.detailGrid}>
+                  <div><strong>Titlu</strong><span>{experienceDetails.experience.title || "—"}</span></div>
+                  <div><strong>Status</strong><span>{experienceDetails.experience.status || "—"}</span></div>
+                  <div><strong>Activ</strong><span>{experienceDetails.experience.isActive ? "Da" : "Nu"}</span></div>
+                  <div><strong>Host</strong><span>{experienceDetails.experience.host?.email || experienceDetails.experience.host?.name || "—"}</span></div>
+                  <div><strong>Preț</strong><span>{numberFmt(experienceDetails.experience.price)} {experienceDetails.experience.currencyCode || "RON"}</span></div>
+                  <div><strong>Tip</strong><span>{experienceDetails.experience.activityType || "—"}</span></div>
+                  <div><strong>Mediu</strong><span>{experienceDetails.experience.environment || "—"}</span></div>
+                  <div><strong>Durată</strong><span>{numberFmt(experienceDetails.experience.durationMinutes)} min</span></div>
+                  <div><strong>Start</strong><span>{formatDate(experienceDetails.experience.startsAt)}</span></div>
+                  <div><strong>End</strong><span>{formatDate(experienceDetails.experience.endsAt)}</span></div>
+                  <div><strong>Locație</strong><span>{[experienceDetails.experience.city, experienceDetails.experience.country].filter(Boolean).join(", ") || "—"}</span></div>
+                  <div><strong>Adresă</strong><span>{experienceDetails.experience.address || "—"}</span></div>
+                </div>
+
+                <div className={styles.detailsSection}>
+                  <div className={styles.panelTitle}>Counts</div>
+                  <div className={styles.detailGrid}>
+                    <div><strong>Bookings total</strong><span>{numberFmt(experienceDetails.counts?.bookingsTotal)}</span></div>
+                    <div><strong>Bookings active</strong><span>{numberFmt(experienceDetails.counts?.bookingsActive)}</span></div>
+                    <div><strong>Bookings paid-like</strong><span>{numberFmt(experienceDetails.counts?.bookingsPaidLike)}</span></div>
+                    <div><strong>Participanți</strong><span>{numberFmt(experienceDetails.counts?.participantsBooked)} / {numberFmt(experienceDetails.experience.maxParticipants)}</span></div>
+                    <div><strong>Reports total</strong><span>{numberFmt(experienceDetails.counts?.reportsTotal)}</span></div>
+                    <div><strong>Reports open</strong><span>{numberFmt(experienceDetails.counts?.reportsOpen)}</span></div>
+                    <div><strong>Messages</strong><span>{numberFmt(experienceDetails.counts?.messagesCount)}</span></div>
+                    <div><strong>Media items</strong><span>{numberFmt(experienceDetails.counts?.mediaItems)}</span></div>
+                  </div>
+                </div>
+
+                {(experienceDetails.experience.languages?.length || 0) > 0 ? (
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>Languages</div>
+                    <div className={styles.badgeRow}>
+                      {(experienceDetails.experience.languages || []).map((lang) => (
+                        <span key={`${experienceDetails.experience?.id}-${lang}`} className={styles.badge}>{lang}</span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {experienceDetails.experience.shortDescription || experienceDetails.experience.description ? (
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>Copy</div>
+                    {experienceDetails.experience.shortDescription ? (
+                      <div className={styles.miniItem}>
+                        <div><strong>Short</strong></div>
+                        <div>{experienceDetails.experience.shortDescription}</div>
+                      </div>
+                    ) : null}
+                    {experienceDetails.experience.description ? (
+                      <div className={styles.miniItem}>
+                        <div><strong>Description</strong></div>
+                        <div className="muted">{experienceDetails.experience.description}</div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className={styles.detailsSection}>
+                  <div className={styles.panelTitle}>Media preview</div>
+                  {(experienceDetails.media || []).length === 0 ? (
+                    <div className="muted">Nu există media atașată.</div>
+                  ) : (
+                    <div className={styles.mediaGrid}>
+                      {(experienceDetails.media || []).slice(0, 8).map((m, idx) => (
+                        <div key={`${m.url}-${idx}`} className={styles.mediaCard}>
+                          {String(m.kind) === "video" ? (
+                            <video className={styles.mediaPreview} src={m.url} controls preload="metadata" />
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img className={styles.mediaPreview} src={m.url} alt={`media-${idx + 1}`} loading="lazy" />
+                          )}
+                          <div className={styles.mediaMeta}>
+                            <span className={styles.badge}>{m.kind || "media"}</span>
+                            {m.source ? <span className={styles.badge}>{m.source}</span> : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.detailsSection}>
+                  <div className={styles.panelTitle}>Quick links</div>
+                  <div className={styles.buttonRow}>
+                    <a className={styles.linkButton} href={`/experiences/${experienceDetails.experience.id}`} target="_blank" rel="noreferrer">
+                      Deschide public page
+                    </a>
+                    <button
+                      type="button"
+                      className="button secondary"
+                      onClick={() => {
+                        setActiveSection("bookings");
+                        setBookingQuery(experienceDetails.experience?.id || "");
+                        void loadBookings(1);
+                      }}
+                    >
+                      Vezi bookings
+                    </button>
+                    {experienceDetails.experience.host?.email ? (
+                      <button
+                        type="button"
+                        className="button secondary"
+                        onClick={() => {
+                          setActiveSection("users");
+                          setUserQuery(experienceDetails.experience?.host?.email || "");
+                          void loadUsers(1);
+                        }}
+                      >
+                        Vezi host
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className={styles.detailsSection}>
+                  <div className={styles.panelTitle}>Recent activity</div>
+                  {(experienceDetails.timeline || []).length === 0 ? (
+                    <div className="muted">Fără evenimente recente.</div>
+                  ) : (
+                    <div className={styles.stackSm}>
+                      {(experienceDetails.timeline || []).slice(0, 10).map((event, idx) => (
+                        <div key={`${event.kind}-${event.targetId || idx}-${event.at || idx}`} className={styles.miniItem}>
+                          <div><strong>{event.kind}</strong></div>
+                          <div className="muted">{event.label || "—"}</div>
+                          <div className="muted">{formatDate(event.at || null)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : null}
+          </div>
         </div>
       </section> : null}
 

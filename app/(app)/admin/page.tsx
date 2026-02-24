@@ -280,6 +280,50 @@ type AdminPaymentsHealthResponse = {
   disputedPayments?: AdminDisputedPaymentItem[];
 };
 
+type AdminSystemHealthResponse = {
+  generatedAt?: string;
+  runtime?: {
+    nodeVersion?: string;
+    env?: string;
+    uptimeSeconds?: number;
+    pid?: number;
+  };
+  database?: {
+    state?: string;
+    name?: string | null;
+    host?: string | null;
+  };
+  security?: {
+    adminAllowlistConfigured?: boolean;
+    adminAllowlistCount?: number;
+    adminRateLimitWindowMs?: number;
+    adminRateLimitMax?: number;
+    jwtSecretConfigured?: boolean;
+    adminActionSecretConfigured?: boolean;
+    cookieSecretConfigured?: boolean;
+  };
+  integrations?: {
+    stripeSecretConfigured?: boolean;
+    stripeWebhookSecretConfigured?: boolean;
+    cloudinaryConfigured?: boolean;
+    resendConfigured?: boolean;
+    smtpConfigured?: boolean;
+    reportsEmailConfigured?: boolean;
+  };
+  web?: {
+    allowedWebOriginsCount?: number;
+    allowedWebOrigins?: string[];
+  };
+  opsAttention?: {
+    openReports?: number;
+    investigatingReports?: number;
+    refundFailedBookings?: number;
+    disputedPayments?: number;
+    staleInitiatedPayments?: number;
+    adminActionsLast24h?: number;
+  };
+};
+
 const numberFmt = (value?: number) => new Intl.NumberFormat("ro-RO").format(Number(value || 0));
 const formatMoney = (value?: number, currency?: string) =>
   `${numberFmt(value)} ${String(currency || "RON").toUpperCase()}`;
@@ -301,6 +345,18 @@ const formatJson = (value: unknown) => {
   } catch {
     return String(value);
   }
+};
+
+const formatUptime = (seconds?: number) => {
+  const total = Math.max(0, Number(seconds || 0));
+  const days = Math.floor(total / 86400);
+  const hours = Math.floor((total % 86400) / 3600);
+  const mins = Math.floor((total % 3600) / 60);
+  const parts = [];
+  if (days) parts.push(`${days}z`);
+  if (hours || days) parts.push(`${hours}h`);
+  parts.push(`${mins}m`);
+  return parts.join(" ");
 };
 
 function StatCard({
@@ -729,6 +785,10 @@ export default function AdminPage() {
   const [auditActorEmailFilter, setAuditActorEmailFilter] = useState("");
   const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
 
+  const [systemHealth, setSystemHealth] = useState<AdminSystemHealthResponse | null>(null);
+  const [systemLoading, setSystemLoading] = useState(false);
+  const [systemError, setSystemError] = useState("");
+
   const [actionError, setActionError] = useState("");
   const [actionInfo, setActionInfo] = useState("");
   const [pendingKey, setPendingKey] = useState<string | null>(null);
@@ -920,6 +980,19 @@ export default function AdminPage() {
     [auditQuery, auditActionTypeFilter, auditTargetTypeFilter, auditActorEmailFilter]
   );
 
+  const loadSystemHealth = useCallback(async () => {
+    setSystemLoading(true);
+    setSystemError("");
+    try {
+      const data = await apiGet<AdminSystemHealthResponse>("/admin/system/health");
+      setSystemHealth(data || null);
+    } catch (err) {
+      setSystemError((err as Error)?.message || "Nu am putut încărca System health.");
+    } finally {
+      setSystemLoading(false);
+    }
+  }, []);
+
   const refreshAll = useCallback(async () => {
     await Promise.all([
       loadDashboard(),
@@ -929,9 +1002,10 @@ export default function AdminPage() {
       loadReports(reports?.page || 1),
       loadPaymentsHealth(),
       loadAuditLogs(auditLogs?.page || 1),
+      loadSystemHealth(),
       loadRecentAdminActions(),
     ]);
-  }, [loadDashboard, loadUsers, loadExperiences, loadBookings, loadReports, loadPaymentsHealth, loadAuditLogs, loadRecentAdminActions, users?.page, experiences?.page, bookings?.page, reports?.page, auditLogs?.page]);
+  }, [loadDashboard, loadUsers, loadExperiences, loadBookings, loadReports, loadPaymentsHealth, loadAuditLogs, loadSystemHealth, loadRecentAdminActions, users?.page, experiences?.page, bookings?.page, reports?.page, auditLogs?.page]);
 
   useEffect(() => {
     if (authLoading || !token || !isAdmin) return;
@@ -1065,7 +1139,7 @@ export default function AdminPage() {
     [auditLogs?.items, selectedAuditId]
   );
 
-  if (authLoading || (!token && !dashboard && !users && !experiences && !bookings && !reports && !paymentsHealth && !auditLogs)) {
+  if (authLoading || (!token && !dashboard && !users && !experiences && !bookings && !reports && !paymentsHealth && !auditLogs && !systemHealth)) {
     return <div className="muted">Se încarcă admin-ul...</div>;
   }
 
@@ -1111,7 +1185,7 @@ export default function AdminPage() {
     { key: "payments", label: "Payments & Refunds", hint: "Health & issues" },
     { key: "audit", label: "Audit Log", hint: "Trace admin actions" },
     { key: "messages", label: "Messages", hint: "Coming next" },
-    { key: "system", label: "System", hint: "Coming next" },
+    { key: "system", label: "System", hint: "Health & config" },
   ];
 
   return (
@@ -1170,11 +1244,14 @@ export default function AdminPage() {
                 <button type="button" className="button secondary" onClick={() => setActiveSection("audit")}>
                   Audit
                 </button>
+                <button type="button" className="button secondary" onClick={() => setActiveSection("system")}>
+                  System
+                </button>
                 <button
                   type="button"
                   className="button"
                   onClick={() => void refreshAll()}
-                  disabled={dashboardLoading || usersLoading || experiencesLoading || bookingsLoading || reportsLoading || paymentsLoading || auditLoading || recentLoading}
+                  disabled={dashboardLoading || usersLoading || experiencesLoading || bookingsLoading || reportsLoading || paymentsLoading || auditLoading || systemLoading || recentLoading}
                 >
                   Refresh all
                 </button>
@@ -2253,7 +2330,122 @@ export default function AdminPage() {
         </section>
       ) : null}
 
-        {["messages", "system"].includes(activeSection) ? (
+      {activeSection === "system" ? (
+        <section className={styles.sectionBlock}>
+          <div className={styles.sectionTitleRow}>
+            <h2 className={styles.sectionTitle}>System</h2>
+            <span className="muted">
+              {systemHealth?.generatedAt ? `Actualizat: ${formatDate(systemHealth.generatedAt)}` : "—"}
+            </span>
+          </div>
+
+          {systemError ? <div className={`${styles.card} ${styles.errorCard}`}>{systemError}</div> : null}
+          {systemLoading ? <div className={`${styles.card} ${styles.emptyCard}`}>Se încarcă System health...</div> : null}
+
+          <div className={styles.statsGrid}>
+            <StatCard label="Reports OPEN" value={systemHealth?.opsAttention?.openReports} hint="Moderation inbox" />
+            <StatCard label="Reports INVESTIG." value={systemHealth?.opsAttention?.investigatingReports} hint="În lucru" />
+            <StatCard label="Refund failed" value={systemHealth?.opsAttention?.refundFailedBookings} hint="Necesită intervenție" />
+            <StatCard label="Disputes" value={systemHealth?.opsAttention?.disputedPayments} hint="Stripe / charge disputes" />
+            <StatCard label="Plăți INITIATED stale" value={systemHealth?.opsAttention?.staleInitiatedPayments} hint="> 30 minute" />
+            <StatCard label="Admin actions 24h" value={systemHealth?.opsAttention?.adminActionsLast24h} hint="Audit activity" />
+          </div>
+
+          <div className={styles.overviewGrid}>
+            <div className={`${styles.card} ${styles.inboxCard}`}>
+              <div className={styles.panelTitle}>Runtime</div>
+              <div className={styles.detailGrid}>
+                <div><strong>Node</strong><span>{systemHealth?.runtime?.nodeVersion || "—"}</span></div>
+                <div><strong>Env</strong><span>{systemHealth?.runtime?.env || "—"}</span></div>
+                <div><strong>Uptime</strong><span>{formatUptime(systemHealth?.runtime?.uptimeSeconds)}</span></div>
+                <div><strong>PID</strong><span>{systemHealth?.runtime?.pid ?? "—"}</span></div>
+              </div>
+            </div>
+
+            <div className={`${styles.card} ${styles.inboxCard}`}>
+              <div className={styles.panelTitle}>Database</div>
+              <div className={styles.detailGrid}>
+                <div><strong>Status</strong><span>{systemHealth?.database?.state || "—"}</span></div>
+                <div><strong>DB Name</strong><span>{systemHealth?.database?.name || "—"}</span></div>
+                <div><strong>Host</strong><span>{systemHealth?.database?.host || "—"}</span></div>
+                <div><strong>Generated</strong><span>{formatDate(systemHealth?.generatedAt)}</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.splitGrid}>
+            <div className={styles.listStack}>
+              <div className={`${styles.card} ${styles.inboxCard}`}>
+                <div className={styles.panelTitle}>Security config</div>
+                <div className={styles.stackSm}>
+                  <div className={styles.miniItem}>
+                    <div><strong>Admin allowlist</strong></div>
+                    <div className="muted">
+                      {systemHealth?.security?.adminAllowlistConfigured ? "Configured" : "Not configured"} · {numberFmt(systemHealth?.security?.adminAllowlistCount)} emailuri
+                    </div>
+                    <div className={styles.badgeRow}>
+                      <span className={`${styles.badge} ${systemHealth?.security?.jwtSecretConfigured ? styles.badgeOk : styles.badgeDanger}`}>JWT_SECRET</span>
+                      <span className={`${styles.badge} ${systemHealth?.security?.cookieSecretConfigured ? styles.badgeOk : styles.badgeDanger}`}>COOKIE_SECRET</span>
+                      <span className={`${styles.badge} ${systemHealth?.security?.adminActionSecretConfigured ? styles.badgeOk : styles.badgeWarn}`}>ADMIN_ACTION_SECRET</span>
+                    </div>
+                  </div>
+                  <div className={styles.miniItem}>
+                    <div><strong>Admin rate limit</strong></div>
+                    <div className="muted">
+                      Window: {numberFmt(systemHealth?.security?.adminRateLimitWindowMs)} ms · Max: {numberFmt(systemHealth?.security?.adminRateLimitMax)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className={`${styles.card} ${styles.inboxCard}`}>
+                <div className={styles.panelTitle}>Web / CORS config</div>
+                <div className={styles.miniItem}>
+                  <div className="muted">
+                    ALLOWED_WEB_ORIGINS: {numberFmt(systemHealth?.web?.allowedWebOriginsCount)} origine
+                  </div>
+                  <div className={styles.badgeRow}>
+                    {(systemHealth?.web?.allowedWebOrigins || []).length ? (
+                      (systemHealth?.web?.allowedWebOrigins || []).map((origin) => (
+                        <span key={origin} className={styles.badge}>{origin}</span>
+                      ))
+                    ) : (
+                      <span className={`${styles.badge} ${styles.badgeWarn}`}>Nu este configurat</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`${styles.card} ${styles.detailsCardStatic}`}>
+              <div className={styles.panelTitle}>Integrations status</div>
+              <div className={styles.stackSm}>
+                {[
+                  ["Stripe secret", systemHealth?.integrations?.stripeSecretConfigured],
+                  ["Stripe webhook", systemHealth?.integrations?.stripeWebhookSecretConfigured],
+                  ["Cloudinary", systemHealth?.integrations?.cloudinaryConfigured],
+                  ["Resend", systemHealth?.integrations?.resendConfigured],
+                  ["SMTP", systemHealth?.integrations?.smtpConfigured],
+                  ["Reports email", systemHealth?.integrations?.reportsEmailConfigured],
+                ].map(([label, ok]) => (
+                  <div key={String(label)} className={styles.miniItem}>
+                    <div className={styles.rowTop}>
+                      <div><strong>{label}</strong></div>
+                      <div className={styles.badgeRow}>
+                        <span className={`${styles.badge} ${ok ? styles.badgeOk : styles.badgeDanger}`}>
+                          {ok ? "Configured" : "Missing"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+        {["messages"].includes(activeSection) ? (
           <section className={styles.sectionBlock}>
             <div className={`${styles.card} ${styles.placeholderCard}`}>
               <h2 className={styles.sectionTitle} style={{ marginTop: 0 }}>

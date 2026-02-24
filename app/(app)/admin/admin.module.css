@@ -328,10 +328,15 @@
   gap: 12px;
 }
 
+.rowTop > * {
+  min-width: 0;
+}
+
 .rowTitle {
   font-size: 18px;
   font-weight: 800;
   color: #0f172a;
+  overflow-wrap: anywhere;
 }
 
 .rowTitleMuted {
@@ -344,6 +349,7 @@
   margin-top: 2px;
   color: #64748b;
   font-size: 13px;
+  overflow-wrap: anywhere;
 }
 
 .badgeRow {
@@ -392,10 +398,15 @@
 
 .metaGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 8px 12px;
   font-size: 13px;
   color: #475569;
+}
+
+.metaGrid > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .actionsGrid {
@@ -481,7 +492,7 @@
 
 .splitGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.9fr);
+  grid-template-columns: minmax(0, 1.55fr) minmax(360px, 0.9fr);
   gap: 12px;
   align-items: start;
 }

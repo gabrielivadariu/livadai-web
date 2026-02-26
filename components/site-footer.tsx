@@ -55,13 +55,13 @@ export default function SiteFooter() {
               <h3 className={styles.cardTitle}>{t("footer_consumer_title")}</h3>
               <span className={styles.cardBadge}>ANPC / ODR</span>
             </div>
-            <a href="tel:0219551" className={styles.consumerPhone}>
-              <span className={styles.consumerPhoneLabel}>{t("footer_consumer_phone_label")}</span>
-              <strong>021 9551</strong>
-            </a>
+            <div className={styles.consumerPhoneBlock}>
+              <p className={styles.consumerPhoneLabel}>{t("footer_consumer_phone_label")}</p>
+              <a href="tel:0219551" className={styles.consumerPhoneNumber}>021 9551</a>
+            </div>
             <p className={styles.cardNote}>{t("footer_consumer_phone_note")}</p>
             <div className={styles.consumerActions}>
-              <a href={anpcComplaintUrl} target="_blank" rel="noopener noreferrer" className={styles.trustLinkPrimary}>
+              <a href={anpcComplaintUrl} target="_blank" rel="noopener noreferrer" className={styles.trustLink}>
                 {t("footer_consumer_complaint_form")}
               </a>
               <a href={odrUrl} target="_blank" rel="noopener noreferrer" className={styles.trustLink}>

@@ -25,8 +25,7 @@ export default function SiteFooter() {
     <footer className={styles.footer}>
       <div className={styles.inner}>
         <div className={styles.brandBlock}>
-          <h2 className={styles.title}>LIVADAI</h2>
-          <p className={styles.subtitle}>{t("footer_docs_subtitle")}</p>
+          <p className={styles.subtitle}>{t("footer_rights_reserved")}</p>
         </div>
 
         <div className={styles.links}>
@@ -48,63 +47,55 @@ export default function SiteFooter() {
             )
           ))}
         </div>
-      </div>
 
-      <section className={styles.trustBanner} aria-label={t("footer_consumer_title")}>
-        <div className={styles.trustBannerInner}>
-          <p className={styles.bannerRights}>{t("footer_rights_reserved")}</p>
-          <div className={styles.badgesWrap}>
-            <div className={styles.badgesRow}>
-              <a
-                href={odrUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.badgeLink}
-                aria-label={t("footer_consumer_odr")}
-              >
-                <Image
-                  src="/footer/odr.svg"
-                  alt={t("footer_consumer_odr")}
-                  width={520}
-                  height={140}
-                  className={styles.badgeImage}
-                />
-              </a>
-              <a
-                href={anpcSalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.badgeLink}
-                aria-label={t("footer_consumer_sal")}
-              >
-                <Image
-                  src="/footer/anpc-sal.svg"
-                  alt={t("footer_consumer_sal")}
-                  width={520}
-                  height={140}
-                  className={styles.badgeImage}
-                />
-              </a>
-            </div>
-
-            <a
-              href={stripeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.stripeSticker}
-              aria-label={t("footer_payments_title")}
-            >
-              <Image
-                src="/footer/stripe-badge.svg"
-                alt={`${t("footer_powered_by")} Stripe`}
-                width={420}
-                height={160}
-                className={styles.stripeImage}
-              />
-            </a>
-          </div>
+        <div className={styles.badgesCompact} aria-label={t("footer_consumer_title")}>
+          <a
+            href={odrUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.badgeLink}
+            aria-label={t("footer_consumer_odr")}
+          >
+            <Image
+              src="/footer/odr.svg"
+              alt={t("footer_consumer_odr")}
+              width={520}
+              height={140}
+              className={styles.badgeImage}
+            />
+          </a>
+          <a
+            href={anpcSalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.badgeLink}
+            aria-label={t("footer_consumer_sal")}
+          >
+            <Image
+              src="/footer/anpc-sal.svg"
+              alt={t("footer_consumer_sal")}
+              width={520}
+              height={140}
+              className={styles.badgeImage}
+            />
+          </a>
+          <a
+            href={stripeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.stripeInline}
+            aria-label={t("footer_payments_title")}
+          >
+            <Image
+              src="/footer/stripe-badge.svg"
+              alt={`${t("footer_powered_by")} Stripe`}
+              width={420}
+              height={160}
+              className={styles.stripeImage}
+            />
+          </a>
         </div>
-      </section>
+      </div>
     </footer>
   );
 }

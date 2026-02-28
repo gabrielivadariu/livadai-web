@@ -1,7 +1,7 @@
 .footer {
   border-top: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.9);
-  padding: 32px 16px 96px;
+  padding: 32px 0 0;
 }
 
 .inner {
@@ -9,6 +9,7 @@
   margin: 0 auto;
   display: grid;
   gap: 18px;
+  padding: 0 16px;
 }
 
 .brandBlock {
@@ -50,173 +51,96 @@
   border-color: var(--primary);
 }
 
-.trustGrid {
+.trustBanner {
+  margin-top: 24px;
+  background: #020617;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 40px 16px 108px;
+}
+
+.trustBannerInner {
+  max-width: 1100px;
+  margin: 0 auto;
   display: grid;
-  gap: 14px;
-  grid-template-columns: 1fr;
-}
-
-.consumerCard,
-.paymentsCard {
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(12, 29, 44, 0.08);
-  border-radius: 18px;
-  padding: 14px;
-  box-shadow: 0 8px 24px rgba(12, 29, 44, 0.04);
-  display: grid;
-  gap: 10px;
-}
-
-.cardHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.cardTitle {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.2;
-  color: var(--text);
-}
-
-.cardBadge {
-  border: 1px solid rgba(12, 29, 44, 0.1);
-  background: rgba(12, 29, 44, 0.03);
-  color: var(--muted);
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.consumerPhoneBlock {
-  display: grid;
-  gap: 4px;
-}
-
-.consumerPhoneLabel {
-  margin: 0;
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.consumerPhoneNumber {
-  color: var(--text);
-  font-size: 18px;
-  line-height: 1.1;
-  font-weight: 800;
-  text-decoration: none;
-  width: fit-content;
-}
-
-.consumerPhoneNumber:hover {
-  color: #1ecad3;
-}
-
-.cardNote {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.consumerActions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.trustLink {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: 12px;
-  border: 1px solid #1ecad3;
-  padding: 10px 12px;
-  font-weight: 700;
+  gap: 26px;
+  justify-items: center;
   text-align: center;
-  text-decoration: none;
-  background: #fff;
-  color: #1ecad3;
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, color 0.15s ease;
 }
 
-.trustLink:hover {
-  transform: translateY(-1px);
-  border-color: #1ecad3;
-  background: #1ecad3;
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(var(--brand-rgb), 0.12);
+.bannerRights {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 27px;
+  line-height: 1.24;
+  font-weight: 700;
 }
 
-.stripeBadge {
+.badgesWrap {
+  display: grid;
+  gap: 18px;
+  justify-items: center;
+}
+
+.badgesRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  width: 100%;
+  max-width: 760px;
+}
+
+.badgeLink,
+.stripeSticker {
   display: inline-flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 8px;
-  width: fit-content;
-  max-width: 100%;
-  padding: 10px 14px;
+  text-decoration: none;
   border-radius: 14px;
-  border: 1px solid rgba(12, 29, 44, 0.1);
-  background: #fff;
-  text-decoration: none;
-  color: var(--text);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
-.stripeBadge span {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
+.badgeLink:hover,
+.stripeSticker:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 0 1px rgba(30, 202, 211, 0.38), 0 10px 24px rgba(30, 202, 211, 0.22);
+  filter: brightness(1.02);
 }
 
-.stripeBadge strong {
-  color: #635bff;
-  font-size: 18px;
-  line-height: 1;
-  font-weight: 800;
+.badgeImage {
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  border-radius: 14px;
 }
 
-.paymentMethods {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.methodChip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 700;
+.stripeImage {
+  width: auto;
+  height: 68px;
+  border-radius: 14px;
 }
 
 @media (min-width: 768px) {
   .footer {
-    padding: 40px 56px 120px;
+    padding: 40px 0 0;
   }
 
-  .trustGrid {
-    grid-template-columns: 1.35fr 1fr;
-    align-items: start;
+  .inner {
+    padding: 0 56px;
   }
 
-  .consumerCard,
-  .paymentsCard {
-    padding: 16px;
+  .trustBanner {
+    padding: 48px 56px 126px;
   }
 
-  .consumerActions {
-    max-width: 430px;
+  .bannerRights {
+    font-size: 34px;
+  }
+
+  .badgesRow {
+    grid-template-columns: repeat(2, minmax(280px, auto));
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .stripeImage {
+    height: 72px;
   }
 }

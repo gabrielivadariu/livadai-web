@@ -1,0 +1,20 @@
+<svg width="760" height="220" viewBox="0 0 760 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="2" y="2" width="756" height="216" rx="24" fill="white"/>
+  <rect x="2" y="2" width="756" height="216" rx="24" stroke="#CBD5E1" stroke-width="4"/>
+  <text x="56" y="82" fill="#475569" font-size="34" font-weight="700" font-family="Arial, Helvetica, sans-serif">Powered by</text>
+  <text x="290" y="82" fill="#635BFF" font-size="48" font-weight="800" font-family="Arial, Helvetica, sans-serif">Stripe</text>
+
+  <rect x="54" y="116" width="120" height="54" rx="16" fill="#111827"/>
+  <text x="84" y="151" fill="white" font-size="24" font-weight="700" font-family="Arial, Helvetica, sans-serif">VISA</text>
+
+  <rect x="190" y="116" width="170" height="54" rx="16" fill="#111827"/>
+  <circle cx="230" cy="143" r="16" fill="#EA580C"/>
+  <circle cx="248" cy="143" r="16" fill="#FBBF24" fill-opacity="0.95"/>
+  <text x="274" y="151" fill="white" font-size="20" font-weight="700" font-family="Arial, Helvetica, sans-serif">Mastercard</text>
+
+  <rect x="376" y="116" width="142" height="54" rx="16" fill="#111827"/>
+  <text x="406" y="151" fill="white" font-size="22" font-weight="700" font-family="Arial, Helvetica, sans-serif">Apple Pay</text>
+
+  <rect x="534" y="116" width="170" height="54" rx="16" fill="#111827"/>
+  <text x="558" y="151" fill="white" font-size="22" font-weight="700" font-family="Arial, Helvetica, sans-serif">Google Pay</text>
+</svg>

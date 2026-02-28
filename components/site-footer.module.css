@@ -53,68 +53,85 @@
 
 .trustBanner {
   margin-top: 24px;
-  background: #020617;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 40px 16px 108px;
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  padding: 64px 16px calc(64px + env(safe-area-inset-bottom, 0px) + 72px);
 }
 
 .trustBannerInner {
-  max-width: 1100px;
+  max-width: 1024px;
   margin: 0 auto;
   display: grid;
-  gap: 26px;
+  gap: 36px;
   justify-items: center;
   text-align: center;
 }
 
 .bannerRights {
   margin: 0;
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 27px;
-  line-height: 1.24;
-  font-weight: 700;
+  color: #1e293b;
+  font-size: 22px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
 .badgesWrap {
   display: grid;
-  gap: 18px;
+  gap: 24px;
   justify-items: center;
 }
 
 .badgesRow {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
   width: 100%;
-  max-width: 760px;
+  max-width: 900px;
 }
 
-.badgeLink,
-.stripeSticker {
+.badgeLink {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px 24px;
   text-decoration: none;
-  border-radius: 14px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-.badgeLink:hover,
-.stripeSticker:hover {
-  transform: scale(1.02);
-  box-shadow: 0 0 0 1px rgba(30, 202, 211, 0.38), 0 10px 24px rgba(30, 202, 211, 0.22);
-  filter: brightness(1.02);
+.badgeLink:hover {
+  border-color: #1ecad3;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
 }
 
 .badgeImage {
-  width: 100%;
-  max-width: 360px;
-  height: auto;
-  border-radius: 14px;
+  width: auto;
+  height: 64px;
+  max-width: 100%;
+  border-radius: 12px;
 }
 
 .stripeImage {
   width: auto;
-  height: 68px;
-  border-radius: 14px;
+  height: 70px;
+  border-radius: 12px;
+}
+
+.stripeSticker {
+  display: inline-flex;
+  justify-content: center;
+  margin-top: 16px;
+  opacity: 0.9;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.stripeSticker:hover {
+  opacity: 1;
 }
 
 @media (min-width: 768px) {
@@ -127,17 +144,17 @@
   }
 
   .trustBanner {
-    padding: 48px 56px 126px;
+    padding: 64px 56px 140px;
   }
 
   .bannerRights {
-    font-size: 34px;
+    font-size: 22px;
   }
 
   .badgesRow {
-    grid-template-columns: repeat(2, minmax(280px, auto));
+    flex-direction: row;
     justify-content: center;
-    gap: 16px;
+    gap: 20px;
   }
 
   .stripeImage {

@@ -40,6 +40,9 @@ type AdminDashboard = {
 
 type AdminUser = {
   id: string;
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
   name?: string;
   displayName?: string;
   email?: string;
@@ -50,6 +53,9 @@ type AdminUser = {
   createdAt?: string;
   city?: string;
   country?: string;
+  stripeAccountId?: string;
+  isStripeChargesEnabled?: boolean;
+  isStripePayoutsEnabled?: boolean;
   stripeConnected?: boolean;
 };
 
@@ -58,6 +64,12 @@ type AdminUsersResponse = {
   limit: number;
   total: number;
   pages: number;
+  summary?: {
+    totalUsers?: number;
+    totalHosts?: number;
+    totalExplorers?: number;
+    hostsStripeIncomplete?: number;
+  };
   items: AdminUser[];
 };
 
@@ -1116,7 +1128,7 @@ export default function AdminPage() {
       try {
         const params = new URLSearchParams();
         params.set("page", String(page));
-        params.set("limit", "12");
+        params.set("limit", "20");
         if (userQuery.trim()) params.set("q", userQuery.trim());
         if (userRoleFilter !== "all") params.set("role", userRoleFilter);
         if (userStatusFilter !== "all") params.set("status", userStatusFilter);
@@ -1589,18 +1601,33 @@ export default function AdminPage() {
     }
     const rows = items.map((u) => [
       u.id,
-      u.displayName || u.name || "",
+      u.fullName || u.displayName || u.name || [u.firstName, u.lastName].filter(Boolean).join(" "),
       u.email || "",
       u.role || "",
       u.isBanned ? "BANNED" : u.isBlocked ? "BLOCKED" : "ACTIVE",
       u.emailVerified ? "true" : "false",
-      u.stripeConnected ? "true" : "false",
+      u.stripeAccountId || "",
+      u.isStripeChargesEnabled ? "true" : "false",
+      u.isStripePayoutsEnabled ? "true" : "false",
       u.city || "",
       u.country || "",
       u.createdAt || "",
     ]);
     downloadCsv(`livadai-admin-users-${new Date().toISOString().slice(0, 10)}.csv`, csvFromRows(
-      ["id", "name", "email", "role", "status", "emailVerified", "stripeConnected", "city", "country", "createdAt"],
+      [
+        "id",
+        "fullName",
+        "email",
+        "role",
+        "status",
+        "emailVerified",
+        "stripeAccountId",
+        "chargesEnabled",
+        "payoutsEnabled",
+        "city",
+        "country",
+        "createdAt",
+      ],
       rows
     ));
     setActionInfo(`Export CSV users: ${numberFmt(items.length)} rânduri.`);
@@ -1757,7 +1784,7 @@ export default function AdminPage() {
     hint?: string;
   }> = [
     { key: "overview", label: "Overview", hint: "Control room" },
-    { key: "users", label: "Users", hint: "Support & roles" },
+    { key: "users", label: "Users Overview", hint: "Full visibility" },
     { key: "experiences", label: "Experiences", hint: "Quality & safety" },
     { key: "bookings", label: "Bookings", hint: "Ops & refunds" },
     { key: "reports", label: "Reports / Moderation", hint: "Inbox & safety" },
@@ -1806,7 +1833,7 @@ export default function AdminPage() {
               <div className={styles.panelTitle}>Quick actions</div>
               <div className={styles.quickActionsRow}>
                 <button type="button" className="button secondary" onClick={() => setActiveSection("users")}>
-                  Users
+                  Users Overview
                 </button>
                 <button type="button" className="button secondary" onClick={() => setActiveSection("experiences")}>
                   Experiences
@@ -1914,251 +1941,277 @@ export default function AdminPage() {
         ) : null}
 
         {activeSection === "users" ? <section className={styles.sectionBlock}>
-        <div className={styles.sectionTitleRow}>
-          <h2 className={styles.sectionTitle}>Utilizatori</h2>
-          <span className="muted">
-            {users ? `${numberFmt(users.total)} rezultate` : "—"}
-          </span>
-        </div>
-
-        <form className={`${styles.card} ${styles.filtersCard}`} onSubmit={onUsersSubmit}>
-          <div className={styles.filtersGrid}>
-            <input
-              className="input"
-              placeholder="Caută după nume sau email"
-              value={userQuery}
-              onChange={(e) => setUserQuery(e.target.value)}
-            />
-            <select className={styles.select} value={userRoleFilter} onChange={(e) => setUserRoleFilter(e.target.value)}>
-              <option value="all">Toate rolurile</option>
-              <option value="EXPLORER">EXPLORER</option>
-              <option value="HOST">HOST</option>
-              <option value="BOTH">BOTH</option>
-              <option value="ADMIN">ADMIN</option>
-            </select>
-            <select className={styles.select} value={userStatusFilter} onChange={(e) => setUserStatusFilter(e.target.value)}>
-              <option value="all">Toate statusurile</option>
-              <option value="active">Active</option>
-              <option value="blocked">Blocked</option>
-              <option value="banned">Banned</option>
-            </select>
+          <div className={styles.sectionTitleRow}>
+            <h2 className={styles.sectionTitle}>Users Overview</h2>
+            <span className="muted">
+              {users ? `${numberFmt(users.total)} rezultate` : "—"}
+            </span>
           </div>
-          <div className={styles.filtersActions}>
-            <button
-              className="button secondary"
-              type="button"
-              disabled={csvExportingKey === "users"}
-              onClick={() => void exportUsersCsv()}
-            >
-              {csvExportingKey === "users" ? "Export..." : "Export CSV"}
-            </button>
-            <button className="button secondary" type="button" onClick={() => { setUserQuery(""); setUserRoleFilter("all"); setUserStatusFilter("all"); void loadUsers(1); }}>
-              Reset
-            </button>
-            <button className="button" type="submit" disabled={usersLoading}>
-              {usersLoading ? "Se caută..." : "Caută"}
-            </button>
-          </div>
-        </form>
 
-        {usersError ? <div className={`${styles.card} ${styles.errorCard}`}>{usersError}</div> : null}
-        <div className={styles.splitGrid}>
-          <div className={styles.listStack}>
-            {(users?.items || []).map((item) => (
-              <AdminUserRow
-                key={item.id}
-                item={item}
-                selected={selectedUserId === item.id}
-                busy={!!pendingKey?.startsWith(`user:${item.id}:`)}
-                onOpenDetails={loadUserDetails}
-                onSaveRole={(id, role) =>
-                  runAction(`user:${id}:role`, () => patchUser(id, { role }, `Rol actualizat (${role})`))
-                }
-                onToggleBlocked={(id, nextValue) =>
-                  runAction(`user:${id}:block`, async () => {
-                    const reason = getCriticalReason(nextValue ? "Blocare utilizator" : "Deblocare utilizator");
-                    if (!reason) return;
-                    await patchUser(id, { isBlocked: nextValue, reason }, nextValue ? "Utilizator blocat" : "Utilizator deblocat");
-                  })
-                }
-                onToggleBanned={(id, nextValue) =>
-                  runAction(`user:${id}:ban`, async () => {
-                    const reason = getCriticalReason(nextValue ? "Ban utilizator" : "Unban utilizator");
-                    if (!reason) return;
-                    await patchUser(id, { isBanned: nextValue, reason }, nextValue ? "Utilizator banat" : "Ban scos");
-                  })
-                }
-                onInvalidateSessions={(id) =>
-                  runAction(`user:${id}:invalidate`, () => patchUser(id, { invalidateSessions: true }, "Sesiuni invalidate"))
-                }
+          <div className={styles.statsGrid}>
+            <StatCard label="Total Users" value={users?.summary?.totalUsers} />
+            <StatCard label="Total Hosts" value={users?.summary?.totalHosts} />
+            <StatCard label="Total Explorers" value={users?.summary?.totalExplorers} />
+            <StatCard label="Hosts cu Stripe incomplete" value={users?.summary?.hostsStripeIncomplete} />
+          </div>
+
+          <form className={`${styles.card} ${styles.filtersCard}`} onSubmit={onUsersSubmit}>
+            <div className={styles.filtersGrid}>
+              <input
+                className="input"
+                placeholder="Search by email"
+                value={userQuery}
+                onChange={(e) => setUserQuery(e.target.value)}
               />
-            ))}
-            {!usersLoading && (users?.items || []).length === 0 ? (
-              <div className={`${styles.card} ${styles.emptyCard}`}>Nu există utilizatori pentru filtrele selectate.</div>
-            ) : null}
-            <div className={styles.pagination}>
+              <select className={styles.select} value={userRoleFilter} onChange={(e) => setUserRoleFilter(e.target.value)}>
+                <option value="all">Toate rolurile</option>
+                <option value="EXPLORER">EXPLORER</option>
+                <option value="HOST">HOST</option>
+                <option value="BOTH">BOTH</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+              <select className={styles.select} value={userStatusFilter} onChange={(e) => setUserStatusFilter(e.target.value)}>
+                <option value="all">Toate statusurile</option>
+                <option value="active">Active</option>
+                <option value="blocked">Blocked</option>
+                <option value="banned">Banned</option>
+              </select>
+            </div>
+            <div className={styles.filtersActions}>
               <button
-                type="button"
                 className="button secondary"
-                disabled={!users || users.page <= 1 || usersLoading}
-                onClick={() => void loadUsers((users?.page || 1) - 1)}
+                type="button"
+                disabled={csvExportingKey === "users"}
+                onClick={() => void exportUsersCsv()}
               >
-                ← Anterior
+                {csvExportingKey === "users" ? "Export..." : "Export CSV"}
               </button>
-              <span className="muted">
-                Pagina {users?.page || 1} / {users?.pages || 1}
-              </span>
-              <button
-                type="button"
-                className="button secondary"
-                disabled={!users || (users?.page || 1) >= (users?.pages || 1) || usersLoading}
-                onClick={() => void loadUsers((users?.page || 1) + 1)}
-              >
-                Următor →
+              <button className="button secondary" type="button" onClick={() => { setUserQuery(""); setUserRoleFilter("all"); setUserStatusFilter("all"); void loadUsers(1); }}>
+                Reset
+              </button>
+              <button className="button" type="submit" disabled={usersLoading}>
+                {usersLoading ? "Se caută..." : "Caută"}
               </button>
             </div>
-          </div>
+          </form>
 
-          <div className={`${styles.card} ${styles.detailsCard}`}>
-            <div className={styles.sectionTitleRow}>
-              <h3 className={styles.detailsTitle}>User details</h3>
-              {userDetails?.user?.id ? <span className="muted">#{userDetails.user.id.slice(-8)}</span> : null}
+          {usersError ? <div className={`${styles.card} ${styles.errorCard}`}>{usersError}</div> : null}
+          <div className={styles.splitGrid}>
+            <div className={styles.listStack}>
+              <div className={`${styles.card} ${styles.tableCard}`}>
+                <div className={styles.tableWrap}>
+                  <table className={styles.dataTable}>
+                    <thead>
+                      <tr>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Stripe Account ID</th>
+                        <th>Charges Enabled</th>
+                        <th>Payouts Enabled</th>
+                        <th>Created At</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(users?.items || []).map((item) => (
+                        <tr key={item.id} className={selectedUserId === item.id ? styles.tableRowSelected : ""}>
+                          <td>{item.fullName || item.displayName || item.name || [item.firstName, item.lastName].filter(Boolean).join(" ") || "—"}</td>
+                          <td>{item.email || "—"}</td>
+                          <td>{item.role || "—"}</td>
+                          <td className={styles.tableCode}>{item.stripeAccountId || "—"}</td>
+                          <td>{item.isStripeChargesEnabled ? "true" : "false"}</td>
+                          <td>{item.isStripePayoutsEnabled ? "true" : "false"}</td>
+                          <td>{formatDate(item.createdAt)}</td>
+                          <td>
+                            <div className={styles.tableActions}>
+                              <a className={styles.tableLink} href={`/users/${item.id}`} target="_blank" rel="noreferrer">
+                                View profile
+                              </a>
+                              <button
+                                type="button"
+                                className="button secondary"
+                                disabled={userDetailsLoading}
+                                onClick={() => void loadUserDetails(item.id)}
+                              >
+                                Details
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {!usersLoading && (users?.items || []).length === 0 ? (
+                <div className={`${styles.card} ${styles.emptyCard}`}>Nu există utilizatori pentru filtrele selectate.</div>
+              ) : null}
+
+              <div className={styles.pagination}>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={!users || users.page <= 1 || usersLoading}
+                  onClick={() => void loadUsers((users?.page || 1) - 1)}
+                >
+                  ← Anterior
+                </button>
+                <span className="muted">
+                  Pagina {users?.page || 1} / {users?.pages || 1}
+                </span>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={!users || (users?.page || 1) >= (users?.pages || 1) || usersLoading}
+                  onClick={() => void loadUsers((users?.page || 1) + 1)}
+                >
+                  Următor →
+                </button>
+              </div>
             </div>
 
-            {!selectedUserId ? <div className="muted">Selectează un utilizator din listă.</div> : null}
-            {selectedUserId && userDetailsLoading ? <div className="muted">Se încarcă detaliile...</div> : null}
-            {selectedUserId && userDetailsError ? <div className={`${styles.card} ${styles.errorCard}`}>{userDetailsError}</div> : null}
+            <div className={`${styles.card} ${styles.detailsCard}`}>
+              <div className={styles.sectionTitleRow}>
+                <h3 className={styles.detailsTitle}>User details</h3>
+                {userDetails?.user?.id ? <span className="muted">#{userDetails.user.id.slice(-8)}</span> : null}
+              </div>
 
-            {selectedUserId && !userDetailsLoading && !userDetailsError && userDetails?.user ? (
-              <>
-                <div className={styles.detailGrid}>
-                  <div><strong>Nume</strong><span>{userDetails.user.displayName || userDetails.user.name || "—"}</span></div>
-                  <div><strong>Email</strong><span>{userDetails.user.email || "—"}</span></div>
-                  <div><strong>Rol</strong><span>{userDetails.user.role || "—"}</span></div>
-                  <div><strong>Creat</strong><span>{formatDate(userDetails.user.createdAt)}</span></div>
-                  <div><strong>Last auth</strong><span>{formatDate(userDetails.user.lastAuthAt || null)}</span></div>
-                  <div><strong>Token version</strong><span>{numberFmt(userDetails.user.tokenVersion)}</span></div>
-                  <div><strong>Oraș / Țară</strong><span>{[userDetails.user.city, userDetails.user.country].filter(Boolean).join(", ") || "—"}</span></div>
-                  <div><strong>Telefon</strong><span>{[userDetails.user.phoneCountryCode, userDetails.user.phone].filter(Boolean).join(" ") || "—"}</span></div>
-                </div>
+              {!selectedUserId ? <div className="muted">Selectează un utilizator din tabel.</div> : null}
+              {selectedUserId && userDetailsLoading ? <div className="muted">Se încarcă detaliile...</div> : null}
+              {selectedUserId && userDetailsError ? <div className={`${styles.card} ${styles.errorCard}`}>{userDetailsError}</div> : null}
 
-                <div className={styles.detailsSection}>
-                  <div className={styles.panelTitle}>Status & Stripe</div>
-                  <div className={styles.badgeRow}>
-                    <span className={`${styles.badge} ${userDetails.user.emailVerified ? styles.badgeOk : styles.badgeWarn}`}>Email {userDetails.user.emailVerified ? "OK" : "NO"}</span>
-                    <span className={`${styles.badge} ${userDetails.user.phoneVerified ? styles.badgeOk : styles.badgeWarn}`}>Phone {userDetails.user.phoneVerified ? "OK" : "NO"}</span>
-                    <span className={`${styles.badge} ${userDetails.user.isBlocked ? styles.badgeWarn : styles.badgeOk}`}>{userDetails.user.isBlocked ? "BLOCKED" : "ACTIVE"}</span>
-                    {userDetails.user.isBanned ? <span className={`${styles.badge} ${styles.badgeDanger}`}>BANNED</span> : null}
-                    <span className={`${styles.badge} ${userDetails.user.stripe?.connected ? styles.badgeOk : styles.badgeWarn}`}>Stripe account</span>
-                    <span className={`${styles.badge} ${userDetails.user.stripe?.chargesEnabled ? styles.badgeOk : styles.badgeWarn}`}>Charges</span>
-                    <span className={`${styles.badge} ${userDetails.user.stripe?.payoutsEnabled ? styles.badgeOk : styles.badgeWarn}`}>Payouts</span>
-                    <span className={`${styles.badge} ${userDetails.user.stripe?.detailsSubmitted ? styles.badgeOk : styles.badgeWarn}`}>Details</span>
-                  </div>
-                  {userDetails.user.stripe?.accountId ? (
-                    <div className="muted">Stripe account: {userDetails.user.stripe.accountId}</div>
-                  ) : null}
-                </div>
-
-                <div className={styles.detailsSection}>
-                  <div className={styles.panelTitle}>Counts</div>
+              {selectedUserId && !userDetailsLoading && !userDetailsError && userDetails?.user ? (
+                <>
                   <div className={styles.detailGrid}>
-                    <div><strong>Bookings total</strong><span>{numberFmt(userDetails.counts?.bookingsTotal)}</span></div>
-                    <div><strong>As explorer</strong><span>{numberFmt(userDetails.counts?.bookingsAsExplorer)}</span></div>
-                    <div><strong>As host</strong><span>{numberFmt(userDetails.counts?.bookingsAsHost)}</span></div>
-                    <div><strong>Experiences hosted</strong><span>{numberFmt(userDetails.counts?.experiencesHosted)}</span></div>
-                    <div><strong>Reports created</strong><span>{numberFmt(userDetails.counts?.reportsCreated)}</span></div>
-                    <div><strong>Reports against user</strong><span>{numberFmt(userDetails.counts?.reportsAgainstUser)}</span></div>
-                    <div><strong>Messages sent</strong><span>{numberFmt(userDetails.counts?.messagesSent)}</span></div>
-                    <div><strong>Trusted participant</strong><span>{userDetails.user.isTrustedParticipant ? "Da" : "Nu"}</span></div>
+                    <div><strong>Nume</strong><span>{userDetails.user.displayName || userDetails.user.name || "—"}</span></div>
+                    <div><strong>Email</strong><span>{userDetails.user.email || "—"}</span></div>
+                    <div><strong>Rol</strong><span>{userDetails.user.role || "—"}</span></div>
+                    <div><strong>Creat</strong><span>{formatDate(userDetails.user.createdAt)}</span></div>
+                    <div><strong>Last auth</strong><span>{formatDate(userDetails.user.lastAuthAt || null)}</span></div>
+                    <div><strong>Token version</strong><span>{numberFmt(userDetails.user.tokenVersion)}</span></div>
+                    <div><strong>Oraș / Țară</strong><span>{[userDetails.user.city, userDetails.user.country].filter(Boolean).join(", ") || "—"}</span></div>
+                    <div><strong>Telefon</strong><span>{[userDetails.user.phoneCountryCode, userDetails.user.phone].filter(Boolean).join(" ") || "—"}</span></div>
                   </div>
-                </div>
 
-                {(userDetails.user.languages?.length || 0) > 0 || userDetails.user.shortBio || userDetails.user.aboutMe ? (
                   <div className={styles.detailsSection}>
-                    <div className={styles.panelTitle}>Profile notes</div>
-                    {(userDetails.user.languages?.length || 0) > 0 ? (
-                      <div className={styles.badgeRow}>
-                        {(userDetails.user.languages || []).map((lang) => (
-                          <span key={`${userDetails.user?.id}-${lang}`} className={styles.badge}>{lang}</span>
+                    <div className={styles.panelTitle}>Status & Stripe</div>
+                    <div className={styles.badgeRow}>
+                      <span className={`${styles.badge} ${userDetails.user.emailVerified ? styles.badgeOk : styles.badgeWarn}`}>Email {userDetails.user.emailVerified ? "OK" : "NO"}</span>
+                      <span className={`${styles.badge} ${userDetails.user.phoneVerified ? styles.badgeOk : styles.badgeWarn}`}>Phone {userDetails.user.phoneVerified ? "OK" : "NO"}</span>
+                      <span className={`${styles.badge} ${userDetails.user.isBlocked ? styles.badgeWarn : styles.badgeOk}`}>{userDetails.user.isBlocked ? "BLOCKED" : "ACTIVE"}</span>
+                      {userDetails.user.isBanned ? <span className={`${styles.badge} ${styles.badgeDanger}`}>BANNED</span> : null}
+                      <span className={`${styles.badge} ${userDetails.user.stripe?.connected ? styles.badgeOk : styles.badgeWarn}`}>Stripe account</span>
+                      <span className={`${styles.badge} ${userDetails.user.stripe?.chargesEnabled ? styles.badgeOk : styles.badgeWarn}`}>Charges</span>
+                      <span className={`${styles.badge} ${userDetails.user.stripe?.payoutsEnabled ? styles.badgeOk : styles.badgeWarn}`}>Payouts</span>
+                      <span className={`${styles.badge} ${userDetails.user.stripe?.detailsSubmitted ? styles.badgeOk : styles.badgeWarn}`}>Details</span>
+                    </div>
+                    {userDetails.user.stripe?.accountId ? (
+                      <div className="muted">Stripe account: {userDetails.user.stripe.accountId}</div>
+                    ) : null}
+                  </div>
+
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>Counts</div>
+                    <div className={styles.detailGrid}>
+                      <div><strong>Bookings total</strong><span>{numberFmt(userDetails.counts?.bookingsTotal)}</span></div>
+                      <div><strong>As explorer</strong><span>{numberFmt(userDetails.counts?.bookingsAsExplorer)}</span></div>
+                      <div><strong>As host</strong><span>{numberFmt(userDetails.counts?.bookingsAsHost)}</span></div>
+                      <div><strong>Experiences hosted</strong><span>{numberFmt(userDetails.counts?.experiencesHosted)}</span></div>
+                      <div><strong>Reports created</strong><span>{numberFmt(userDetails.counts?.reportsCreated)}</span></div>
+                      <div><strong>Reports against user</strong><span>{numberFmt(userDetails.counts?.reportsAgainstUser)}</span></div>
+                      <div><strong>Messages sent</strong><span>{numberFmt(userDetails.counts?.messagesSent)}</span></div>
+                      <div><strong>Trusted participant</strong><span>{userDetails.user.isTrustedParticipant ? "Da" : "Nu"}</span></div>
+                    </div>
+                  </div>
+
+                  {(userDetails.user.languages?.length || 0) > 0 || userDetails.user.shortBio || userDetails.user.aboutMe ? (
+                    <div className={styles.detailsSection}>
+                      <div className={styles.panelTitle}>Profile notes</div>
+                      {(userDetails.user.languages?.length || 0) > 0 ? (
+                        <div className={styles.badgeRow}>
+                          {(userDetails.user.languages || []).map((lang) => (
+                            <span key={`${userDetails.user?.id}-${lang}`} className={styles.badge}>{lang}</span>
+                          ))}
+                        </div>
+                      ) : null}
+                      {userDetails.user.shortBio ? <div className={styles.miniItem}><div>{userDetails.user.shortBio}</div></div> : null}
+                      {userDetails.user.aboutMe ? <div className={styles.miniItem}><div className="muted">{userDetails.user.aboutMe}</div></div> : null}
+                    </div>
+                  ) : null}
+
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>Timeline (latest)</div>
+                    {(userDetails.timeline || []).length === 0 ? (
+                      <div className="muted">Fără evenimente recente.</div>
+                    ) : (
+                      <div className={styles.stackSm}>
+                        {(userDetails.timeline || []).slice(0, 10).map((event, idx) => (
+                          <div key={`${event.kind}-${event.targetId || idx}-${event.at || idx}`} className={styles.miniItem}>
+                            <div><strong>{event.kind}</strong></div>
+                            <div className="muted">{event.label || "—"}</div>
+                            <div className="muted">{formatDate(event.at || null)}</div>
+                          </div>
                         ))}
                       </div>
-                    ) : null}
-                    {userDetails.user.shortBio ? <div className={styles.miniItem}><div>{userDetails.user.shortBio}</div></div> : null}
-                    {userDetails.user.aboutMe ? <div className={styles.miniItem}><div className="muted">{userDetails.user.aboutMe}</div></div> : null}
+                    )}
                   </div>
-                ) : null}
 
-                <div className={styles.detailsSection}>
-                  <div className={styles.panelTitle}>Timeline (latest)</div>
-                  {(userDetails.timeline || []).length === 0 ? (
-                    <div className="muted">Fără evenimente recente.</div>
-                  ) : (
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>Recent entities</div>
                     <div className={styles.stackSm}>
-                      {(userDetails.timeline || []).slice(0, 10).map((event, idx) => (
-                        <div key={`${event.kind}-${event.targetId || idx}-${event.at || idx}`} className={styles.miniItem}>
-                          <div><strong>{event.kind}</strong></div>
-                          <div className="muted">{event.label || "—"}</div>
-                          <div className="muted">{formatDate(event.at || null)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      <div className={styles.miniItem}>
+                        <div><strong>Bookings</strong></div>
+                        {(userDetails.recentBookings || []).length === 0 ? (
+                          <div className="muted">Fără booking-uri recente.</div>
+                        ) : (
+                          <div className={styles.stackSm}>
+                            {(userDetails.recentBookings || []).slice(0, 4).map((b) => (
+                              <div key={b.id} className="muted">
+                                {b.status || "—"} · {b.experience?.title || "Experiență"} · {formatDate(b.createdAt)}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
 
-                <div className={styles.detailsSection}>
-                  <div className={styles.panelTitle}>Recent entities</div>
-                  <div className={styles.stackSm}>
-                    <div className={styles.miniItem}>
-                      <div><strong>Bookings</strong></div>
-                      {(userDetails.recentBookings || []).length === 0 ? (
-                        <div className="muted">Fără booking-uri recente.</div>
-                      ) : (
-                        <div className={styles.stackSm}>
-                          {(userDetails.recentBookings || []).slice(0, 4).map((b) => (
-                            <div key={b.id} className="muted">
-                              {b.status || "—"} · {b.experience?.title || "Experiență"} · {formatDate(b.createdAt)}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                      <div className={styles.miniItem}>
+                        <div><strong>Experiences</strong></div>
+                        {(userDetails.recentExperiences || []).length === 0 ? (
+                          <div className="muted">Fără experiențe recente.</div>
+                        ) : (
+                          <div className={styles.stackSm}>
+                            {(userDetails.recentExperiences || []).slice(0, 4).map((exp) => (
+                              <div key={exp.id} className="muted">
+                                {exp.title || "Fără titlu"} · {exp.status || "—"} · {formatDate(exp.createdAt || exp.startsAt || null)}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
 
-                    <div className={styles.miniItem}>
-                      <div><strong>Experiences</strong></div>
-                      {(userDetails.recentExperiences || []).length === 0 ? (
-                        <div className="muted">Fără experiențe recente.</div>
-                      ) : (
-                        <div className={styles.stackSm}>
-                          {(userDetails.recentExperiences || []).slice(0, 4).map((exp) => (
-                            <div key={exp.id} className="muted">
-                              {exp.title || "Fără titlu"} · {exp.status || "—"} · {formatDate(exp.createdAt || exp.startsAt || null)}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className={styles.miniItem}>
-                      <div><strong>Reports</strong></div>
-                      {(userDetails.recentReports || []).length === 0 ? (
-                        <div className="muted">Fără reports recente.</div>
-                      ) : (
-                        <div className={styles.stackSm}>
-                          {(userDetails.recentReports || []).slice(0, 4).map((r) => (
-                            <div key={r.id} className="muted">
-                              {r.type || "REPORT"} · {r.status || "—"} · {formatDate(r.createdAt)}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      <div className={styles.miniItem}>
+                        <div><strong>Reports</strong></div>
+                        {(userDetails.recentReports || []).length === 0 ? (
+                          <div className="muted">Fără reports recente.</div>
+                        ) : (
+                          <div className={styles.stackSm}>
+                            {(userDetails.recentReports || []).slice(0, 4).map((r) => (
+                              <div key={r.id} className="muted">
+                                {r.type || "REPORT"} · {r.status || "—"} · {formatDate(r.createdAt)}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </>
-            ) : null}
+                </>
+              ) : null}
+            </div>
           </div>
-        </div>
-      </section> : null}
+        </section> : null}
 
       {activeSection === "experiences" ? <section className={styles.sectionBlock}>
         <div className={styles.sectionTitleRow}>

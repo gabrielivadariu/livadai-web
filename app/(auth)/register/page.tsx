@@ -39,7 +39,7 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState("");
   const [step, setStep] = useState<"register" | "verify">("register");
   const [code, setCode] = useState("");
-  const isPasswordValid = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password);
+  const isPasswordValid = password.length >= 8;
   const canSubmit = termsChecked && isPasswordValid && password === confirmPassword;
 
   const onSubmit = async (e: React.FormEvent) => {

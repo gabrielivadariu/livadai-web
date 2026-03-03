@@ -417,6 +417,28 @@ type AdminPaymentsHostIssue = {
   issues?: string[];
 };
 
+type AdminHostComplianceIssue = {
+  id: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  stripeAccountId?: string | null;
+  livadaiName?: string;
+  stripeLegalName?: string;
+  stripeDisplayName?: string;
+  stripeBusinessType?: string;
+  nameMatchState?: string;
+  bankName?: string;
+  bankLast4?: string;
+  bankCountry?: string;
+  bankCurrency?: string;
+  bankReference?: string;
+  requirementsDisabledReason?: string;
+  requirementsCurrentlyDueCount?: number;
+  snapshotAt?: string | null;
+  issues?: string[];
+};
+
 type AdminDisputedPaymentItem = {
   paymentId: string;
   bookingId?: string | null;
@@ -439,11 +461,16 @@ type AdminPaymentsHealthResponse = {
     stripeMissingAccountHosts?: number;
     payoutEligibleBookings?: number;
     payoutAttentionBookings?: number;
+    hostComplianceAttentionHosts?: number;
+    hostComplianceNameMismatches?: number;
+    hostComplianceMissingBankReference?: number;
+    hostComplianceNoSnapshot?: number;
   };
   refundFailedBookings?: AdminPaymentsHealthBooking[];
   stripeOnboardingIncompleteHosts?: AdminPaymentsHostIssue[];
   payoutAttentionBookings?: AdminPaymentsHealthBooking[];
   disputedPayments?: AdminDisputedPaymentItem[];
+  hostComplianceAttentionHosts?: AdminHostComplianceIssue[];
 };
 
 type AdminSystemHealthResponse = {
@@ -524,6 +551,20 @@ const formatUptime = (seconds?: number) => {
   parts.push(`${mins}m`);
   return parts.join(" ");
 };
+
+const COMPLIANCE_ISSUE_LABELS: Record<string, string> = {
+  NO_COMPLIANCE_SNAPSHOT: "Fără snapshot",
+  NAME_MISMATCH: "Nume diferit",
+  STRIPE_NAME_MISSING: "Nume Stripe lipsă",
+  BANK_REFERENCE_MISSING: "Bank ref lipsă",
+  STRIPE_DISABLED: "Stripe disabled",
+  STRIPE_REQUIREMENTS_DUE: "Requirements due",
+  STRIPE_DETAILS_INCOMPLETE: "Details incomplete",
+  STRIPE_CHARGES_DISABLED: "Charges disabled",
+  STRIPE_PAYOUTS_DISABLED: "Payouts disabled",
+};
+
+const formatComplianceIssue = (value?: string) => COMPLIANCE_ISSUE_LABELS[String(value || "")] || String(value || "");
 
 function StatCard({
   label,
@@ -2956,6 +2997,16 @@ export default function AdminPage() {
               value={paymentsHealth?.summary?.payoutAttentionBookings}
               hint={`Eligible bookings: ${numberFmt(paymentsHealth?.summary?.payoutEligibleBookings)}`}
             />
+            <StatCard
+              label="Compliance attention"
+              value={paymentsHealth?.summary?.hostComplianceAttentionHosts}
+              hint={`Mismatch nume: ${numberFmt(paymentsHealth?.summary?.hostComplianceNameMismatches)}`}
+            />
+            <StatCard
+              label="Compliance gaps"
+              value={paymentsHealth?.summary?.hostComplianceMissingBankReference}
+              hint={`No snapshot: ${numberFmt(paymentsHealth?.summary?.hostComplianceNoSnapshot)}`}
+            />
           </div>
 
           <div className={styles.overviewGrid}>
@@ -3012,6 +3063,48 @@ export default function AdminPage() {
                       <div className={styles.badgeRow}>
                         {(host.issues || []).map((issue) => (
                           <span key={`${host.id}-${issue}`} className={`${styles.badge} ${styles.badgeWarn}`}>{issue}</span>
+                        ))}
+                      </div>
+                      <div className={styles.buttonRow}>
+                        <button
+                          type="button"
+                          className="button secondary"
+                          onClick={() => {
+                            setActiveSection("users");
+                            setUserQuery(host.email || host.id);
+                            void loadUsers(1);
+                          }}
+                        >
+                          Vezi host în Users
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className={`${styles.card} ${styles.inboxCard}`}>
+              <div className={styles.panelTitle}>Host compliance (identity + bank ref)</div>
+              {(paymentsHealth?.hostComplianceAttentionHosts || []).length === 0 ? (
+                <div className="muted">Nu există alerte de compliance pentru host-ii conectați la Stripe.</div>
+              ) : (
+                <div className={styles.stackSm}>
+                  {(paymentsHealth?.hostComplianceAttentionHosts || []).slice(0, 12).map((host) => (
+                    <div key={host.id} className={styles.miniItem}>
+                      <div>
+                        <strong>{host.email || host.name || "Host"}</strong>
+                      </div>
+                      <div className="muted">LIVADAI: {host.livadaiName || "—"}</div>
+                      <div className="muted">Stripe legal: {host.stripeLegalName || host.stripeDisplayName || "—"}</div>
+                      <div className="muted">
+                        Bank ref: {host.bankReference || "—"} · Snapshot: {formatDate(host.snapshotAt || null)}
+                      </div>
+                      <div className={styles.badgeRow}>
+                        {(host.issues || []).map((issue) => (
+                          <span key={`${host.id}-${issue}`} className={`${styles.badge} ${styles.badgeWarn}`}>
+                            {formatComplianceIssue(issue)}
+                          </span>
                         ))}
                       </div>
                       <div className={styles.buttonRow}>

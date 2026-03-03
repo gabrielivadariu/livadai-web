@@ -1338,15 +1338,17 @@ export default function AdminPage() {
   }, []);
 
   const loadHosts = useCallback(
-    async (page = 1) => {
+    async (page = 1, overrides?: { q?: string; status?: string }) => {
       setHostsLoading(true);
       setHostsError("");
       try {
+        const effectiveQuery = String(overrides?.q ?? hostQuery).trim();
+        const effectiveStatus = String((overrides?.status ?? hostStatusFilter) || "all");
         const params = new URLSearchParams();
         params.set("page", String(page));
         params.set("limit", "20");
-        if (hostQuery.trim()) params.set("q", hostQuery.trim());
-        if (hostStatusFilter !== "all") params.set("status", hostStatusFilter);
+        if (effectiveQuery) params.set("q", effectiveQuery);
+        if (effectiveStatus !== "all") params.set("status", effectiveStatus);
         const data = await apiGet<AdminHostsResponse>(`/admin/hosts?${params.toString()}`);
         setHosts(data || null);
       } catch (err) {
@@ -1371,6 +1373,20 @@ export default function AdminPage() {
       setHostDetailsLoading(false);
     }
   }, []);
+
+  const openHostRegistry = useCallback(
+    (hostId?: string, query?: string) => {
+      const normalizedQuery = String(query || "").trim();
+      setActiveSection("hosts");
+      setHostStatusFilter("all");
+      setHostQuery(normalizedQuery);
+      void loadHosts(1, { q: normalizedQuery, status: "all" });
+      if (hostId) {
+        void loadHostDetails(hostId);
+      }
+    },
+    [loadHosts, loadHostDetails]
+  );
 
   const loadExperiences = useCallback(
     async (page = 1) => {
@@ -2964,9 +2980,10 @@ export default function AdminPage() {
                         type="button"
                         className="button secondary"
                         onClick={() => {
-                          setActiveSection("users");
-                          setUserQuery(experienceDetails.experience?.host?.email || "");
-                          void loadUsers(1);
+                          openHostRegistry(
+                            experienceDetails.experience?.host?.id,
+                            experienceDetails.experience?.host?.email || experienceDetails.experience?.host?.id || ""
+                          );
                         }}
                       >
                         Vezi host
@@ -3351,6 +3368,15 @@ export default function AdminPage() {
                         Vezi reporter în users
                       </button>
                     ) : null}
+                    {selectedReport.host?.id || selectedReport.host?.email ? (
+                      <button
+                        type="button"
+                        className="button secondary"
+                        onClick={() => openHostRegistry(selectedReport.host?.id, selectedReport.host?.email || selectedReport.host?.id || "")}
+                      >
+                        Vezi host în hosts
+                      </button>
+                    ) : null}
                   </div>
                 </div>
 
@@ -3519,12 +3545,10 @@ export default function AdminPage() {
                           type="button"
                           className="button secondary"
                           onClick={() => {
-                            setActiveSection("users");
-                            setUserQuery(host.email || host.id);
-                            void loadUsers(1);
+                            openHostRegistry(host.id, host.email || host.id);
                           }}
                         >
-                          Vezi host în Users
+                          Vezi host în Hosts
                         </button>
                       </div>
                     </div>
@@ -3561,12 +3585,10 @@ export default function AdminPage() {
                           type="button"
                           className="button secondary"
                           onClick={() => {
-                            setActiveSection("users");
-                            setUserQuery(host.email || host.id);
-                            void loadUsers(1);
+                            openHostRegistry(host.id, host.email || host.id);
                           }}
                         >
-                          Vezi host în Users
+                          Vezi host în Hosts
                         </button>
                       </div>
                     </div>
@@ -3612,9 +3634,7 @@ export default function AdminPage() {
                           type="button"
                           className="button secondary"
                           onClick={() => {
-                            setActiveSection("users");
-                            setUserQuery(row.host?.email || row.host?.id || "");
-                            void loadUsers(1);
+                            openHostRegistry(row.host?.id, row.host?.email || row.host?.id || "");
                           }}
                         >
                           Host

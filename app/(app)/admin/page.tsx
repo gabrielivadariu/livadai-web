@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
@@ -646,6 +646,16 @@ type AdminSystemHealthResponse = {
   };
 };
 
+type CriticalActionDialogConfig = {
+  title: string;
+  impact?: string;
+  requireReason?: boolean;
+  reasonLabel?: string;
+  reasonPlaceholder?: string;
+  requireTypeText?: string;
+  confirmButtonLabel?: string;
+};
+
 const numberFmt = (value?: number) => new Intl.NumberFormat("ro-RO").format(Number(value || 0));
 const formatMoney = (value?: number, currency?: string) =>
   `${numberFmt(value)} ${String(currency || "RON").toUpperCase()}`;
@@ -1252,6 +1262,11 @@ export default function AdminPage() {
   const [actionInfo, setActionInfo] = useState("");
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [csvExportingKey, setCsvExportingKey] = useState<string | null>(null);
+  const [criticalDialog, setCriticalDialog] = useState<CriticalActionDialogConfig | null>(null);
+  const [criticalReasonInput, setCriticalReasonInput] = useState("");
+  const [criticalConfirmTextInput, setCriticalConfirmTextInput] = useState("");
+  const [criticalDialogError, setCriticalDialogError] = useState("");
+  const criticalDialogResolverRef = useRef<((value: { confirmed: boolean; reason: string }) => void) | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [activeSection, setActiveSection] = useState<
     "overview" | "users" | "hosts" | "experiences" | "bookings" | "reports" | "payments" | "audit" | "messages" | "system"
@@ -1606,17 +1621,50 @@ export default function AdminPage() {
     []
   );
 
-  const getCriticalReason = useCallback((title: string) => {
-    if (typeof window === "undefined") return null;
-    const confirmed = window.confirm(`${title}\n\nConfirmi acțiunea?`);
-    if (!confirmed) return null;
-    const reason = window.prompt("Motiv (obligatoriu):", "");
-    if (!reason || !reason.trim()) {
-      setActionError("Motivul este obligatoriu pentru această acțiune.");
-      return null;
-    }
-    return reason.trim();
+  const closeCriticalDialog = useCallback((payload: { confirmed: boolean; reason: string }) => {
+    const resolver = criticalDialogResolverRef.current;
+    criticalDialogResolverRef.current = null;
+    setCriticalDialog(null);
+    setCriticalReasonInput("");
+    setCriticalConfirmTextInput("");
+    setCriticalDialogError("");
+    if (resolver) resolver(payload);
   }, []);
+
+  useEffect(() => {
+    return () => {
+      const resolver = criticalDialogResolverRef.current;
+      criticalDialogResolverRef.current = null;
+      if (resolver) resolver({ confirmed: false, reason: "" });
+    };
+  }, []);
+
+  const askCriticalConfirmation = useCallback((config: CriticalActionDialogConfig) => {
+    return new Promise<{ confirmed: boolean; reason: string }>((resolve) => {
+      criticalDialogResolverRef.current = resolve;
+      setCriticalDialog(config);
+      setCriticalReasonInput("");
+      setCriticalConfirmTextInput("");
+      setCriticalDialogError("");
+    });
+  }, []);
+
+  const submitCriticalDialog = useCallback(() => {
+    if (!criticalDialog) return;
+    const reason = criticalReasonInput.trim();
+    const requiredWord = String(criticalDialog.requireTypeText || "").trim().toUpperCase();
+    const typedWord = criticalConfirmTextInput.trim().toUpperCase();
+
+    if (criticalDialog.requireReason && !reason) {
+      setCriticalDialogError("Motivul este obligatoriu.");
+      return;
+    }
+    if (requiredWord && typedWord !== requiredWord) {
+      setCriticalDialogError(`Trebuie să scrii exact: ${requiredWord}`);
+      return;
+    }
+    closeCriticalDialog({ confirmed: true, reason });
+  }, [criticalDialog, criticalReasonInput, criticalConfirmTextInput, closeCriticalDialog]);
 
   const patchUser = useCallback(
     async (id: string, payload: Record<string, unknown>, info = "Utilizator actualizat") => {
@@ -1728,12 +1776,25 @@ export default function AdminPage() {
       }
       let reason: string | undefined;
       if (action === "PAUSE") {
-        const r = getCriticalReason(`Bulk pause pentru ${selectedExperienceIds.length} experiențe`);
-        if (!r) return;
-        reason = r;
-      } else if (typeof window !== "undefined") {
-        const ok = window.confirm(`Confirmi bulk unpause pentru ${selectedExperienceIds.length} experiențe?`);
-        if (!ok) return;
+        const decision = await askCriticalConfirmation({
+          title: `Bulk pause (${selectedExperienceIds.length} experiențe)`,
+          impact: "Toate experiențele selectate vor deveni inactive.",
+          requireReason: true,
+          reasonLabel: "Motiv (obligatoriu)",
+          reasonPlaceholder: "Ex: verificare de siguranță / conținut invalid",
+          requireTypeText: "PAUSE",
+          confirmButtonLabel: "Confirmă pause",
+        });
+        if (!decision.confirmed) return;
+        reason = decision.reason;
+      } else {
+        const decision = await askCriticalConfirmation({
+          title: `Bulk unpause (${selectedExperienceIds.length} experiențe)`,
+          impact: "Experiențele selectate vor fi reactivate.",
+          requireTypeText: "UNPAUSE",
+          confirmButtonLabel: "Confirmă unpause",
+        });
+        if (!decision.confirmed) return;
       }
 
       await runAction(`exp:bulk:${action}`, async () => {
@@ -1754,7 +1815,7 @@ export default function AdminPage() {
     },
     [
       selectedExperienceIds,
-      getCriticalReason,
+      askCriticalConfirmation,
       runAction,
       loadExperiences,
       experiences?.page,
@@ -2815,10 +2876,19 @@ export default function AdminPage() {
                   runAction(
                     `exp:${id}:active`,
                     async () => {
-                      let reason: string | null = null;
+                      let reason: string | undefined;
                       if (!nextValue) {
-                        reason = getCriticalReason("Dezactivare experiență");
-                        if (!reason) return;
+                        const decision = await askCriticalConfirmation({
+                          title: "Dezactivare experiență",
+                          impact: "Experiența va fi ascunsă din listări și nu va mai putea primi rezervări noi.",
+                          requireReason: true,
+                          reasonLabel: "Motiv (obligatoriu)",
+                          reasonPlaceholder: "Ex: problemă de siguranță / conținut neconform",
+                          requireTypeText: "PAUSE",
+                          confirmButtonLabel: "Confirmă dezactivarea",
+                        });
+                        if (!decision.confirmed) return;
+                        reason = decision.reason;
                       }
                       await patchExperience(
                         id,
@@ -2831,8 +2901,21 @@ export default function AdminPage() {
                 onSaveStatus={(id, status) =>
                   runAction(`exp:${id}:status`, async () => {
                     const critical = ["DISABLED", "CANCELLED", "cancelled"].includes(status);
-                    const reason = critical ? getCriticalReason(`Schimbare status experiență la ${status}`) : null;
-                    if (critical && !reason) return;
+                    let reason: string | undefined;
+                    if (critical) {
+                      const normalized = String(status || "").toUpperCase();
+                      const decision = await askCriticalConfirmation({
+                        title: `Schimbare status experiență: ${normalized}`,
+                        impact: "Statusul experienței se schimbă și poate afecta rezervările active.",
+                        requireReason: true,
+                        reasonLabel: "Motiv (obligatoriu)",
+                        reasonPlaceholder: "Ex: incident validat de echipa de suport",
+                        requireTypeText: normalized === "DISABLED" ? "DISABLE" : "CANCEL",
+                        confirmButtonLabel: "Confirmă schimbarea",
+                      });
+                      if (!decision.confirmed) return;
+                      reason = decision.reason;
+                    }
                     await patchExperience(id, { status, ...(reason ? { reason } : {}) }, `Status salvat (${status})`);
                   })
                 }
@@ -3089,16 +3172,32 @@ export default function AdminPage() {
                 onOpenDetails={loadBookingDetails}
                 onCancel={(id) =>
                   runAction(`booking:${id}:cancel`, async () => {
-                    const reason = getCriticalReason("Anulare booking (admin)");
-                    if (!reason) return;
-                    await postBookingAction(id, "cancel", reason, "Booking anulat (admin)");
+                    const decision = await askCriticalConfirmation({
+                      title: "Anulare booking (admin)",
+                      impact: "Booking-ul va fi anulat. Acțiunea afectează host-ul și explorer-ul.",
+                      requireReason: true,
+                      reasonLabel: "Motiv anulare (obligatoriu)",
+                      reasonPlaceholder: "Ex: fraud alert / solicitare suport validată",
+                      requireTypeText: "CANCEL",
+                      confirmButtonLabel: "Confirmă anularea",
+                    });
+                    if (!decision.confirmed) return;
+                    await postBookingAction(id, "cancel", decision.reason, "Booking anulat (admin)");
                   })
                 }
                 onRefund={(id) =>
                   runAction(`booking:${id}:refund`, async () => {
-                    const reason = getCriticalReason("Refund booking (admin)");
-                    if (!reason) return;
-                    await postBookingAction(id, "refund", reason, "Refund declanșat (admin)");
+                    const decision = await askCriticalConfirmation({
+                      title: "Refund booking (admin)",
+                      impact: "Se declanșează refund prin Stripe pentru acest booking.",
+                      requireReason: true,
+                      reasonLabel: "Motiv refund (obligatoriu)",
+                      reasonPlaceholder: "Ex: experiență anulată / incident de siguranță",
+                      requireTypeText: "REFUND",
+                      confirmButtonLabel: "Confirmă refund",
+                    });
+                    if (!decision.confirmed) return;
+                    await postBookingAction(id, "refund", decision.reason, "Refund declanșat (admin)");
                   })
                 }
               />
@@ -3287,8 +3386,27 @@ export default function AdminPage() {
                 onAction={(id, action) =>
                   runAction(`report:${id}:${action}`, async () => {
                     const needsReason = ["PAUSE_EXPERIENCE", "SUSPEND_USER"].includes(action) || action === "MARK_IGNORED";
-                    const reason = needsReason ? getCriticalReason(`Report action: ${action}`) : undefined;
-                    if (needsReason && !reason) return;
+                    let reason: string | undefined;
+                    if (needsReason) {
+                      const typedWord =
+                        action === "PAUSE_EXPERIENCE" ? "PAUSE" : action === "SUSPEND_USER" ? "SUSPEND" : "IGNORE";
+                      const decision = await askCriticalConfirmation({
+                        title: `Report action: ${action}`,
+                        impact:
+                          action === "PAUSE_EXPERIENCE"
+                            ? "Experiența raportată va fi pusă pe pauză."
+                            : action === "SUSPEND_USER"
+                              ? "Utilizatorul țintă va fi suspendat (blocked)."
+                              : "Report-ul va fi marcat ca ignorat.",
+                        requireReason: true,
+                        reasonLabel: "Motiv (obligatoriu)",
+                        reasonPlaceholder: "Ex: verificare finalizată de echipa support",
+                        requireTypeText: typedWord,
+                        confirmButtonLabel: "Confirmă acțiunea",
+                      });
+                      if (!decision.confirmed) return;
+                      reason = decision.reason;
+                    }
                     await postReportAction(id, action, reason || undefined);
                   })
                 }
@@ -3409,9 +3527,17 @@ export default function AdminPage() {
                       disabled={!!pendingKey?.startsWith(`report:${selectedReport.id}:`)}
                       onClick={() =>
                         void runAction(`report:${selectedReport.id}:PAUSE_EXPERIENCE`, async () => {
-                          const reason = getCriticalReason("Pause experience from report");
-                          if (!reason) return;
-                          await postReportAction(selectedReport.id, "PAUSE_EXPERIENCE", reason);
+                          const decision = await askCriticalConfirmation({
+                            title: "Pause experience from report",
+                            impact: "Experiența raportată va fi pusă pe pauză imediat.",
+                            requireReason: true,
+                            reasonLabel: "Motiv (obligatoriu)",
+                            reasonPlaceholder: "Ex: risc confirmat de safety team",
+                            requireTypeText: "PAUSE",
+                            confirmButtonLabel: "Confirmă pause",
+                          });
+                          if (!decision.confirmed) return;
+                          await postReportAction(selectedReport.id, "PAUSE_EXPERIENCE", decision.reason);
                         })
                       }
                     >
@@ -3423,9 +3549,17 @@ export default function AdminPage() {
                       disabled={!!pendingKey?.startsWith(`report:${selectedReport.id}:`)}
                       onClick={() =>
                         void runAction(`report:${selectedReport.id}:SUSPEND_USER`, async () => {
-                          const reason = getCriticalReason("Suspend user from report");
-                          if (!reason) return;
-                          await postReportAction(selectedReport.id, "SUSPEND_USER", reason);
+                          const decision = await askCriticalConfirmation({
+                            title: "Suspend user from report",
+                            impact: "Utilizatorul țintă va fi suspendat (blocked).",
+                            requireReason: true,
+                            reasonLabel: "Motiv (obligatoriu)",
+                            reasonPlaceholder: "Ex: încălcare gravă a regulilor",
+                            requireTypeText: "SUSPEND",
+                            confirmButtonLabel: "Confirmă suspendarea",
+                          });
+                          if (!decision.confirmed) return;
+                          await postReportAction(selectedReport.id, "SUSPEND_USER", decision.reason);
                         })
                       }
                     >
@@ -4210,6 +4344,72 @@ export default function AdminPage() {
             </div>
           </div>
         </section>
+      ) : null}
+
+      {criticalDialog ? (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => closeCriticalDialog({ confirmed: false, reason: "" })}
+        >
+          <div className={`${styles.card} ${styles.modalCard}`} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>{criticalDialog.title}</h3>
+              <button
+                type="button"
+                className="button secondary"
+                onClick={() => closeCriticalDialog({ confirmed: false, reason: "" })}
+              >
+                Închide
+              </button>
+            </div>
+
+            {criticalDialog.impact ? <div className={styles.modalImpact}>{criticalDialog.impact}</div> : null}
+
+            {criticalDialog.requireReason ? (
+              <label className={styles.modalField}>
+                <span>{criticalDialog.reasonLabel || "Motiv (obligatoriu)"}</span>
+                <textarea
+                  className={styles.modalTextarea}
+                  value={criticalReasonInput}
+                  onChange={(e) => setCriticalReasonInput(e.target.value)}
+                  placeholder={criticalDialog.reasonPlaceholder || "Descrie motivul acțiunii"}
+                  rows={4}
+                />
+              </label>
+            ) : null}
+
+            {criticalDialog.requireTypeText ? (
+              <label className={styles.modalField}>
+                <span>Scrie exact: {String(criticalDialog.requireTypeText || "").toUpperCase()}</span>
+                <input
+                  className="input"
+                  value={criticalConfirmTextInput}
+                  onChange={(e) => setCriticalConfirmTextInput(e.target.value)}
+                  placeholder={`Type ${String(criticalDialog.requireTypeText || "").toUpperCase()}`}
+                />
+              </label>
+            ) : null}
+
+            {criticalDialogError ? <div className={`${styles.banner} ${styles.bannerError}`}>{criticalDialogError}</div> : null}
+
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className="button secondary"
+                onClick={() => closeCriticalDialog({ confirmed: false, reason: "" })}
+              >
+                Renunță
+              </button>
+              <button
+                type="button"
+                className="button"
+                onClick={submitCriticalDialog}
+              >
+                {criticalDialog.confirmButtonLabel || "Confirmă"}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       </div>

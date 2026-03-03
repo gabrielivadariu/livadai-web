@@ -204,6 +204,85 @@
   color: #0f172a;
 }
 
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.48);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modalCard {
+  width: min(620px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  color: #0f172a;
+}
+
+.modalImpact {
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fff1f2;
+  color: #9f1239;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.modalField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modalField > span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.modalTextarea {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  resize: vertical;
+  min-height: 96px;
+  font-size: 14px;
+  color: #0f172a;
+  background: #fff;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modalActions > button {
+  width: auto;
+  min-width: 130px;
+}
+
 .sectionBlock {
   display: flex;
   flex-direction: column;
@@ -911,6 +990,28 @@
 
   .bulkToolbar {
     align-items: stretch;
+  }
+
+  .modalOverlay {
+    padding: 12px;
+  }
+
+  .modalHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modalHeader > button {
+    width: 100%;
+  }
+
+  .modalActions {
+    flex-direction: column;
+  }
+
+  .modalActions > button {
+    width: 100%;
+    min-width: 0;
   }
 }
 

@@ -21,8 +21,44 @@ export const clearAuthToken = () => {
 };
 
 type ApiOptions = RequestInit & { json?: unknown };
+type InternalApiOptions = ApiOptions & { _retried?: boolean; _skipAuthRefresh?: boolean };
 
-const apiRequest = async <T>(path: string, options: ApiOptions = {}) => {
+let refreshRequest: Promise<boolean> | null = null;
+
+const tryRefreshSession = async () => {
+  if (refreshRequest) return refreshRequest;
+
+  refreshRequest = (async () => {
+    try {
+      const headers = new Headers();
+      if (authToken) {
+        headers.set("Authorization", `Bearer ${authToken}`);
+      }
+      const res = await fetch(`${getApiBase()}/auth/refresh`, {
+        method: "POST",
+        headers,
+        credentials: "include",
+      });
+      if (!res.ok) {
+        clearAuthToken();
+        return false;
+      }
+      const data = await res.json().catch(() => ({}));
+      if (data?.token) {
+        setAuthToken(data.token);
+      }
+      return true;
+    } catch {
+      return false;
+    } finally {
+      refreshRequest = null;
+    }
+  })();
+
+  return refreshRequest;
+};
+
+const apiRequest = async <T>(path: string, options: InternalApiOptions = {}) => {
   const headers = new Headers(options.headers || undefined);
   if (options.json !== undefined && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -53,6 +89,12 @@ const apiRequest = async <T>(path: string, options: ApiOptions = {}) => {
   }
 
   if (!res.ok) {
+    if (res.status === 401 && !options._retried && !options._skipAuthRefresh) {
+      const refreshed = await tryRefreshSession();
+      if (refreshed) {
+        return apiRequest<T>(path, { ...options, _retried: true });
+      }
+    }
     const message = await res.json().catch(() => ({}));
     const error = new Error(message?.message || "Request failed");
     (error as Error & { status?: number }).status = res.status;

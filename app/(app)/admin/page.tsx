@@ -704,6 +704,11 @@ const COMPLIANCE_ISSUE_LABELS: Record<string, string> = {
 };
 
 const formatComplianceIssue = (value?: string) => COMPLIANCE_ISSUE_LABELS[String(value || "")] || String(value || "");
+const ADMIN_ROLES = ["OWNER_ADMIN", "ADMIN", "ADMIN_SUPPORT", "ADMIN_RISK", "ADMIN_FINANCE", "ADMIN_VIEWER"] as const;
+const USER_ROLE_OPTIONS = ["EXPLORER", "HOST", "BOTH", ...ADMIN_ROLES] as const;
+const ADMIN_ROLE_SET = new Set<string>(ADMIN_ROLES);
+const normalizeRole = (value?: string | null) => String(value || "").trim().toUpperCase();
+const isAdminRole = (role?: string | null) => ADMIN_ROLE_SET.has(normalizeRole(role));
 
 function StatCard({
   label,
@@ -779,10 +784,11 @@ function AdminUserRow({
             onChange={(e) => setRoleValue(e.target.value)}
             disabled={busy}
           >
-            <option value="EXPLORER">EXPLORER</option>
-            <option value="HOST">HOST</option>
-            <option value="BOTH">BOTH</option>
-            <option value="ADMIN">ADMIN</option>
+            {USER_ROLE_OPTIONS.map((roleOption) => (
+              <option key={roleOption} value={roleOption}>
+                {roleOption}
+              </option>
+            ))}
           </select>
           <button
             type="button"
@@ -1275,7 +1281,7 @@ export default function AdminPage() {
   const [recentAdminActions, setRecentAdminActions] = useState<AdminAuditLogItem[]>([]);
   const [recentLoading, setRecentLoading] = useState(false);
 
-  const isAdmin = user?.role === "ADMIN";
+  const isAdmin = isAdminRole(user?.role);
 
   useEffect(() => {
     if (authLoading) return;
@@ -1286,7 +1292,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (token && user && user.role !== "ADMIN") {
+    if (token && user && !isAdminRole(user.role)) {
       router.replace("/");
     }
   }, [authLoading, token, user, router]);
@@ -2267,10 +2273,11 @@ export default function AdminPage() {
               />
               <select className={styles.select} value={userRoleFilter} onChange={(e) => setUserRoleFilter(e.target.value)}>
                 <option value="all">Toate rolurile</option>
-                <option value="EXPLORER">EXPLORER</option>
-                <option value="HOST">HOST</option>
-                <option value="BOTH">BOTH</option>
-                <option value="ADMIN">ADMIN</option>
+                {USER_ROLE_OPTIONS.map((roleOption) => (
+                  <option key={roleOption} value={roleOption}>
+                    {roleOption}
+                  </option>
+                ))}
               </select>
               <select className={styles.select} value={userStatusFilter} onChange={(e) => setUserStatusFilter(e.target.value)}>
                 <option value="all">Toate statusurile</option>

@@ -646,6 +646,30 @@ type AdminSystemHealthResponse = {
   };
 };
 
+const ADMIN_CAPABILITIES = [
+  "PANEL_READ",
+  "USERS_WRITE",
+  "EXPERIENCES_WRITE",
+  "BOOKINGS_WRITE",
+  "REPORTS_WRITE",
+  "OWNER_WRITE",
+] as const;
+
+type AdminCapability = (typeof ADMIN_CAPABILITIES)[number];
+
+type AdminPermissionsResponse = {
+  role?: string;
+  capabilities?: AdminCapability[];
+  can?: {
+    panelRead?: boolean;
+    usersWrite?: boolean;
+    experiencesWrite?: boolean;
+    bookingsWrite?: boolean;
+    reportsWrite?: boolean;
+    ownerWrite?: boolean;
+  };
+};
+
 type CriticalActionDialogConfig = {
   title: string;
   impact?: string;
@@ -709,6 +733,31 @@ const USER_ROLE_OPTIONS = ["EXPLORER", "HOST", "BOTH", ...ADMIN_ROLES] as const;
 const ADMIN_ROLE_SET = new Set<string>(ADMIN_ROLES);
 const normalizeRole = (value?: string | null) => String(value || "").trim().toUpperCase();
 const isAdminRole = (role?: string | null) => ADMIN_ROLE_SET.has(normalizeRole(role));
+const ADMIN_CAPABILITIES_BY_ROLE_FALLBACK: Record<string, AdminCapability[]> = {
+  OWNER_ADMIN: [...ADMIN_CAPABILITIES],
+  ADMIN: ["PANEL_READ", "USERS_WRITE", "EXPERIENCES_WRITE", "BOOKINGS_WRITE", "REPORTS_WRITE"],
+  ADMIN_SUPPORT: ["PANEL_READ", "BOOKINGS_WRITE", "REPORTS_WRITE"],
+  ADMIN_RISK: ["PANEL_READ", "USERS_WRITE", "EXPERIENCES_WRITE", "REPORTS_WRITE"],
+  ADMIN_FINANCE: ["PANEL_READ", "BOOKINGS_WRITE"],
+  ADMIN_VIEWER: ["PANEL_READ"],
+};
+
+const buildPermissionsFallback = (role?: string | null): AdminPermissionsResponse => {
+  const normalizedRole = normalizeRole(role);
+  const capabilities = (ADMIN_CAPABILITIES_BY_ROLE_FALLBACK[normalizedRole] || []) as AdminCapability[];
+  return {
+    role: normalizedRole,
+    capabilities,
+    can: {
+      panelRead: capabilities.includes("PANEL_READ"),
+      usersWrite: capabilities.includes("USERS_WRITE"),
+      experiencesWrite: capabilities.includes("EXPERIENCES_WRITE"),
+      bookingsWrite: capabilities.includes("BOOKINGS_WRITE"),
+      reportsWrite: capabilities.includes("REPORTS_WRITE"),
+      ownerWrite: capabilities.includes("OWNER_WRITE"),
+    },
+  };
+};
 
 function StatCard({
   label,
@@ -1263,6 +1312,7 @@ export default function AdminPage() {
   const [systemHealth, setSystemHealth] = useState<AdminSystemHealthResponse | null>(null);
   const [systemLoading, setSystemLoading] = useState(false);
   const [systemError, setSystemError] = useState("");
+  const [adminPermissions, setAdminPermissions] = useState<AdminPermissionsResponse | null>(null);
 
   const [actionError, setActionError] = useState("");
   const [actionInfo, setActionInfo] = useState("");
@@ -1282,6 +1332,15 @@ export default function AdminPage() {
   const [recentLoading, setRecentLoading] = useState(false);
 
   const isAdmin = isAdminRole(user?.role);
+  const adminCapabilitySet = useMemo(
+    () => new Set<AdminCapability>((adminPermissions?.capabilities || []) as AdminCapability[]),
+    [adminPermissions?.capabilities]
+  );
+  const canWriteUsers = adminCapabilitySet.has("USERS_WRITE");
+  const canWriteExperiences = adminCapabilitySet.has("EXPERIENCES_WRITE");
+  const canWriteBookings = adminCapabilitySet.has("BOOKINGS_WRITE");
+  const canWriteReports = adminCapabilitySet.has("REPORTS_WRITE");
+  const isOwnerAdmin = adminCapabilitySet.has("OWNER_WRITE");
 
   useEffect(() => {
     if (authLoading) return;
@@ -1296,6 +1355,24 @@ export default function AdminPage() {
       router.replace("/");
     }
   }, [authLoading, token, user, router]);
+
+  useEffect(() => {
+    if (!user?.role) return;
+    setAdminPermissions((prev) => prev || buildPermissionsFallback(user.role));
+  }, [user?.role]);
+
+  const loadAdminPermissions = useCallback(async () => {
+    try {
+      const data = await apiGet<AdminPermissionsResponse>("/admin/me/permissions");
+      if (Array.isArray(data?.capabilities)) {
+        setAdminPermissions(data);
+        return;
+      }
+    } catch {
+      // fallback stays active if endpoint is unavailable
+    }
+    setAdminPermissions(buildPermissionsFallback(user?.role));
+  }, [user?.role]);
 
   const loadDashboard = useCallback(async () => {
     setDashboardLoading(true);
@@ -1582,7 +1659,13 @@ export default function AdminPage() {
       const data = await apiGet<AdminSystemHealthResponse>("/admin/system/health");
       setSystemHealth(data || null);
     } catch (err) {
-      setSystemError((err as Error)?.message || "Nu am putut încărca System health.");
+      const message = (err as Error)?.message || "Nu am putut încărca System health.";
+      if (/owner admin permissions required|forbidden|403/i.test(message)) {
+        setSystemHealth(null);
+        setSystemError("System health este disponibil doar pentru OWNER_ADMIN.");
+      } else {
+        setSystemError(message);
+      }
     } finally {
       setSystemLoading(false);
     }
@@ -1590,6 +1673,7 @@ export default function AdminPage() {
 
   const refreshAll = useCallback(async () => {
     await Promise.all([
+      loadAdminPermissions(),
       loadDashboard(),
       loadUsers(users?.page || 1),
       loadHosts(hosts?.page || 1),
@@ -1599,10 +1683,10 @@ export default function AdminPage() {
       loadPaymentsHealth(),
       loadAuditLogs(auditLogs?.page || 1),
       loadMessages(messagesData?.page || 1),
-      loadSystemHealth(),
+      ...(isOwnerAdmin ? [loadSystemHealth()] : []),
       loadRecentAdminActions(),
     ]);
-  }, [loadDashboard, loadUsers, loadHosts, loadExperiences, loadBookings, loadReports, loadPaymentsHealth, loadAuditLogs, loadMessages, loadSystemHealth, loadRecentAdminActions, users?.page, hosts?.page, experiences?.page, bookings?.page, reports?.page, auditLogs?.page, messagesData?.page]);
+  }, [isOwnerAdmin, loadAdminPermissions, loadDashboard, loadUsers, loadHosts, loadExperiences, loadBookings, loadReports, loadPaymentsHealth, loadAuditLogs, loadMessages, loadSystemHealth, loadRecentAdminActions, users?.page, hosts?.page, experiences?.page, bookings?.page, reports?.page, auditLogs?.page, messagesData?.page]);
 
   useEffect(() => {
     if (authLoading || !token || !isAdmin) return;
@@ -1674,6 +1758,9 @@ export default function AdminPage() {
 
   const patchUser = useCallback(
     async (id: string, payload: Record<string, unknown>, info = "Utilizator actualizat") => {
+      if (!canWriteUsers) {
+        throw new Error("Nu ai permisiune pentru modificări pe utilizatori.");
+      }
       await apiPatch(`/admin/users/${id}`, payload);
       setActionInfo(info);
       await Promise.all([
@@ -1683,11 +1770,14 @@ export default function AdminPage() {
         loadRecentAdminActions(),
       ]);
     },
-    [loadUsers, loadDashboard, loadUserDetails, loadRecentAdminActions, users?.page, selectedUserId]
+    [canWriteUsers, loadUsers, loadDashboard, loadUserDetails, loadRecentAdminActions, users?.page, selectedUserId]
   );
 
   const patchExperience = useCallback(
     async (id: string, payload: Record<string, unknown>, info = "Experiență actualizată") => {
+      if (!canWriteExperiences) {
+        throw new Error("Nu ai permisiune pentru modificări pe experiențe.");
+      }
       await apiPatch(`/admin/experiences/${id}`, payload);
       setActionInfo(info);
       await Promise.all([
@@ -1697,11 +1787,14 @@ export default function AdminPage() {
         loadRecentAdminActions(),
       ]);
     },
-    [loadExperiences, loadDashboard, loadExperienceDetails, loadRecentAdminActions, experiences?.page, selectedExperienceId]
+    [canWriteExperiences, loadExperiences, loadDashboard, loadExperienceDetails, loadRecentAdminActions, experiences?.page, selectedExperienceId]
   );
 
   const postBookingAction = useCallback(
     async (id: string, action: "cancel" | "refund", reason: string, info: string) => {
+      if (!canWriteBookings) {
+        throw new Error("Nu ai permisiune pentru acțiuni pe bookings.");
+      }
       await apiPost(`/admin/bookings/${id}/${action}`, { reason });
       setActionInfo(info);
       await Promise.all([loadBookings(bookings?.page || 1), loadDashboard(), loadRecentAdminActions()]);
@@ -1709,11 +1802,14 @@ export default function AdminPage() {
         await loadBookingDetails(id);
       }
     },
-    [loadBookings, loadDashboard, loadRecentAdminActions, bookings?.page, selectedBookingId, loadBookingDetails]
+    [canWriteBookings, loadBookings, loadDashboard, loadRecentAdminActions, bookings?.page, selectedBookingId, loadBookingDetails]
   );
 
   const postReportAction = useCallback(
     async (id: string, action: string, reason?: string) => {
+      if (!canWriteReports) {
+        throw new Error("Nu ai permisiune pentru acțiuni pe reports.");
+      }
       await apiPost(`/admin/reports/${id}/action`, {
         action,
         ...(reason ? { reason } : {}),
@@ -1721,7 +1817,7 @@ export default function AdminPage() {
       setActionInfo(`Report actualizat (${action})`);
       await Promise.all([loadReports(reports?.page || 1), loadDashboard(), loadRecentAdminActions()]);
     },
-    [loadReports, reports?.page, loadDashboard, loadRecentAdminActions]
+    [canWriteReports, loadReports, reports?.page, loadDashboard, loadRecentAdminActions]
   );
 
   const onGlobalSearchSubmit = useCallback(
@@ -1776,6 +1872,10 @@ export default function AdminPage() {
 
   const runExperienceBulkAction = useCallback(
     async (action: "PAUSE" | "UNPAUSE") => {
+      if (!canWriteExperiences) {
+        setActionError("Nu ai permisiune pentru bulk actions pe experiențe.");
+        return;
+      }
       if (!selectedExperienceIds.length) {
         setActionError("Selectează cel puțin o experiență.");
         return;
@@ -1820,6 +1920,7 @@ export default function AdminPage() {
       });
     },
     [
+      canWriteExperiences,
       selectedExperienceIds,
       askCriticalConfirmation,
       runAction,
@@ -2096,7 +2197,7 @@ export default function AdminPage() {
     { key: "payments", label: "Payments & Refunds", hint: "Health & issues" },
     { key: "audit", label: "Audit Log", hint: "Trace admin actions" },
     { key: "messages", label: "Messages", hint: "Conversations" },
-    { key: "system", label: "System", hint: "Health & config" },
+    ...(isOwnerAdmin ? ([{ key: "system", label: "System", hint: "Health & config" }] as const) : []),
   ];
 
   return (
@@ -2136,6 +2237,14 @@ export default function AdminPage() {
           <div className={styles.topbarPanels}>
             <div className={`${styles.card} ${styles.quickActions}`}>
               <div className={styles.panelTitle}>Quick actions</div>
+              <div className={styles.badgeRow}>
+                <span className={styles.badge}>Role: {adminPermissions?.role || normalizeRole(user?.role)}</span>
+                <span className={`${styles.badge} ${canWriteUsers ? styles.badgeOk : styles.badgeWarn}`}>Users write</span>
+                <span className={`${styles.badge} ${canWriteExperiences ? styles.badgeOk : styles.badgeWarn}`}>Experiences write</span>
+                <span className={`${styles.badge} ${canWriteBookings ? styles.badgeOk : styles.badgeWarn}`}>Bookings write</span>
+                <span className={`${styles.badge} ${canWriteReports ? styles.badgeOk : styles.badgeWarn}`}>Reports write</span>
+                {isOwnerAdmin ? <span className={`${styles.badge} ${styles.badgeOk}`}>Owner power</span> : null}
+              </div>
               <div className={styles.quickActionsRow}>
                 <button type="button" className="button secondary" onClick={() => setActiveSection("users")}>
                   Users Overview
@@ -2161,9 +2270,11 @@ export default function AdminPage() {
                 <button type="button" className="button secondary" onClick={() => setActiveSection("messages")}>
                   Messages
                 </button>
-                <button type="button" className="button secondary" onClick={() => setActiveSection("system")}>
-                  System
-                </button>
+                {isOwnerAdmin ? (
+                  <button type="button" className="button secondary" onClick={() => setActiveSection("system")}>
+                    System
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   className="button"
@@ -2852,7 +2963,7 @@ export default function AdminPage() {
             <button
               type="button"
               className="button secondary"
-              disabled={!!pendingKey?.startsWith("exp:bulk:") || selectedExperienceIds.length === 0}
+              disabled={!canWriteExperiences || !!pendingKey?.startsWith("exp:bulk:") || selectedExperienceIds.length === 0}
               onClick={() => void runExperienceBulkAction("PAUSE")}
             >
               Pause selected
@@ -2860,7 +2971,7 @@ export default function AdminPage() {
             <button
               type="button"
               className="button secondary"
-              disabled={!!pendingKey?.startsWith("exp:bulk:") || selectedExperienceIds.length === 0}
+              disabled={!canWriteExperiences || !!pendingKey?.startsWith("exp:bulk:") || selectedExperienceIds.length === 0}
               onClick={() => void runExperienceBulkAction("UNPAUSE")}
             >
               Unpause selected
@@ -2879,8 +2990,12 @@ export default function AdminPage() {
                 busy={!!pendingKey?.startsWith(`exp:${item.id}:`)}
                 onOpenDetails={loadExperienceDetails}
                 onToggleSelect={toggleExperienceSelection}
-                onToggleActive={(id, nextValue) =>
-                  runAction(
+                onToggleActive={(id, nextValue) => {
+                  if (!canWriteExperiences) {
+                    setActionError("Nu ai permisiune pentru modificări pe experiențe.");
+                    return Promise.resolve();
+                  }
+                  return runAction(
                     `exp:${id}:active`,
                     async () => {
                       let reason: string | undefined;
@@ -2903,10 +3018,14 @@ export default function AdminPage() {
                         nextValue ? "Experiență activată" : "Experiență dezactivată"
                       );
                     }
-                  )
-                }
-                onSaveStatus={(id, status) =>
-                  runAction(`exp:${id}:status`, async () => {
+                  );
+                }}
+                onSaveStatus={(id, status) => {
+                  if (!canWriteExperiences) {
+                    setActionError("Nu ai permisiune pentru modificări pe experiențe.");
+                    return Promise.resolve();
+                  }
+                  return runAction(`exp:${id}:status`, async () => {
                     const critical = ["DISABLED", "CANCELLED", "cancelled"].includes(status);
                     let reason: string | undefined;
                     if (critical) {
@@ -2924,8 +3043,8 @@ export default function AdminPage() {
                       reason = decision.reason;
                     }
                     await patchExperience(id, { status, ...(reason ? { reason } : {}) }, `Status salvat (${status})`);
-                  })
-                }
+                  });
+                }}
               />
             ))}
             {!experiencesLoading && (experiences?.items || []).length === 0 ? (
@@ -3177,8 +3296,12 @@ export default function AdminPage() {
                 selected={selectedBookingId === item.id}
                 busy={pendingKey?.startsWith(`booking:${item.id}:`)}
                 onOpenDetails={loadBookingDetails}
-                onCancel={(id) =>
-                  runAction(`booking:${id}:cancel`, async () => {
+                onCancel={(id) => {
+                  if (!canWriteBookings) {
+                    setActionError("Nu ai permisiune pentru acțiuni pe bookings.");
+                    return Promise.resolve();
+                  }
+                  return runAction(`booking:${id}:cancel`, async () => {
                     const decision = await askCriticalConfirmation({
                       title: "Anulare booking (admin)",
                       impact: "Booking-ul va fi anulat. Acțiunea afectează host-ul și explorer-ul.",
@@ -3190,10 +3313,14 @@ export default function AdminPage() {
                     });
                     if (!decision.confirmed) return;
                     await postBookingAction(id, "cancel", decision.reason, "Booking anulat (admin)");
-                  })
-                }
-                onRefund={(id) =>
-                  runAction(`booking:${id}:refund`, async () => {
+                  });
+                }}
+                onRefund={(id) => {
+                  if (!canWriteBookings) {
+                    setActionError("Nu ai permisiune pentru acțiuni pe bookings.");
+                    return Promise.resolve();
+                  }
+                  return runAction(`booking:${id}:refund`, async () => {
                     const decision = await askCriticalConfirmation({
                       title: "Refund booking (admin)",
                       impact: "Se declanșează refund prin Stripe pentru acest booking.",
@@ -3205,8 +3332,8 @@ export default function AdminPage() {
                     });
                     if (!decision.confirmed) return;
                     await postBookingAction(id, "refund", decision.reason, "Refund declanșat (admin)");
-                  })
-                }
+                  });
+                }}
               />
             ))}
             {!bookingsLoading && (bookings?.items || []).length === 0 ? (
@@ -3390,8 +3517,12 @@ export default function AdminPage() {
                 selected={selectedReportId === item.id}
                 busy={pendingKey?.startsWith(`report:${item.id}:`)}
                 onSelect={(id) => setSelectedReportId(id)}
-                onAction={(id, action) =>
-                  runAction(`report:${id}:${action}`, async () => {
+                onAction={(id, action) => {
+                  if (!canWriteReports) {
+                    setActionError("Nu ai permisiune pentru acțiuni pe reports.");
+                    return Promise.resolve();
+                  }
+                  return runAction(`report:${id}:${action}`, async () => {
                     const needsReason = ["PAUSE_EXPERIENCE", "SUSPEND_USER"].includes(action) || action === "MARK_IGNORED";
                     let reason: string | undefined;
                     if (needsReason) {
@@ -3415,8 +3546,8 @@ export default function AdminPage() {
                       reason = decision.reason;
                     }
                     await postReportAction(id, action, reason || undefined);
-                  })
-                }
+                  });
+                }}
               />
             ))}
             {!reportsLoading && (reports?.items || []).length === 0 ? (
@@ -3511,7 +3642,7 @@ export default function AdminPage() {
                     <button
                       type="button"
                       className="button secondary"
-                      disabled={!!pendingKey?.startsWith(`report:${selectedReport.id}:`)}
+                      disabled={!canWriteReports || !!pendingKey?.startsWith(`report:${selectedReport.id}:`)}
                       onClick={() =>
                         void runAction(`report:${selectedReport.id}:MARK_INVESTIGATING`, () => postReportAction(selectedReport.id, "MARK_INVESTIGATING"))
                       }
@@ -3521,7 +3652,7 @@ export default function AdminPage() {
                     <button
                       type="button"
                       className="button secondary"
-                      disabled={!!pendingKey?.startsWith(`report:${selectedReport.id}:`)}
+                      disabled={!canWriteReports || !!pendingKey?.startsWith(`report:${selectedReport.id}:`)}
                       onClick={() =>
                         void runAction(`report:${selectedReport.id}:MARK_HANDLED`, () => postReportAction(selectedReport.id, "MARK_HANDLED"))
                       }
@@ -3531,7 +3662,7 @@ export default function AdminPage() {
                     <button
                       type="button"
                       className="button secondary"
-                      disabled={!!pendingKey?.startsWith(`report:${selectedReport.id}:`)}
+                      disabled={!canWriteReports || !!pendingKey?.startsWith(`report:${selectedReport.id}:`)}
                       onClick={() =>
                         void runAction(`report:${selectedReport.id}:PAUSE_EXPERIENCE`, async () => {
                           const decision = await askCriticalConfirmation({
@@ -3553,7 +3684,7 @@ export default function AdminPage() {
                     <button
                       type="button"
                       className="button secondary"
-                      disabled={!!pendingKey?.startsWith(`report:${selectedReport.id}:`)}
+                      disabled={!canWriteReports || !!pendingKey?.startsWith(`report:${selectedReport.id}:`)}
                       onClick={() =>
                         void runAction(`report:${selectedReport.id}:SUSPEND_USER`, async () => {
                           const decision = await askCriticalConfirmation({

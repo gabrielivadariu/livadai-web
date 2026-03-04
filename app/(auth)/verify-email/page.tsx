@@ -2,13 +2,17 @@
 
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { apiPost } from "@/lib/api";
+import { useAuth } from "@/context/auth-context";
+import { apiPost, setAuthToken } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import styles from "../auth.module.css";
 
 function VerifyEmailContent() {
+  const router = useRouter();
+  const { refresh } = useAuth();
   const searchParams = useSearchParams();
   const defaultEmail = useMemo(() => searchParams.get("email") || "", [searchParams]);
   const [email, setEmail] = useState(defaultEmail);
@@ -22,8 +26,16 @@ function VerifyEmailContent() {
     setError("");
     setStatus("");
     try {
-      await apiPost("/auth/verify-email-code", { email: email.trim(), code: code.trim() });
+      const data = await apiPost<{ token?: string }>("/auth/verify-email-code", {
+        email: email.trim(),
+        code: code.trim(),
+      });
+      if (data?.token) {
+        setAuthToken(data.token);
+      }
+      await refresh();
       setStatus(t("register_verify_success"));
+      router.replace("/experiences");
     } catch (err) {
       const message = (err as Error).message || t("verify_error");
       setError(message);

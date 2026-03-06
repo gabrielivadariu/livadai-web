@@ -26,6 +26,7 @@ type Experience = {
   languages?: string[];
   startsAt?: string;
   startDate?: string;
+  startTime?: string;
   durationMinutes?: number;
   activityType?: string;
   environment?: "INDOOR" | "OUTDOOR" | "BOTH" | string;
@@ -81,6 +82,47 @@ const formatEnvironment = (item: Experience, t: (key: string) => string) => {
   if (env === "OUTDOOR") return t("environment_outdoor");
   if (env === "BOTH") return t("environment_both");
   return "";
+};
+
+const normalizeTimeValue = (value?: string) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  const ampmMatch = raw.match(/^(\d{1,2}):(\d{2})\s*([AP]M)$/i);
+  if (ampmMatch) {
+    let hours = Number(ampmMatch[1]);
+    const minutes = ampmMatch[2];
+    const marker = ampmMatch[3].toUpperCase();
+    if (marker === "PM" && hours < 12) hours += 12;
+    if (marker === "AM" && hours === 12) hours = 0;
+    return `${String(hours).padStart(2, "0")}:${minutes}`;
+  }
+
+  const hhmmMatch = raw.match(/^(\d{1,2}):(\d{2})$/);
+  if (hhmmMatch) {
+    return `${String(Number(hhmmMatch[1])).padStart(2, "0")}:${hhmmMatch[2]}`;
+  }
+
+  return raw;
+};
+
+const formatStartTimeLabel = (item: Experience, lang: string) => {
+  const start = item.startsAt || item.startDate;
+  if (start) {
+    const date = new Date(start);
+    if (!Number.isNaN(date.getTime())) {
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      if (hours !== 0 || minutes !== 0) {
+        return date.toLocaleTimeString(lang === "en" ? "en-US" : "ro-RO", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+      }
+    }
+  }
+  return normalizeTimeValue(item.startTime);
 };
 
 export default function ExperiencesPage() {
@@ -258,6 +300,7 @@ export default function ExperiencesPage() {
             const priceText = isFree ? t("experiences_free") : `${item.price || 0} ${item.currencyCode || "RON"}`;
             const start = item.startsAt || item.startDate;
             const dateLabel = start ? new Date(start).toLocaleDateString(lang === "en" ? "en-US" : "ro-RO", { day: "numeric", month: "short" }) : "";
+            const timeLabel = formatStartTimeLabel(item, lang);
             const groupLabel = formatGroupInfo(item, lang);
             const seats = formatSeatsInfo(item);
             const environmentLabel = formatEnvironment(item, t);
@@ -283,6 +326,7 @@ export default function ExperiencesPage() {
                   </div>
                   <div className={styles.cardMeta}>
                     {dateLabel ? <span className={styles.metaPill}>📅 {dateLabel}</span> : null}
+                    {timeLabel ? <span className={styles.metaPill}>🕒 {timeLabel}</span> : null}
                     {item.languages?.length ? <span className={styles.metaPill}>🗣 {item.languages.slice(0, 2).join(" · ")}</span> : null}
                     {environmentLabel ? <span className={styles.metaPill}>🍃 {environmentLabel}</span> : null}
                     {seats ? <span className={styles.metaPill}>👥 {seats}</span> : null}

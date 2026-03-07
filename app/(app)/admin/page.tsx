@@ -135,73 +135,6 @@ type AdminHostsResponse = {
   items: AdminHost[];
 };
 
-type AdminHostComplianceHistoryItem = {
-  id: string;
-  snapshotAt?: string | null;
-  triggerType?: string;
-  triggerEventType?: string;
-  nameMatchState?: string;
-  livadaiName?: string;
-  stripeLegalName?: string;
-  stripeDisplayName?: string;
-  stripeBusinessType?: string;
-  bankName?: string;
-  bankLast4?: string;
-  bankCountry?: string;
-  bankCurrency?: string;
-  requirementsDisabledReason?: string;
-  requirementsCurrentlyDueCount?: number;
-  stripeFlags?: {
-    chargesEnabled?: boolean;
-    payoutsEnabled?: boolean;
-    detailsSubmitted?: boolean;
-  };
-};
-
-type AdminHostDetailsResponse = {
-  host?: (AdminHost & {
-    emailVerified?: boolean;
-    languages?: string[];
-    aboutMe?: string;
-    shortBio?: string;
-    experience?: string;
-    tokenVersion?: number;
-    totalParticipants?: number;
-    totalEvents?: number;
-    ratingAvg?: number;
-    ratingCount?: number;
-    hostProfile?: {
-      displayName?: string;
-      bio?: string;
-      languages?: string[];
-      city?: string;
-      country?: string;
-      phone?: string;
-      avatar?: string;
-    } | null;
-    complianceHistory?: AdminHostComplianceHistoryItem[];
-  });
-  counts?: {
-    experiencesTotal?: number;
-    experiencesActive?: number;
-    experiencesUpcoming?: number;
-    experiencesCompleted?: number;
-    bookingsTotal?: number;
-    bookingsPaidLike?: number;
-    bookingsDisputed?: number;
-    bookingsRefundFailed?: number;
-    participantsHosted?: number;
-    reportsTotal?: number;
-    reportsOpen?: number;
-    reportsInvestigating?: number;
-    paymentsDisputed?: number;
-    messagesSent?: number;
-  };
-  recentExperiences?: AdminExperience[];
-  recentBookings?: AdminBooking[];
-  recentReports?: AdminReport[];
-};
-
 type AdminUserDetails = AdminUser & {
   phone?: string;
   phoneCountryCode?: string;
@@ -1383,10 +1316,6 @@ export default function AdminPage() {
   const [hostsError, setHostsError] = useState("");
   const [hostQuery, setHostQuery] = useState("");
   const [hostStatusFilter, setHostStatusFilter] = useState("all");
-  const [selectedHostId, setSelectedHostId] = useState<string | null>(null);
-  const [hostDetails, setHostDetails] = useState<AdminHostDetailsResponse | null>(null);
-  const [hostDetailsLoading, setHostDetailsLoading] = useState(false);
-  const [hostDetailsError, setHostDetailsError] = useState("");
 
   const [experiences, setExperiences] = useState<AdminExperiencesResponse | null>(null);
   const [experiencesLoading, setExperiencesLoading] = useState(false);
@@ -1588,32 +1517,19 @@ export default function AdminPage() {
     [hostQuery, hostStatusFilter]
   );
 
-  const loadHostDetails = useCallback(async (id: string) => {
-    setSelectedHostId(id);
-    setHostDetailsLoading(true);
-    setHostDetailsError("");
-    try {
-      const data = await apiGet<AdminHostDetailsResponse>(`/admin/hosts/${id}`);
-      setHostDetails(data || null);
-    } catch (err) {
-      setHostDetailsError((err as Error)?.message || "Nu am putut încărca detaliile host-ului.");
-    } finally {
-      setHostDetailsLoading(false);
-    }
-  }, []);
-
   const openHostRegistry = useCallback(
     (hostId?: string, query?: string) => {
       const normalizedQuery = String(query || "").trim();
+      if (hostId) {
+        router.push(`/admin/hosts/${hostId}`);
+        return;
+      }
       setActiveSection("hosts");
       setHostStatusFilter("all");
       setHostQuery(normalizedQuery);
       void loadHosts(1, { q: normalizedQuery, status: "all" });
-      if (hostId) {
-        void loadHostDetails(hostId);
-      }
     },
-    [loadHosts, loadHostDetails]
+    [loadHosts, router]
   );
 
   const loadExperiences = useCallback(
@@ -2838,226 +2754,82 @@ export default function AdminPage() {
         </form>
 
         {hostsError ? <div className={`${styles.card} ${styles.errorCard}`}>{hostsError}</div> : null}
-        <div className={styles.splitGrid}>
-          <div className={styles.listStack}>
-            <div className={`${styles.card} ${styles.tableCard}`}>
-              <div className={styles.tableWrap}>
-                <table className={styles.dataTable}>
-                  <thead>
-                    <tr>
-                      <th>Host</th>
-                      <th>Telefon</th>
-                      <th>Stripe</th>
-                      <th>Nume Stripe</th>
-                      <th>Bank ref</th>
-                      <th>Alerts</th>
-                      <th>Actions</th>
+        <div className={styles.listStack}>
+          <div className={`${styles.card} ${styles.tableCard}`}>
+            <div className={styles.tableWrap}>
+              <table className={styles.dataTable}>
+                <thead>
+                  <tr>
+                    <th>Host</th>
+                    <th>Telefon</th>
+                    <th>Stripe</th>
+                    <th>Nume Stripe</th>
+                    <th>Bank ref</th>
+                    <th>Alerts</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(hosts?.items || []).map((host) => (
+                    <tr key={host.id}>
+                      <td>
+                        <div><strong>{host.name || "—"}</strong></div>
+                        <div className="muted">{host.email || "—"}</div>
+                        <div className="muted">{[host.city, host.country].filter(Boolean).join(", ") || "—"}</div>
+                      </td>
+                      <td>{[host.phoneCountryCode, host.phone].filter(Boolean).join(" ") || "—"}</td>
+                      <td>
+                        <div className={styles.badgeRow}>
+                          <span className={`${styles.badge} ${host.stripeAccountId ? styles.badgeOk : styles.badgeWarn}`}>Account</span>
+                          <span className={`${styles.badge} ${host.isStripeChargesEnabled ? styles.badgeOk : styles.badgeWarn}`}>Charges</span>
+                          <span className={`${styles.badge} ${host.isStripePayoutsEnabled ? styles.badgeOk : styles.badgeWarn}`}>Payouts</span>
+                        </div>
+                      </td>
+                      <td>{host.stripeLegalName || host.stripeDisplayName || "—"}</td>
+                      <td>{host.bankReference || "—"}</td>
+                      <td>{numberFmt(host.issues?.length || 0)}</td>
+                      <td>
+                        <div className={styles.tableActions}>
+                          <button
+                            type="button"
+                            className="button secondary"
+                            onClick={() => router.push(`/admin/hosts/${host.id}`)}
+                          >
+                            Details
+                          </button>
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {(hosts?.items || []).map((host) => (
-                      <tr key={host.id} className={selectedHostId === host.id ? styles.tableRowSelected : ""}>
-                        <td>
-                          <div><strong>{host.name || "—"}</strong></div>
-                          <div className="muted">{host.email || "—"}</div>
-                          <div className="muted">{[host.city, host.country].filter(Boolean).join(", ") || "—"}</div>
-                        </td>
-                        <td>{[host.phoneCountryCode, host.phone].filter(Boolean).join(" ") || "—"}</td>
-                        <td>
-                          <div className={styles.badgeRow}>
-                            <span className={`${styles.badge} ${host.stripeAccountId ? styles.badgeOk : styles.badgeWarn}`}>Account</span>
-                            <span className={`${styles.badge} ${host.isStripeChargesEnabled ? styles.badgeOk : styles.badgeWarn}`}>Charges</span>
-                            <span className={`${styles.badge} ${host.isStripePayoutsEnabled ? styles.badgeOk : styles.badgeWarn}`}>Payouts</span>
-                          </div>
-                        </td>
-                        <td>{host.stripeLegalName || host.stripeDisplayName || "—"}</td>
-                        <td>{host.bankReference || "—"}</td>
-                        <td>{numberFmt(host.issues?.length || 0)}</td>
-                        <td>
-                          <div className={styles.tableActions}>
-                            <button
-                              type="button"
-                              className="button secondary"
-                              disabled={hostDetailsLoading}
-                              onClick={() => void loadHostDetails(host.id)}
-                            >
-                              Details
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {!hostsLoading && (hosts?.items || []).length === 0 ? (
-              <div className={`${styles.card} ${styles.emptyCard}`}>Nu există host-uri pentru filtrele selectate.</div>
-            ) : null}
-
-            <div className={styles.pagination}>
-              <button
-                type="button"
-                className="button secondary"
-                disabled={!hosts || hosts.page <= 1 || hostsLoading}
-                onClick={() => void loadHosts((hosts?.page || 1) - 1)}
-              >
-                ← Anterior
-              </button>
-              <span className="muted">
-                Pagina {hosts?.page || 1} / {hosts?.pages || 1}
-              </span>
-              <button
-                type="button"
-                className="button secondary"
-                disabled={!hosts || (hosts?.page || 1) >= (hosts?.pages || 1) || hostsLoading}
-                onClick={() => void loadHosts((hosts?.page || 1) + 1)}
-              >
-                Următor →
-              </button>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          <div className={`${styles.card} ${styles.detailsCard}`}>
-            <div className={styles.sectionTitleRow}>
-              <h3 className={styles.detailsTitle}>Host details</h3>
-              {hostDetails?.host?.id ? <span className="muted">#{hostDetails.host.id.slice(-8)}</span> : null}
-            </div>
+          {!hostsLoading && (hosts?.items || []).length === 0 ? (
+            <div className={`${styles.card} ${styles.emptyCard}`}>Nu există host-uri pentru filtrele selectate.</div>
+          ) : null}
 
-            {!selectedHostId ? <div className="muted">Selectează un host din tabel.</div> : null}
-            {selectedHostId && hostDetailsLoading ? <div className="muted">Se încarcă detaliile...</div> : null}
-            {selectedHostId && hostDetailsError ? <div className={`${styles.card} ${styles.errorCard}`}>{hostDetailsError}</div> : null}
-
-            {selectedHostId && !hostDetailsLoading && !hostDetailsError && hostDetails?.host ? (
-              <>
-                <div className={styles.detailGrid}>
-                  <div><strong>Nume</strong><span>{hostDetails.host.name || "—"}</span></div>
-                  <div><strong>Email</strong><span>{hostDetails.host.email || "—"}</span></div>
-                  <div><strong>Telefon</strong><span>{[hostDetails.host.phoneCountryCode, hostDetails.host.phone].filter(Boolean).join(" ") || "—"}</span></div>
-                  <div><strong>Oraș / Țară</strong><span>{[hostDetails.host.city, hostDetails.host.country].filter(Boolean).join(", ") || "—"}</span></div>
-                  <div><strong>Creat</strong><span>{formatDate(hostDetails.host.createdAt || null)}</span></div>
-                  <div><strong>Last auth</strong><span>{formatDate(hostDetails.host.lastAuthAt || null)}</span></div>
-                  <div><strong>Role</strong><span>{hostDetails.host.role || "—"}</span></div>
-                  <div><strong>Delete status</strong><span>{hostDetails.host.accountDeletionStatus || "NONE"}</span></div>
-                  <div><strong>Delete scheduled</strong><span>{formatDate(hostDetails.host.accountDeletionScheduledAt || null)}</span></div>
-                  <div><strong>Token version</strong><span>{numberFmt(hostDetails.host.tokenVersion)}</span></div>
-                </div>
-
-                <div className={styles.detailsSection}>
-                  <div className={styles.panelTitle}>Stripe + Compliance</div>
-                  <div className={styles.detailGrid}>
-                    <div><strong>Stripe account</strong><span>{hostDetails.host.stripeAccountId || "—"}</span></div>
-                    <div><strong>Stripe legal name</strong><span>{hostDetails.host.stripeLegalName || hostDetails.host.stripeDisplayName || "—"}</span></div>
-                    <div><strong>LIVADAI name</strong><span>{hostDetails.host.livadaiName || hostDetails.host.name || "—"}</span></div>
-                    <div><strong>Name match</strong><span>{hostDetails.host.nameMatchState || "—"}</span></div>
-                    <div><strong>Bank ref</strong><span>{hostDetails.host.bankReference || "—"}</span></div>
-                    <div><strong>Snapshot</strong><span>{formatDate(hostDetails.host.snapshotAt || null)}</span></div>
-                  </div>
-                  <div className={styles.badgeRow}>
-                    {(hostDetails.host.issues || []).map((issue) => (
-                      <span key={`host-issue-${issue}`} className={`${styles.badge} ${styles.badgeWarn}`}>
-                        {formatComplianceIssue(issue)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={styles.detailsSection}>
-                  <div className={styles.panelTitle}>Counts</div>
-                  <div className={styles.detailGrid}>
-                    <div><strong>Experiences total</strong><span>{numberFmt(hostDetails.counts?.experiencesTotal)}</span></div>
-                    <div><strong>Experiences active</strong><span>{numberFmt(hostDetails.counts?.experiencesActive)}</span></div>
-                    <div><strong>Experiences completed</strong><span>{numberFmt(hostDetails.counts?.experiencesCompleted)}</span></div>
-                    <div><strong>Bookings total</strong><span>{numberFmt(hostDetails.counts?.bookingsTotal)}</span></div>
-                    <div><strong>Bookings paid-like</strong><span>{numberFmt(hostDetails.counts?.bookingsPaidLike)}</span></div>
-                    <div><strong>Participants hosted</strong><span>{numberFmt(hostDetails.counts?.participantsHosted)}</span></div>
-                    <div><strong>Reports total</strong><span>{numberFmt(hostDetails.counts?.reportsTotal)}</span></div>
-                    <div><strong>Reports open</strong><span>{numberFmt(hostDetails.counts?.reportsOpen)}</span></div>
-                    <div><strong>Disputes</strong><span>{numberFmt(hostDetails.counts?.paymentsDisputed)}</span></div>
-                    <div><strong>Refund failed</strong><span>{numberFmt(hostDetails.counts?.bookingsRefundFailed)}</span></div>
-                  </div>
-                </div>
-
-                <div className={styles.detailsSection}>
-                  <div className={styles.panelTitle}>Compliance history</div>
-                  {(hostDetails.host.complianceHistory || []).length === 0 ? (
-                    <div className="muted">Fără snapshot-uri de compliance.</div>
-                  ) : (
-                    <div className={styles.stackSm}>
-                      {(hostDetails.host.complianceHistory || []).slice(0, 6).map((row) => (
-                        <div key={row.id} className={styles.miniItem}>
-                          <div><strong>{row.nameMatchState || "UNKNOWN"}</strong></div>
-                          <div className="muted">LIVADAI: {row.livadaiName || "—"} · Stripe: {row.stripeLegalName || row.stripeDisplayName || "—"}</div>
-                          <div className="muted">Bank: {row.bankName ? `${row.bankName} • ****${row.bankLast4 || ""}` : "—"} · {formatDate(row.snapshotAt || null)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className={styles.detailsSection}>
-                  <div className={styles.panelTitle}>Recent experiences</div>
-                  {(hostDetails.recentExperiences || []).length === 0 ? (
-                    <div className="muted">Fără experiențe recente.</div>
-                  ) : (
-                    <div className={styles.stackSm}>
-                      {(hostDetails.recentExperiences || []).slice(0, 6).map((row) => (
-                        <div key={row.id} className={styles.miniItem}>
-                          <div><strong>{row.title || "Untitled"}</strong></div>
-                          <div className="muted">
-                            {row.status || "—"} · {[row.city, row.country].filter(Boolean).join(", ") || "—"}
-                          </div>
-                          <div className="muted">
-                            Start: {formatDate(row.startsAt || null)} · Participants: {numberFmt(row.participantsBooked)}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className={styles.detailsSection}>
-                  <div className={styles.panelTitle}>Recent bookings</div>
-                  {(hostDetails.recentBookings || []).length === 0 ? (
-                    <div className="muted">Fără booking-uri recente.</div>
-                  ) : (
-                    <div className={styles.stackSm}>
-                      {(hostDetails.recentBookings || []).slice(0, 6).map((row) => (
-                        <div key={row.id} className={styles.miniItem}>
-                          <div><strong>{row.experience?.title || "Experience"}</strong></div>
-                          <div className="muted">
-                            Status: {row.status || "—"} · Explorer: {row.explorer?.name || row.explorer?.email || "—"}
-                          </div>
-                          <div className="muted">
-                            Qty: {numberFmt(row.quantity)} · Amount: {formatMoney(row.amount || 0, row.currency)}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className={styles.detailsSection}>
-                  <div className={styles.panelTitle}>Recent reports</div>
-                  {(hostDetails.recentReports || []).length === 0 ? (
-                    <div className="muted">Fără report-uri recente.</div>
-                  ) : (
-                    <div className={styles.stackSm}>
-                      {(hostDetails.recentReports || []).slice(0, 6).map((row) => (
-                        <div key={row.id} className={styles.miniItem}>
-                          <div><strong>{row.type || "REPORT"}</strong> · {row.status || "—"}</div>
-                          <div className="muted">
-                            Reporter: {row.reporter?.name || row.reporter?.email || "—"} · {formatDate(row.createdAt || null)}
-                          </div>
-                          <div className="muted">{row.reason || row.comment || "—"}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : null}
+          <div className={styles.pagination}>
+            <button
+              type="button"
+              className="button secondary"
+              disabled={!hosts || hosts.page <= 1 || hostsLoading}
+              onClick={() => void loadHosts((hosts?.page || 1) - 1)}
+            >
+              ← Anterior
+            </button>
+            <span className="muted">
+              Pagina {hosts?.page || 1} / {hosts?.pages || 1}
+            </span>
+            <button
+              type="button"
+              className="button secondary"
+              disabled={!hosts || (hosts?.page || 1) >= (hosts?.pages || 1) || hostsLoading}
+              onClick={() => void loadHosts((hosts?.page || 1) + 1)}
+            >
+              Următor →
+            </button>
           </div>
         </div>
       </section> : null}

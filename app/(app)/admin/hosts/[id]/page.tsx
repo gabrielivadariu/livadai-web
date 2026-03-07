@@ -16,8 +16,10 @@ type AdminHost = {
   livadaiName?: string;
   stripeLegalName?: string;
   stripeDisplayName?: string;
+  stripeNameSource?: string;
   nameMatchState?: string;
   bankReference?: string;
+  bankReferenceSource?: string;
   phone?: string;
   phoneCountryCode?: string;
   city?: string;
@@ -48,8 +50,10 @@ type AdminHostComplianceHistoryItem = {
   livadaiName?: string;
   stripeLegalName?: string;
   stripeDisplayName?: string;
+  stripeNameSource?: string;
   bankName?: string;
   bankLast4?: string;
+  bankReferenceSource?: string;
 };
 
 type AdminExperience = {
@@ -116,6 +120,7 @@ const COMPLIANCE_ISSUE_LABELS: Record<string, string> = {
   STRIPE_DETAILS_INCOMPLETE: "Details incomplete",
   STRIPE_CHARGES_DISABLED: "Charges disabled",
   STRIPE_PAYOUTS_DISABLED: "Payouts disabled",
+  STRIPE_LEGAL_NAME_MISSING: "Nume legal Stripe lipsă",
 };
 
 const numberFmt = (value?: number) => new Intl.NumberFormat("ro-RO").format(Number(value || 0));
@@ -261,9 +266,11 @@ export default function AdminHostDetailsPage() {
               <div><strong>Stripe account</strong><span>{host.stripeAccountId || "—"}</span></div>
               <div><strong>Snapshot</strong><span>{formatDate(host.snapshotAt || null)}</span></div>
               <div><strong>Nume Stripe</strong><span>{host.stripeLegalName || host.stripeDisplayName || "—"}</span></div>
+              <div><strong>Sursă nume Stripe</strong><span>{host.stripeNameSource || "—"}</span></div>
               <div><strong>Nume LIVADAI</strong><span>{host.livadaiName || host.name || "—"}</span></div>
               <div><strong>Name match</strong><span>{host.nameMatchState || "—"}</span></div>
               <div><strong>Bank ref</strong><span>{host.bankReference || "—"}</span></div>
+              <div><strong>Sursă bank ref</strong><span>{host.bankReferenceSource || "—"}</span></div>
             </div>
             {(host.issues || []).length > 0 ? (
               <div className={adminStyles.badgeRow}>

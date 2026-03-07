@@ -661,6 +661,7 @@ const COMPLIANCE_ISSUE_LABELS: Record<string, string> = {
   STRIPE_DETAILS_INCOMPLETE: "Details incomplete",
   STRIPE_CHARGES_DISABLED: "Charges disabled",
   STRIPE_PAYOUTS_DISABLED: "Payouts disabled",
+  STRIPE_LEGAL_NAME_MISSING: "Nume legal Stripe lipsă",
 };
 
 const formatComplianceIssue = (value?: string) => COMPLIANCE_ISSUE_LABELS[String(value || "")] || String(value || "");

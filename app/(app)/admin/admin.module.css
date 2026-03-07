@@ -635,6 +635,48 @@
   gap: 10px;
 }
 
+.bookingParticipantGroup {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bookingParticipantGroupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.bookingDetailsToggle {
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: #f8fafc;
+}
+
+.bookingDetailsToggle summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: #334155;
+  list-style: none;
+}
+
+.bookingDetailsToggle summary::-webkit-details-marker {
+  display: none;
+}
+
+.bookingDetailsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .bookingParticipantRow {
   border: 1px solid #e2e8f0;
   border-radius: 14px;
@@ -1018,6 +1060,10 @@
   }
 
   .bookingParticipantRow {
+    flex-direction: column;
+  }
+
+  .bookingParticipantGroupHeader {
     flex-direction: column;
   }
 

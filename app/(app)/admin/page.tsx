@@ -1050,6 +1050,68 @@ function AdminBookingExperienceRow({
 }) {
   const experienceTitle = group.experience?.title || "Experiență fără titlu";
   const experienceLocation = [group.experience?.city, group.experience?.country].filter(Boolean).join(", ") || "—";
+  const participantGroups = useMemo(() => {
+    const byParticipant = new Map<
+      string,
+      {
+        key: string;
+        name: string;
+        email: string;
+        bookings: AdminBooking[];
+        totalSeats: number;
+        totalAmount: number;
+        currency: string;
+        paidLikeCount: number;
+        refundedCount: number;
+        latestAt: number;
+      }
+    >();
+
+    for (const booking of group.bookings) {
+      const key = booking.explorer?.id || booking.explorer?.email || booking.id;
+      const existing = byParticipant.get(key);
+      const createdAt = new Date(booking.createdAt || 0).getTime();
+      const status = String(booking.status || "").toUpperCase();
+      const isPaidLike = ["PAID", "DEPOSIT_PAID", "PENDING_ATTENDANCE", "COMPLETED", "AUTO_COMPLETED", "NO_SHOW", "DISPUTED"].includes(status);
+      const isRefunded = status === "REFUNDED";
+
+      if (!existing) {
+        byParticipant.set(key, {
+          key,
+          name: booking.explorer?.name || booking.explorer?.email || "Explorer necunoscut",
+          email: booking.explorer?.email || "",
+          bookings: [booking],
+          totalSeats: Number(booking.quantity || 1),
+          totalAmount: Number(booking.amount || 0),
+          currency: String(booking.currency || "RON"),
+          paidLikeCount: isPaidLike ? 1 : 0,
+          refundedCount: isRefunded ? 1 : 0,
+          latestAt: Number.isNaN(createdAt) ? 0 : createdAt,
+        });
+        continue;
+      }
+
+      existing.bookings.push(booking);
+      existing.totalSeats += Number(booking.quantity || 1);
+      existing.totalAmount += Number(booking.amount || 0);
+      existing.paidLikeCount += isPaidLike ? 1 : 0;
+      existing.refundedCount += isRefunded ? 1 : 0;
+      if (!Number.isNaN(createdAt) && createdAt > existing.latestAt) {
+        existing.latestAt = createdAt;
+      }
+    }
+
+    return Array.from(byParticipant.values())
+      .map((participant) => ({
+        ...participant,
+        bookings: [...participant.bookings].sort((a, b) => {
+          const aAt = new Date(a.createdAt || 0).getTime();
+          const bAt = new Date(b.createdAt || 0).getTime();
+          return bAt - aAt;
+        }),
+      }))
+      .sort((a, b) => b.latestAt - a.latestAt);
+  }, [group.bookings]);
 
   return (
     <div className={`${styles.card} ${styles.rowCard} ${styles.bookingGroupCard}`}>
@@ -1076,36 +1138,61 @@ function AdminBookingExperienceRow({
       </div>
 
       <div className={styles.bookingParticipantsList}>
-        {group.bookings.map((item) => {
-          const canRefund = !!item.payment?.hasStripePaymentIntent && !["REFUNDED"].includes(String(item.payment?.status || "").toUpperCase());
-          const busy = pendingKey?.startsWith(`booking:${item.id}:`);
-          return (
-            <div key={item.id} className={styles.bookingParticipantRow}>
+        {participantGroups.map((participant) => (
+          <div key={participant.key} className={styles.bookingParticipantGroup}>
+            <div className={styles.bookingParticipantGroupHeader}>
               <div className={styles.bookingParticipantMain}>
-                <div className={styles.bookingParticipantName}>
-                  {item.explorer?.name || item.explorer?.email || "Explorer necunoscut"}
-                </div>
+                <div className={styles.bookingParticipantName}>{participant.name}</div>
                 <div className={styles.rowSub}>
-                  #{item.id.slice(-8)} · Creat {formatDate(item.createdAt)} · Status {item.status || "—"} · Attendance {item.attendanceStatus || "—"}
-                </div>
-                <div className={styles.rowSub}>
-                  Locuri {numberFmt(item.quantity)} · Booking {formatMoney(item.amount, item.currency)} · Plată {item.payment ? formatMoney(item.payment.amount, item.payment.currency) : "—"} · Pay {item.payment?.status || "—"}
-                </div>
-                <div className={styles.rowSub}>
-                  Refundat {formatDate(item.refundedAt || null)} · Anulat {formatDate(item.cancelledAt || null)}
+                  {participant.email || "fără email"} · Booking-uri {numberFmt(participant.bookings.length)} · Locuri {numberFmt(participant.totalSeats)} · Total {formatMoney(participant.totalAmount, participant.currency)}
                 </div>
               </div>
-              <div className={styles.bookingParticipantActions}>
-                <button type="button" className="button secondary" disabled={busy} onClick={() => void onCancel(item.id)}>
-                  Anulează booking
-                </button>
-                <button type="button" className="button secondary" disabled={busy || !canRefund} onClick={() => void onRefund(item.id)}>
-                  Refund manual
-                </button>
+              <div className={styles.badgeRow}>
+                <span className={styles.badge}>Paid-like {numberFmt(participant.paidLikeCount)}</span>
+                {participant.refundedCount > 0 ? (
+                  <span className={`${styles.badge} ${styles.badgeWarn}`}>Refundate {numberFmt(participant.refundedCount)}</span>
+                ) : null}
               </div>
             </div>
-          );
-        })}
+
+            <details className={styles.bookingDetailsToggle} open={participant.bookings.length === 1}>
+              <summary>
+                {participant.bookings.length === 1
+                  ? "Detaliu booking"
+                  : `Detalii booking-uri (${numberFmt(participant.bookings.length)})`}
+              </summary>
+              <div className={styles.bookingDetailsList}>
+                {participant.bookings.map((item) => {
+                  const canRefund = !!item.payment?.hasStripePaymentIntent && !["REFUNDED"].includes(String(item.payment?.status || "").toUpperCase());
+                  const busy = pendingKey?.startsWith(`booking:${item.id}:`);
+                  return (
+                    <div key={item.id} className={styles.bookingParticipantRow}>
+                      <div className={styles.bookingParticipantMain}>
+                        <div className={styles.rowSub}>
+                          #{item.id.slice(-8)} · Creat {formatDate(item.createdAt)} · Status {item.status || "—"} · Attendance {item.attendanceStatus || "—"}
+                        </div>
+                        <div className={styles.rowSub}>
+                          Locuri {numberFmt(item.quantity)} · Booking {formatMoney(item.amount, item.currency)} · Plată {item.payment ? formatMoney(item.payment.amount, item.payment.currency) : "—"} · Pay {item.payment?.status || "—"}
+                        </div>
+                        <div className={styles.rowSub}>
+                          Refundat {formatDate(item.refundedAt || null)} · Anulat {formatDate(item.cancelledAt || null)}
+                        </div>
+                      </div>
+                      <div className={styles.bookingParticipantActions}>
+                        <button type="button" className="button secondary" disabled={busy} onClick={() => void onCancel(item.id)}>
+                          Anulează booking
+                        </button>
+                        <button type="button" className="button secondary" disabled={busy || !canRefund} onClick={() => void onRefund(item.id)}>
+                          Refund manual
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </details>
+          </div>
+        ))}
       </div>
     </div>
   );

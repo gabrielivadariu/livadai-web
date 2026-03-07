@@ -412,11 +412,14 @@ type AdminBookingsResponse = {
   items: AdminBooking[];
 };
 
-type AdminBookingDetailsResponse = {
-  booking?: AdminBooking;
-  payments?: Array<Record<string, unknown>>;
-  reports?: Array<Record<string, unknown>>;
-  messagesCount?: number;
+type AdminBookingExperienceGroup = {
+  key: string;
+  experience: AdminBooking["experience"];
+  host: AdminBooking["host"];
+  bookings: AdminBooking[];
+  totalSeats: number;
+  totalReports: number;
+  totalMessages: number;
 };
 
 type AdminMessageConversationItem = {
@@ -759,6 +762,39 @@ const buildPermissionsFallback = (role?: string | null): AdminPermissionsRespons
   };
 };
 
+const groupBookingsByExperience = (items: AdminBooking[]): AdminBookingExperienceGroup[] => {
+  const map = new Map<string, AdminBookingExperienceGroup>();
+  for (const booking of items) {
+    const experienceId = booking.experience?.id || `booking:${booking.id}`;
+    const existing = map.get(experienceId);
+    if (!existing) {
+      map.set(experienceId, {
+        key: experienceId,
+        experience: booking.experience || null,
+        host: booking.host || null,
+        bookings: [booking],
+        totalSeats: Number(booking.quantity || 1),
+        totalReports: Number(booking.reportsCount || 0),
+        totalMessages: Number(booking.messagesCount || 0),
+      });
+      continue;
+    }
+    existing.bookings.push(booking);
+    existing.totalSeats += Number(booking.quantity || 1);
+    existing.totalReports += Number(booking.reportsCount || 0);
+    existing.totalMessages += Number(booking.messagesCount || 0);
+  }
+
+  return Array.from(map.values()).map((group) => {
+    const sortedBookings = [...group.bookings].sort((a, b) => {
+      const aStart = new Date(a.experience?.startsAt || a.createdAt || 0).getTime();
+      const bStart = new Date(b.experience?.startsAt || b.createdAt || 0).getTime();
+      return bStart - aStart;
+    });
+    return { ...group, bookings: sortedBookings };
+  });
+};
+
 function StatCard({
   label,
   value,
@@ -1001,64 +1037,75 @@ function AdminExperienceRow({
   );
 }
 
-function AdminBookingRow({
-  item,
-  selected,
-  busy,
-  onOpenDetails,
+function AdminBookingExperienceRow({
+  group,
+  pendingKey,
   onCancel,
   onRefund,
 }: {
-  item: AdminBooking;
-  selected?: boolean;
-  busy?: boolean;
-  onOpenDetails: (id: string) => Promise<void>;
+  group: AdminBookingExperienceGroup;
+  pendingKey?: string | null;
   onCancel: (id: string) => Promise<void>;
   onRefund: (id: string) => Promise<void>;
 }) {
-  const canRefund = !!item.payment?.hasStripePaymentIntent && !["REFUNDED"].includes(String(item.payment?.status || "").toUpperCase());
+  const experienceTitle = group.experience?.title || "Experiență fără titlu";
+  const experienceLocation = [group.experience?.city, group.experience?.country].filter(Boolean).join(", ") || "—";
 
   return (
-    <div className={`${styles.card} ${styles.rowCard} ${selected ? styles.rowCardSelected : ""}`}>
+    <div className={`${styles.card} ${styles.rowCard} ${styles.bookingGroupCard}`}>
       <div className={styles.rowTop}>
         <div>
-          <div className={styles.rowTitle}>
-            {item.experience?.title || "Booking"} <span className={styles.rowTitleMuted}>#{item.id.slice(-6)}</span>
-          </div>
+          <div className={styles.rowTitle}>{experienceTitle}</div>
           <div className={styles.rowSub}>
-            Explorer: {item.explorer?.name || item.explorer?.email || "—"} · Host: {item.host?.name || item.host?.email || "—"}
+            Host: {group.host?.name || group.host?.email || "—"} · Start: {formatDate(group.experience?.startsAt || null)}
           </div>
         </div>
         <div className={styles.badgeRow}>
-          <span className={styles.badge}>{item.status || "—"}</span>
-          {item.payment?.status ? <span className={styles.badge}>Pay: {item.payment.status}</span> : null}
-          {(item.reportsCount || 0) > 0 ? <span className={`${styles.badge} ${styles.badgeWarn}`}>Reports {numberFmt(item.reportsCount)}</span> : null}
-          {(item.messagesCount || 0) > 0 ? <span className={styles.badge}>Msg {numberFmt(item.messagesCount)}</span> : null}
+          <span className={styles.badge}>Booking-uri {numberFmt(group.bookings.length)}</span>
+          <span className={styles.badge}>Participanți {numberFmt(group.totalSeats)}</span>
+          {group.totalReports > 0 ? <span className={`${styles.badge} ${styles.badgeWarn}`}>Reports {numberFmt(group.totalReports)}</span> : null}
+          {group.totalMessages > 0 ? <span className={styles.badge}>Msg {numberFmt(group.totalMessages)}</span> : null}
         </div>
       </div>
 
       <div className={styles.metaGrid}>
-        <div><strong>ID:</strong> {item.id}</div>
-        <div><strong>Creat:</strong> {formatDate(item.createdAt)}</div>
-        <div><strong>Status prezență:</strong> {item.attendanceStatus || "—"}</div>
-        <div><strong>Cantitate:</strong> {numberFmt(item.quantity)}</div>
-        <div><strong>Sumă booking:</strong> {formatMoney(item.amount, item.currency)}</div>
-        <div><strong>Plată:</strong> {item.payment ? formatMoney(item.payment.amount, item.payment.currency) : "—"}</div>
-        <div><strong>Experiență:</strong> {[item.experience?.city, item.experience?.country].filter(Boolean).join(", ") || "—"}</div>
-        <div><strong>Start:</strong> {formatDate(item.experience?.startsAt || null)}</div>
-        <div><strong>Refundat:</strong> {formatDate(item.refundedAt || null)}</div>
+        <div><strong>Experience ID:</strong> {group.experience?.id || "—"}</div>
+        <div><strong>Locație:</strong> {experienceLocation}</div>
+        <div><strong>Status experiență:</strong> {group.experience?.status || "—"}</div>
+        <div><strong>Activă:</strong> {group.experience?.isActive ? "Da" : "Nu"}</div>
       </div>
 
-      <div className={styles.buttonRow}>
-        <button type="button" className="button secondary" disabled={busy} onClick={() => void onOpenDetails(item.id)}>
-          {selected ? "Reîncarcă detalii" : "Detalii"}
-        </button>
-        <button type="button" className="button secondary" disabled={busy} onClick={() => void onCancel(item.id)}>
-          Anulează booking
-        </button>
-        <button type="button" className="button secondary" disabled={busy || !canRefund} onClick={() => void onRefund(item.id)}>
-          Refund manual
-        </button>
+      <div className={styles.bookingParticipantsList}>
+        {group.bookings.map((item) => {
+          const canRefund = !!item.payment?.hasStripePaymentIntent && !["REFUNDED"].includes(String(item.payment?.status || "").toUpperCase());
+          const busy = pendingKey?.startsWith(`booking:${item.id}:`);
+          return (
+            <div key={item.id} className={styles.bookingParticipantRow}>
+              <div className={styles.bookingParticipantMain}>
+                <div className={styles.bookingParticipantName}>
+                  {item.explorer?.name || item.explorer?.email || "Explorer necunoscut"}
+                </div>
+                <div className={styles.rowSub}>
+                  #{item.id.slice(-8)} · Creat {formatDate(item.createdAt)} · Status {item.status || "—"} · Attendance {item.attendanceStatus || "—"}
+                </div>
+                <div className={styles.rowSub}>
+                  Locuri {numberFmt(item.quantity)} · Booking {formatMoney(item.amount, item.currency)} · Plată {item.payment ? formatMoney(item.payment.amount, item.payment.currency) : "—"} · Pay {item.payment?.status || "—"}
+                </div>
+                <div className={styles.rowSub}>
+                  Refundat {formatDate(item.refundedAt || null)} · Anulat {formatDate(item.cancelledAt || null)}
+                </div>
+              </div>
+              <div className={styles.bookingParticipantActions}>
+                <button type="button" className="button secondary" disabled={busy} onClick={() => void onCancel(item.id)}>
+                  Anulează booking
+                </button>
+                <button type="button" className="button secondary" disabled={busy || !canRefund} onClick={() => void onRefund(item.id)}>
+                  Refund manual
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -1272,10 +1319,6 @@ export default function AdminPage() {
   const [bookingQuery, setBookingQuery] = useState("");
   const [bookingStatusFilter, setBookingStatusFilter] = useState("all");
   const [bookingPaidFilter, setBookingPaidFilter] = useState("all");
-  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
-  const [bookingDetails, setBookingDetails] = useState<AdminBookingDetailsResponse | null>(null);
-  const [bookingDetailsLoading, setBookingDetailsLoading] = useState(false);
-  const [bookingDetailsError, setBookingDetailsError] = useState("");
 
   const [reports, setReports] = useState<AdminReportsResponse | null>(null);
   const [reportsLoading, setReportsLoading] = useState(false);
@@ -1544,20 +1587,6 @@ export default function AdminPage() {
     [bookingQuery, bookingStatusFilter, bookingPaidFilter]
   );
 
-  const loadBookingDetails = useCallback(async (id: string) => {
-    setSelectedBookingId(id);
-    setBookingDetailsLoading(true);
-    setBookingDetailsError("");
-    try {
-      const data = await apiGet<AdminBookingDetailsResponse>(`/admin/bookings/${id}`);
-      setBookingDetails(data || null);
-    } catch (err) {
-      setBookingDetailsError((err as Error)?.message || "Nu am putut încărca detaliile booking-ului.");
-    } finally {
-      setBookingDetailsLoading(false);
-    }
-  }, []);
-
   const loadReports = useCallback(
     async (page = 1) => {
       setReportsLoading(true);
@@ -1798,11 +1827,54 @@ export default function AdminPage() {
       await apiPost(`/admin/bookings/${id}/${action}`, { reason });
       setActionInfo(info);
       await Promise.all([loadBookings(bookings?.page || 1), loadDashboard(), loadRecentAdminActions()]);
-      if (selectedBookingId === id) {
-        await loadBookingDetails(id);
-      }
     },
-    [canWriteBookings, loadBookings, loadDashboard, loadRecentAdminActions, bookings?.page, selectedBookingId, loadBookingDetails]
+    [canWriteBookings, loadBookings, loadDashboard, loadRecentAdminActions, bookings?.page]
+  );
+
+  const onCancelBooking = useCallback(
+    async (id: string) => {
+      if (!canWriteBookings) {
+        setActionError("Nu ai permisiune pentru acțiuni pe bookings.");
+        return;
+      }
+      await runAction(`booking:${id}:cancel`, async () => {
+        const decision = await askCriticalConfirmation({
+          title: "Anulare booking (admin)",
+          impact: "Booking-ul va fi anulat. Acțiunea afectează host-ul și explorer-ul.",
+          requireReason: true,
+          reasonLabel: "Motiv anulare (obligatoriu)",
+          reasonPlaceholder: "Ex: fraud alert / solicitare suport validată",
+          requireTypeText: "CANCEL",
+          confirmButtonLabel: "Confirmă anularea",
+        });
+        if (!decision.confirmed) return;
+        await postBookingAction(id, "cancel", decision.reason, "Booking anulat (admin)");
+      });
+    },
+    [canWriteBookings, runAction, askCriticalConfirmation, postBookingAction]
+  );
+
+  const onRefundBooking = useCallback(
+    async (id: string) => {
+      if (!canWriteBookings) {
+        setActionError("Nu ai permisiune pentru acțiuni pe bookings.");
+        return;
+      }
+      await runAction(`booking:${id}:refund`, async () => {
+        const decision = await askCriticalConfirmation({
+          title: "Refund booking (admin)",
+          impact: "Se declanșează refund prin Stripe pentru acest booking.",
+          requireReason: true,
+          reasonLabel: "Motiv refund (obligatoriu)",
+          reasonPlaceholder: "Ex: experiență anulată / incident de siguranță",
+          requireTypeText: "REFUND",
+          confirmButtonLabel: "Confirmă refund",
+        });
+        if (!decision.confirmed) return;
+        await postBookingAction(id, "refund", decision.reason, "Refund declanșat (admin)");
+      });
+    },
+    [canWriteBookings, runAction, askCriticalConfirmation, postBookingAction]
   );
 
   const postReportAction = useCallback(
@@ -2138,6 +2210,11 @@ export default function AdminPage() {
   const selectedMessageConversation = useMemo(
     () => (messagesData?.items || []).find((item) => item.bookingId === selectedMessageBookingId) || null,
     [messagesData?.items, selectedMessageBookingId]
+  );
+
+  const groupedBookings = useMemo(
+    () => groupBookingsByExperience(bookings?.items || []),
+    [bookings?.items]
   );
 
   if (authLoading || (!token && !dashboard && !users && !experiences && !bookings && !reports && !paymentsHealth && !auditLogs && !systemHealth)) {
@@ -3287,160 +3364,39 @@ export default function AdminPage() {
 
         {bookingsError ? <div className={`${styles.card} ${styles.errorCard}`}>{bookingsError}</div> : null}
 
-        <div className={styles.splitGrid}>
-          <div className={styles.listStack}>
-            {(bookings?.items || []).map((item) => (
-              <AdminBookingRow
-                key={item.id}
-                item={item}
-                selected={selectedBookingId === item.id}
-                busy={pendingKey?.startsWith(`booking:${item.id}:`)}
-                onOpenDetails={loadBookingDetails}
-                onCancel={(id) => {
-                  if (!canWriteBookings) {
-                    setActionError("Nu ai permisiune pentru acțiuni pe bookings.");
-                    return Promise.resolve();
-                  }
-                  return runAction(`booking:${id}:cancel`, async () => {
-                    const decision = await askCriticalConfirmation({
-                      title: "Anulare booking (admin)",
-                      impact: "Booking-ul va fi anulat. Acțiunea afectează host-ul și explorer-ul.",
-                      requireReason: true,
-                      reasonLabel: "Motiv anulare (obligatoriu)",
-                      reasonPlaceholder: "Ex: fraud alert / solicitare suport validată",
-                      requireTypeText: "CANCEL",
-                      confirmButtonLabel: "Confirmă anularea",
-                    });
-                    if (!decision.confirmed) return;
-                    await postBookingAction(id, "cancel", decision.reason, "Booking anulat (admin)");
-                  });
-                }}
-                onRefund={(id) => {
-                  if (!canWriteBookings) {
-                    setActionError("Nu ai permisiune pentru acțiuni pe bookings.");
-                    return Promise.resolve();
-                  }
-                  return runAction(`booking:${id}:refund`, async () => {
-                    const decision = await askCriticalConfirmation({
-                      title: "Refund booking (admin)",
-                      impact: "Se declanșează refund prin Stripe pentru acest booking.",
-                      requireReason: true,
-                      reasonLabel: "Motiv refund (obligatoriu)",
-                      reasonPlaceholder: "Ex: experiență anulată / incident de siguranță",
-                      requireTypeText: "REFUND",
-                      confirmButtonLabel: "Confirmă refund",
-                    });
-                    if (!decision.confirmed) return;
-                    await postBookingAction(id, "refund", decision.reason, "Refund declanșat (admin)");
-                  });
-                }}
-              />
-            ))}
-            {!bookingsLoading && (bookings?.items || []).length === 0 ? (
-              <div className={`${styles.card} ${styles.emptyCard}`}>Nu există booking-uri pentru filtrele selectate.</div>
-            ) : null}
-            <div className={styles.pagination}>
-              <button
-                type="button"
-                className="button secondary"
-                disabled={!bookings || bookings.page <= 1 || bookingsLoading}
-                onClick={() => void loadBookings((bookings?.page || 1) - 1)}
-              >
-                ← Anterior
-              </button>
-              <span className="muted">
-                Pagina {bookings?.page || 1} / {bookings?.pages || 1}
-              </span>
-              <button
-                type="button"
-                className="button secondary"
-                disabled={!bookings || (bookings?.page || 1) >= (bookings?.pages || 1) || bookingsLoading}
-                onClick={() => void loadBookings((bookings?.page || 1) + 1)}
-              >
-                Următor →
-              </button>
-            </div>
-          </div>
-
-          <div className={`${styles.card} ${styles.detailsCard}`}>
-            <div className={styles.sectionTitleRow}>
-              <h3 className={styles.detailsTitle}>Booking details</h3>
-              {selectedBookingId ? <span className="muted">#{selectedBookingId.slice(-8)}</span> : null}
-            </div>
-
-            {!selectedBookingId ? <div className="muted">Selectează un booking pentru detalii.</div> : null}
-            {bookingDetailsLoading ? <div className="muted">Se încarcă detaliile...</div> : null}
-            {!bookingDetailsLoading && bookingDetailsError ? (
-              <div className={`${styles.banner} ${styles.bannerError}`}>{bookingDetailsError}</div>
-            ) : null}
-            {!bookingDetailsLoading && !bookingDetailsError && bookingDetails?.booking ? (
-              <>
-                <div className={styles.detailGrid}>
-                  <div><strong>Status</strong><span>{bookingDetails.booking.status || "—"}</span></div>
-                  <div><strong>Attendance</strong><span>{bookingDetails.booking.attendanceStatus || "—"}</span></div>
-                  <div><strong>Cantitate</strong><span>{numberFmt(bookingDetails.booking.quantity)}</span></div>
-                  <div><strong>Sumă</strong><span>{formatMoney(bookingDetails.booking.amount, bookingDetails.booking.currency)}</span></div>
-                  <div><strong>Host</strong><span>{bookingDetails.booking.host?.email || bookingDetails.booking.host?.name || "—"}</span></div>
-                  <div><strong>Explorer</strong><span>{bookingDetails.booking.explorer?.email || bookingDetails.booking.explorer?.name || "—"}</span></div>
-                  <div><strong>Experiență</strong><span>{bookingDetails.booking.experience?.title || "—"}</span></div>
-                  <div><strong>Creat</strong><span>{formatDate(bookingDetails.booking.createdAt)}</span></div>
-                  <div><strong>Anulat</strong><span>{formatDate(bookingDetails.booking.cancelledAt)}</span></div>
-                  <div><strong>Refundat</strong><span>{formatDate(bookingDetails.booking.refundedAt)}</span></div>
-                </div>
-
-                <div className={styles.detailsSection}>
-                  <div className={styles.panelTitle}>Payments ({numberFmt((bookingDetails.payments || []).length)})</div>
-                  {(bookingDetails.payments || []).length === 0 ? (
-                    <div className="muted">Fără payments legate.</div>
-                  ) : (
-                    <div className={styles.stackSm}>
-                      {(bookingDetails.payments || []).slice(0, 5).map((payment, idx) => {
-                        const row = payment as Record<string, unknown>;
-                        return (
-                          <div key={`${String(row._id || idx)}`} className={styles.miniItem}>
-                            <div>
-                              <strong>{String(row.status || "—")}</strong> · {String(row.paymentType || "—")}
-                            </div>
-                            <div className="muted">
-                              {formatMoney(Number(row.totalAmount || row.amount || 0), String(row.currency || "RON"))}
-                              {row.stripePaymentIntentId ? " · PI" : ""} {row.stripeSessionId ? " · Session" : ""}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <div className={styles.detailsSection}>
-                  <div className={styles.panelTitle}>Reports ({numberFmt((bookingDetails.reports || []).length)})</div>
-                  {(bookingDetails.reports || []).length === 0 ? (
-                    <div className="muted">Fără rapoarte pe booking.</div>
-                  ) : (
-                    <div className={styles.stackSm}>
-                      {(bookingDetails.reports || []).slice(0, 5).map((report, idx) => {
-                        const row = report as Record<string, unknown>;
-                        return (
-                          <div key={`${String(row._id || idx)}`} className={styles.miniItem}>
-                            <div>
-                              <strong>{String(row.status || "—")}</strong> · {String(row.type || "report")}
-                            </div>
-                            <div className="muted">
-                              {String(row.reason || row.comment || "fără motiv")}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <div className={styles.detailsSection}>
-                  <div className={styles.panelTitle}>Mesaje</div>
-                  <div className="muted">{numberFmt(bookingDetails.messagesCount)} mesaje în conversație</div>
-                </div>
-              </>
-            ) : null}
+        <div className={styles.listStack}>
+          {groupedBookings.map((group) => (
+            <AdminBookingExperienceRow
+              key={group.key}
+              group={group}
+              pendingKey={pendingKey}
+              onCancel={onCancelBooking}
+              onRefund={onRefundBooking}
+            />
+          ))}
+          {!bookingsLoading && groupedBookings.length === 0 ? (
+            <div className={`${styles.card} ${styles.emptyCard}`}>Nu există booking-uri pentru filtrele selectate.</div>
+          ) : null}
+          <div className={styles.pagination}>
+            <button
+              type="button"
+              className="button secondary"
+              disabled={!bookings || bookings.page <= 1 || bookingsLoading}
+              onClick={() => void loadBookings((bookings?.page || 1) - 1)}
+            >
+              ← Anterior
+            </button>
+            <span className="muted">
+              Pagina {bookings?.page || 1} / {bookings?.pages || 1}
+            </span>
+            <button
+              type="button"
+              className="button secondary"
+              disabled={!bookings || (bookings?.page || 1) >= (bookings?.pages || 1) || bookingsLoading}
+              onClick={() => void loadBookings((bookings?.page || 1) + 1)}
+            >
+              Următor →
+            </button>
           </div>
         </div>
       </section> : null}

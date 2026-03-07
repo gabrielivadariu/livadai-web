@@ -6,7 +6,20 @@ import styles from "./stripe-instructions.module.css";
 
 const WEBSITE_URL = "https://www.livadai.com";
 
-const content = {
+type StripeInstructionStep = {
+  title: string;
+  text: string;
+  highlight?: string;
+};
+
+type StripeInstructionContent = {
+  title: string;
+  intro: string;
+  steps: StripeInstructionStep[];
+  cta: string;
+};
+
+const content: Record<"ro" | "en", StripeInstructionContent> = {
   ro: {
     title: "Instrucțiuni Stripe",
     intro:
@@ -73,7 +86,7 @@ const content = {
     ],
     cta: "Connect Stripe Account",
   },
-} as const;
+};
 
 export default function StripeInstructionsPage() {
   const { lang } = useLang();

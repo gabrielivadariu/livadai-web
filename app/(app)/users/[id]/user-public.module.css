@@ -43,6 +43,22 @@
   font-size: 14px;
 }
 
+.heroActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chatBtn {
+  border: 1px solid rgba(var(--brand-rgb), 0.35);
+  background: rgba(var(--brand-rgb), 0.08);
+  color: var(--primary-dark);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .reportBtn {
   border: none;
   background: transparent;

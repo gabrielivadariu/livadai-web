@@ -79,7 +79,7 @@ export default function HostBookingDetailPage() {
             <div className={styles.kicker}>{t("host_booking_detail_explorer")}</div>
             <div className={styles.title}>{booking.explorer?.name || booking.explorer?.email || "—"}</div>
             {booking.explorer?._id ? (
-              <Link className={styles.link} href={`/users/${booking.explorer._id}`}>
+              <Link className={styles.link} href={`/users/${booking.explorer._id}?bookingId=${booking._id}`}>
                 {t("host_booking_detail_view_profile")}
               </Link>
             ) : null}

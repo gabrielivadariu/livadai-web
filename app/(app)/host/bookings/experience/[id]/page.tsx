@@ -100,6 +100,12 @@ export default function HostParticipantsPage() {
     }
   };
 
+  const openExplorerProfile = (booking: Booking) => {
+    const explorerId = booking.explorer?._id;
+    if (!explorerId) return;
+    router.push(`/users/${explorerId}?bookingId=${booking._id}`);
+  };
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -126,10 +132,10 @@ export default function HostParticipantsPage() {
                   className={styles.card}
                   role="button"
                   tabIndex={0}
-                  onClick={() => b.explorer?._id && router.push(`/users/${b.explorer._id}`)}
+                  onClick={() => openExplorerProfile(b)}
                   onKeyDown={(event) => {
                     if ((event.key === "Enter" || event.key === " ") && b.explorer?._id) {
-                      router.push(`/users/${b.explorer._id}`);
+                      openExplorerProfile(b);
                     }
                   }}
                 >

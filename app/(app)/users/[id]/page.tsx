@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
 import { useT } from "@/lib/i18n";
@@ -25,6 +25,8 @@ type Profile = {
 
 export default function UserPublicProfilePage() {
   const { id } = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useT();
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -54,6 +56,11 @@ export default function UserPublicProfilePage() {
   }, [id]);
 
   const canReport = (user?.role === "HOST" || user?.role === "BOTH") && String(user?._id) !== String(id);
+  const bookingId = searchParams?.get("bookingId")?.trim() || "";
+  const canOpenBookingChat =
+    (user?.role === "HOST" || user?.role === "BOTH") &&
+    String(user?._id) !== String(id) &&
+    !!bookingId;
 
   const onReportUser = async ({ reason, comment }: { reason: string; comment: string }) => {
     if (!id) return;
@@ -90,10 +97,19 @@ export default function UserPublicProfilePage() {
         {profile.city || profile.country ? (
           <div className={styles.meta}>📍 {profile.city || ""} {profile.country || ""}</div>
         ) : null}
-        {canReport ? (
-          <button className={styles.reportBtn} type="button" onClick={() => setReportOpen(true)}>
-            {t("report_user")}
-          </button>
+        {canReport || canOpenBookingChat ? (
+          <div className={styles.heroActions}>
+            {canOpenBookingChat ? (
+              <button className={styles.chatBtn} type="button" onClick={() => router.push(`/messages/${bookingId}`)}>
+                {t("messages_open")}
+              </button>
+            ) : null}
+            {canReport ? (
+              <button className={styles.reportBtn} type="button" onClick={() => setReportOpen(true)}>
+                {t("report_user")}
+              </button>
+            ) : null}
+          </div>
         ) : null}
         {reportSuccess ? <div className={styles.reportSuccess}>{reportSuccess}</div> : null}
       </div>

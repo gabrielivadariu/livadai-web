@@ -135,6 +135,22 @@ export default function MenuPage() {
       ) : null}
 
       <div className={styles.card}>
+        <div className={styles.sectionTitle}>{lang === "ro" ? "Ajutor host" : "Host help"}</div>
+        <Link className={styles.row} href="/stripe-instructions">
+          <span>🧭</span>
+          <div>
+            <strong>{lang === "ro" ? "Instrucțiuni Stripe" : "Stripe Instructions"}</strong>
+            <p>
+              {lang === "ro"
+                ? "Pașii pentru a primi plăți ca host"
+                : "Steps to receive payouts as a host"}
+            </p>
+          </div>
+          <span className={styles.chev}>›</span>
+        </Link>
+      </div>
+
+      <div className={styles.card}>
         <div className={styles.sectionTitle}>{t("menu_legal")}</div>
         <Link className={styles.row} href="/about">
           <span>ℹ️</span>

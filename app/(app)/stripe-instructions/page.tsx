@@ -1,122 +1,117 @@
 "use client";
 
 import Link from "next/link";
-import { useLang } from "@/lib/use-lang";
 import styles from "./stripe-instructions.module.css";
 
-const WEBSITE_URL = "https://www.livadai.com";
-
-type StripeInstructionStep = {
-  title: string;
-  text: string;
-  highlight?: string;
-};
-
-type StripeInstructionContent = {
-  title: string;
-  intro: string;
-  steps: StripeInstructionStep[];
-  cta: string;
-};
-
-const content: Record<"ro" | "en", StripeInstructionContent> = {
-  ro: {
-    title: "Instrucțiuni Stripe",
-    intro:
-      "Pentru a primi bani pentru experiențele tale pe LIVADAI, trebuie să finalizezi conectarea contului Stripe.",
-    steps: [
-      {
-        title: "1. Apasă „Conectează Stripe”",
-        text: "Vei fi redirecționat către pagina securizată Stripe.",
-      },
-      {
-        title: "2. Creează sau conectează contul tău Stripe.",
-        text: "",
-      },
-      {
-        title: "3. Completează toate datele cerute de Stripe.",
-        text: "Nume, adresă, document de identitate, cont bancar etc.",
-      },
-      {
-        title: "4. Câmp Website / Business website (IMPORTANT)",
-        text: "La acest câmp introdu EXACT:",
-        highlight: WEBSITE_URL,
-      },
-      {
-        title: "5. Finalizează toți pașii până la capăt.",
-        text: "Contul trebuie complet completat pentru a putea primi plăți.",
-      },
-      {
-        title: "6. Revino în LIVADAI și verifică dacă Stripe este activ.",
-        text: "",
-      },
-    ],
-    cta: "Conectează contul Stripe",
-  },
-  en: {
-    title: "Stripe Instructions",
-    intro:
-      "To receive money for your LIVADAI experiences, you must finish connecting your Stripe account.",
-    steps: [
-      {
-        title: "1. Tap “Connect Stripe”",
-        text: "You will be redirected to the secure Stripe page.",
-      },
-      {
-        title: "2. Create or connect your Stripe account.",
-        text: "",
-      },
-      {
-        title: "3. Complete all information requested by Stripe.",
-        text: "Name, address, identity document, bank account, etc.",
-      },
-      {
-        title: "4. Website / Business website field (IMPORTANT)",
-        text: "In this field enter EXACTLY:",
-        highlight: WEBSITE_URL,
-      },
-      {
-        title: "5. Finish all onboarding steps.",
-        text: "The account must be fully completed to receive payouts.",
-      },
-      {
-        title: "6. Return to LIVADAI and verify Stripe is active.",
-        text: "",
-      },
-    ],
-    cta: "Connect Stripe Account",
-  },
-};
+const WEBSITE_URL = "www.livadai.com";
 
 export default function StripeInstructionsPage() {
-  const { lang } = useLang();
-  const data = lang === "ro" ? content.ro : content.en;
-
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1>{data.title}</h1>
-        <p>{data.intro}</p>
+        <h1>Instrucțiuni Stripe</h1>
+        <p>
+          Pentru a primi bani pe LIVADAI, trebuie să finalizezi conectarea contului Stripe. Urmează exact pașii de
+          mai jos.
+        </p>
       </div>
 
       <div className={styles.steps}>
-        {data.steps.map((step) => (
-          <section key={step.title} className={styles.card}>
-            <h2>{step.title}</h2>
-            {step.text ? <p>{step.text}</p> : null}
-            {step.highlight ? (
-              <div className={styles.highlight}>
-                <div className={styles.highlightLabel}>{lang === "ro" ? "URL exact" : "Exact URL"}</div>
-                <input type="text" value={step.highlight} readOnly aria-label="Stripe website URL" />
-              </div>
-            ) : null}
-          </section>
-        ))}
+        <section className={styles.card}>
+          <h2>PASUL 1</h2>
+          <p>Apasă butonul „Conectează contul Stripe” din contul tău de host.</p>
+          <p>Vei fi redirecționat către platforma securizată Stripe.</p>
+        </section>
+
+        <section className={styles.card}>
+          <h2>PASUL 2</h2>
+          <p>Alege tipul de cont:</p>
+          <ul className={styles.list}>
+            <li>Individual / Persoană fizică</li>
+            <li>Company / Firmă</li>
+          </ul>
+          <p>
+            Majoritatea host-urilor trebuie să aleagă: <strong>Individual (Persoană fizică)</strong>
+          </p>
+          <p>Alege Company doar dacă ai firmă înregistrată.</p>
+        </section>
+
+        <section className={styles.card}>
+          <h2>PASUL 3</h2>
+          <p>Completează datele personale:</p>
+          <ul className={styles.list}>
+            <li>Nume complet</li>
+            <li>Dată naștere</li>
+            <li>Adresă</li>
+            <li>Număr telefon</li>
+            <li>Document de identitate</li>
+            <li>IBAN / Cont bancar</li>
+          </ul>
+          <p>Completează exact datele reale.</p>
+          <p>Nu folosi date incorecte.</p>
+        </section>
+
+        <section className={styles.card}>
+          <h2>PASUL 4 (CRITIC – BUSINESS WEBSITE)</h2>
+          <p>Când Stripe îți cere:</p>
+          <div className={styles.stack}>
+            <p>Website</p>
+            <p>sau</p>
+            <p>Business website</p>
+            <p>sau</p>
+            <p>Business URL</p>
+          </div>
+          <p>Introdu EXACT:</p>
+          <div className={styles.highlight}>
+            <div className={styles.highlightLabel}>Valoare exactă</div>
+            <input type="text" value={WEBSITE_URL} readOnly aria-label="Stripe business website exact value" />
+          </div>
+          <div className={styles.stack}>
+            <p>Scrie exact așa.</p>
+            <p>Fără https.</p>
+            <p>Fără http.</p>
+            <p>Fără spații.</p>
+            <p>Fără altă variantă.</p>
+          </div>
+        </section>
+
+        <section className={styles.card}>
+          <h2>PASUL 5</h2>
+          <p>Completează toți pașii până la final.</p>
+          <p>Nu închide pagina înainte să vezi confirmarea finală Stripe.</p>
+        </section>
+
+        <section className={styles.card}>
+          <h2>PASUL 6</h2>
+          <p>Revino în LIVADAI.</p>
+          <p>Verifică dacă statusul Stripe este activ.</p>
+          <p>Dacă nu este activ, reia procesul.</p>
+        </section>
       </div>
+
+      <section className={styles.qaSection}>
+        <h2>SECȚIUNE PROBLEME FRECVENTE</h2>
+        <div className={styles.qaItem}>
+          <h3>1. Am creat contul, dar nu primesc bani.</h3>
+          <p>→ Cel mai probabil onboarding-ul Stripe nu este complet finalizat.</p>
+        </div>
+        <div className={styles.qaItem}>
+          <h3>2. Nu știu ce website să scriu.</h3>
+          <p>→ Scrie exact: {WEBSITE_URL}</p>
+        </div>
+        <div className={styles.qaItem}>
+          <h3>3. Am pus https://www.livadai.com</h3>
+          <p>→ Nu este necesar. Scrie doar: {WEBSITE_URL}</p>
+        </div>
+        <div className={styles.qaItem}>
+          <h3>4. Am închis Stripe înainte de finalizare.</h3>
+          <p>→ Reia procesul din contul tău LIVADAI.</p>
+        </div>
+      </section>
 
       <div className={styles.footerCta}>
         <Link href="/host/wallet" className="button">
-          {data.cta}
+          Conectează contul Stripe
         </Link>
       </div>
     </div>

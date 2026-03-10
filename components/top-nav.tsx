@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
 import { useT } from "@/lib/i18n";
@@ -18,6 +18,7 @@ export default function TopNav({ pathname }: Props) {
   const t = useT();
   const { user, logout } = useAuth();
   const [profileName, setProfileName] = useState("");
+  const profileMenuRef = useRef<HTMLDetailsElement | null>(null);
   const name = profileName || t("nav_profile_fallback");
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -33,8 +34,13 @@ export default function TopNav({ pathname }: Props) {
   ].filter(Boolean) as { href: string; labelKey: string }[];
 
   const onLogout = () => {
+    profileMenuRef.current?.removeAttribute("open");
     logout();
     router.replace("/login");
+  };
+
+  const closeProfileMenu = () => {
+    profileMenuRef.current?.removeAttribute("open");
   };
 
   useEffect(() => {
@@ -58,6 +64,10 @@ export default function TopNav({ pathname }: Props) {
       active = false;
     };
   }, [user]);
+
+  useEffect(() => {
+    closeProfileMenu();
+  }, [pathname]);
 
   useEffect(() => {
     let active = true;
@@ -165,16 +175,16 @@ export default function TopNav({ pathname }: Props) {
 
       {user ? (
         <div className="nav-profile">
-          <details className="profile-menu">
+          <details className="profile-menu" ref={profileMenuRef}>
             <summary className="profile-summary">
               <span className="profile-dot" />
               <span>{name}</span>
             </summary>
             <div className="profile-dropdown">
-              <Link href="/menu">{t("nav_menu")}</Link>
-              {user?.role === "ADMIN" ? <Link href="/admin">Admin</Link> : null}
-              <Link href="/profile">{t("nav_profile")}</Link>
-              <Link href="/settings">{t("nav_settings")}</Link>
+              <Link href="/menu" onClick={closeProfileMenu}>{t("nav_menu")}</Link>
+              {user?.role === "ADMIN" ? <Link href="/admin" onClick={closeProfileMenu}>Admin</Link> : null}
+              <Link href="/profile" onClick={closeProfileMenu}>{t("nav_profile")}</Link>
+              <Link href="/settings" onClick={closeProfileMenu}>{t("nav_settings")}</Link>
               <button type="button" onClick={onLogout}>
                 {t("nav_logout")}
               </button>

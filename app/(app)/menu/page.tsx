@@ -99,6 +99,14 @@ export default function MenuPage() {
             </div>
             <span className={styles.chev}>›</span>
           </Link>
+          <Link className={styles.row} href="/host/hosted-experiences">
+            <span>🗂️</span>
+            <div>
+              <strong>{t("menu_host_experiences_title")}</strong>
+              <p>{t("menu_host_experiences_text")}</p>
+            </div>
+            <span className={styles.chev}>›</span>
+          </Link>
           <Link className={styles.row} href="/host/bookings">
             <span>🧾</span>
             <div>

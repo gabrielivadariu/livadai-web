@@ -63,6 +63,7 @@ type GeoSuggestion = {
 };
 
 type FormState = {
+  creationMode: "ONE_TIME" | "LONG_TERM";
   title: string;
   shortDescription: string;
   longDescription: string;
@@ -73,6 +74,12 @@ type FormState = {
   environment: "OUTDOOR" | "INDOOR" | "BOTH";
   startsAt: string;
   endsAt: string;
+  recurrenceStartDate: string;
+  recurrenceEndDate: string;
+  recurrenceWeekdays: number[];
+  recurrenceDailyStart: string;
+  recurrenceDailyEnd: string;
+  recurrenceSlotMinutes: string;
   country: string;
   countryCode: string;
   city: string;
@@ -88,6 +95,7 @@ type FormState = {
 };
 
 const initialForm: FormState = {
+  creationMode: "ONE_TIME",
   title: "",
   shortDescription: "",
   longDescription: "",
@@ -98,6 +106,12 @@ const initialForm: FormState = {
   environment: "OUTDOOR",
   startsAt: "",
   endsAt: "",
+  recurrenceStartDate: "",
+  recurrenceEndDate: "",
+  recurrenceWeekdays: [1, 2, 3, 4, 5],
+  recurrenceDailyStart: "14:00",
+  recurrenceDailyEnd: "22:00",
+  recurrenceSlotMinutes: "60",
   country: "Romania",
   countryCode: "RO",
   city: "",
@@ -111,6 +125,16 @@ const initialForm: FormState = {
   images: [],
   durationMinutes: "",
 };
+
+const weekdayOptions = [
+  { key: 1, labelKey: "weekday_monday_short" },
+  { key: 2, labelKey: "weekday_tuesday_short" },
+  { key: 3, labelKey: "weekday_wednesday_short" },
+  { key: 4, labelKey: "weekday_thursday_short" },
+  { key: 5, labelKey: "weekday_friday_short" },
+  { key: 6, labelKey: "weekday_saturday_short" },
+  { key: 0, labelKey: "weekday_sunday_short" },
+] as const;
 
 function CreateExperienceContent() {
   const t = useT();
@@ -144,6 +168,7 @@ function CreateExperienceContent() {
         const endsAt = exp.endsAt || exp.endDate;
         const toInput = (value?: string) => (value ? new Date(value).toISOString().slice(0, 16) : "");
         setForm({
+          creationMode: "ONE_TIME",
           title: exp.title || "",
           shortDescription: exp.shortDescription || "",
           longDescription: exp.description || exp.longDescription || "",
@@ -154,6 +179,12 @@ function CreateExperienceContent() {
           environment: exp.environment || "OUTDOOR",
           startsAt: toInput(startsAt),
           endsAt: toInput(endsAt),
+          recurrenceStartDate: "",
+          recurrenceEndDate: "",
+          recurrenceWeekdays: [1, 2, 3, 4, 5],
+          recurrenceDailyStart: "14:00",
+          recurrenceDailyEnd: "22:00",
+          recurrenceSlotMinutes: exp.durationMinutes ? String(exp.durationMinutes) : "60",
           country: exp.country || "",
           countryCode: exp.countryCode || "RO",
           city: exp.city || "",
@@ -220,6 +251,85 @@ function CreateExperienceContent() {
     }));
   };
 
+  const toggleWeekday = (weekday: number) => {
+    setForm((f) => {
+      const exists = f.recurrenceWeekdays.includes(weekday);
+      if (exists) {
+        return { ...f, recurrenceWeekdays: f.recurrenceWeekdays.filter((d) => d !== weekday) };
+      }
+      return { ...f, recurrenceWeekdays: [...f.recurrenceWeekdays, weekday].sort((a, b) => a - b) };
+    });
+  };
+
+  const computeRecurringOccurrences = (options: {
+    recurrenceStartDate: string;
+    recurrenceEndDate: string;
+    recurrenceWeekdays: number[];
+    recurrenceDailyStart: string;
+    recurrenceDailyEnd: string;
+    recurrenceSlotMinutes: string;
+  }) => {
+    const {
+      recurrenceStartDate,
+      recurrenceEndDate,
+      recurrenceWeekdays,
+      recurrenceDailyStart,
+      recurrenceDailyEnd,
+      recurrenceSlotMinutes,
+    } = options;
+    if (
+      !recurrenceStartDate ||
+      !recurrenceEndDate ||
+      !recurrenceDailyStart ||
+      !recurrenceDailyEnd ||
+      !recurrenceWeekdays.length
+    ) {
+      return [];
+    }
+    const slotMinutes = Number(recurrenceSlotMinutes);
+    if (!Number.isFinite(slotMinutes) || slotMinutes < 15) return [];
+
+    const startDate = new Date(`${recurrenceStartDate}T00:00:00`);
+    const endDate = new Date(`${recurrenceEndDate}T00:00:00`);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || endDate < startDate) return [];
+
+    const [startHour, startMinute] = recurrenceDailyStart.split(":").map((value) => Number(value));
+    const [endHour, endMinute] = recurrenceDailyEnd.split(":").map((value) => Number(value));
+    if (
+      [startHour, startMinute, endHour, endMinute].some((value) => Number.isNaN(value)) ||
+      endHour * 60 + endMinute <= startHour * 60 + startMinute
+    ) {
+      return [];
+    }
+
+    const now = Date.now();
+    const occurrences: Array<{ startsAt: string; endsAt: string; durationMinutes: number }> = [];
+    for (const cursor = new Date(startDate); cursor <= endDate; cursor.setDate(cursor.getDate() + 1)) {
+      const dayOfWeek = cursor.getDay();
+      if (!recurrenceWeekdays.includes(dayOfWeek)) continue;
+
+      const daySlotStart = new Date(cursor);
+      daySlotStart.setHours(startHour, startMinute, 0, 0);
+      const daySlotEnd = new Date(cursor);
+      daySlotEnd.setHours(endHour, endMinute, 0, 0);
+
+      for (let slotStart = new Date(daySlotStart); slotStart < daySlotEnd; ) {
+        const slotEnd = new Date(slotStart.getTime() + slotMinutes * 60 * 1000);
+        if (slotEnd > daySlotEnd) break;
+        if (slotStart.getTime() > now) {
+          occurrences.push({
+            startsAt: slotStart.toISOString(),
+            endsAt: slotEnd.toISOString(),
+            durationMinutes: slotMinutes,
+          });
+        }
+        slotStart = slotEnd;
+      }
+    }
+
+    return occurrences;
+  };
+
   const uploadFile = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -262,20 +372,110 @@ function CreateExperienceContent() {
     return { hasStart, hasEnd, endAfterStart };
   }, [form.endsAt, form.startsAt]);
 
+  const recurringOccurrences = useMemo(
+    () =>
+      computeRecurringOccurrences({
+        recurrenceStartDate: form.recurrenceStartDate,
+        recurrenceEndDate: form.recurrenceEndDate,
+        recurrenceWeekdays: form.recurrenceWeekdays,
+        recurrenceDailyStart: form.recurrenceDailyStart,
+        recurrenceDailyEnd: form.recurrenceDailyEnd,
+        recurrenceSlotMinutes: form.recurrenceSlotMinutes,
+      }),
+    [
+      form.recurrenceStartDate,
+      form.recurrenceEndDate,
+      form.recurrenceWeekdays,
+      form.recurrenceDailyStart,
+      form.recurrenceDailyEnd,
+      form.recurrenceSlotMinutes,
+    ]
+  );
+
+  const recurringState = useMemo(() => {
+    const hasPeriodStart = !!form.recurrenceStartDate;
+    const hasPeriodEnd = !!form.recurrenceEndDate;
+    const periodOrder =
+      hasPeriodStart && hasPeriodEnd
+        ? new Date(`${form.recurrenceEndDate}T00:00:00`).getTime() >=
+          new Date(`${form.recurrenceStartDate}T00:00:00`).getTime()
+        : true;
+    const hasTimeStart = !!form.recurrenceDailyStart;
+    const hasTimeEnd = !!form.recurrenceDailyEnd;
+    const startMinutes = hasTimeStart
+      ? Number(form.recurrenceDailyStart.split(":")[0]) * 60 + Number(form.recurrenceDailyStart.split(":")[1])
+      : null;
+    const endMinutes = hasTimeEnd
+      ? Number(form.recurrenceDailyEnd.split(":")[0]) * 60 + Number(form.recurrenceDailyEnd.split(":")[1])
+      : null;
+    const timeOrder = startMinutes !== null && endMinutes !== null ? endMinutes > startMinutes : true;
+    const slotMinutes = Number(form.recurrenceSlotMinutes);
+    const slotValid = Number.isFinite(slotMinutes) && slotMinutes >= 15;
+    const hasDays = form.recurrenceWeekdays.length > 0;
+    const hasFutureSlots = recurringOccurrences.length > 0;
+    const limitOk = recurringOccurrences.length <= 240;
+    return {
+      hasPeriodStart,
+      hasPeriodEnd,
+      periodOrder,
+      hasTimeStart,
+      hasTimeEnd,
+      timeOrder,
+      slotValid,
+      hasDays,
+      hasFutureSlots,
+      limitOk,
+    };
+  }, [
+    form.recurrenceStartDate,
+    form.recurrenceEndDate,
+    form.recurrenceDailyStart,
+    form.recurrenceDailyEnd,
+    form.recurrenceSlotMinutes,
+    form.recurrenceWeekdays,
+    recurringOccurrences.length,
+  ]);
+
   const canProceed = useMemo(() => {
     if (step === 1) return form.title && form.shortDescription && form.longDescription;
     if (step === 2) {
+      if (!isEdit && form.creationMode === "LONG_TERM") {
+        return (
+          recurringState.hasPeriodStart &&
+          recurringState.hasPeriodEnd &&
+          recurringState.periodOrder &&
+          recurringState.hasTimeStart &&
+          recurringState.hasTimeEnd &&
+          recurringState.timeOrder &&
+          recurringState.slotValid &&
+          recurringState.hasDays &&
+          recurringState.hasFutureSlots &&
+          recurringState.limitOk &&
+          form.city
+        );
+      }
       return scheduleState.hasStart && scheduleState.hasEnd && scheduleState.endAfterStart && form.city;
     }
     return true;
-  }, [form, step, scheduleState]);
+  }, [form, step, scheduleState, recurringState, isEdit]);
 
   const scheduleErrorText = useMemo(() => {
+    if (!isEdit && form.creationMode === "LONG_TERM") {
+      if (!recurringState.hasPeriodStart || !recurringState.hasPeriodEnd) return t("create_experience_recurrence_period_required");
+      if (!recurringState.periodOrder) return t("create_experience_recurrence_period_order");
+      if (!recurringState.hasDays) return t("create_experience_recurrence_days_required");
+      if (!recurringState.hasTimeStart || !recurringState.hasTimeEnd) return t("create_experience_recurrence_time_required");
+      if (!recurringState.timeOrder) return t("create_experience_recurrence_time_order");
+      if (!recurringState.slotValid) return t("create_experience_recurrence_slot_invalid");
+      if (!recurringState.hasFutureSlots) return t("create_experience_recurrence_no_slots");
+      if (!recurringState.limitOk) return t("create_experience_recurrence_limit");
+      return "";
+    }
     if (!scheduleState.hasStart) return t("create_experience_schedule_required");
     if (!scheduleState.hasEnd) return t("create_experience_schedule_required");
     if (!scheduleState.endAfterStart) return t("create_experience_schedule_order");
     return "";
-  }, [scheduleState, t]);
+  }, [scheduleState, t, isEdit, form.creationMode, recurringState]);
 
   const formatDuration = (minutesValue: string) => {
     const minutes = Number(minutesValue);
@@ -300,6 +500,10 @@ function CreateExperienceContent() {
   };
 
   useEffect(() => {
+    if (!isEdit && form.creationMode === "LONG_TERM") {
+      setForm((f) => ({ ...f, durationMinutes: f.recurrenceSlotMinutes || f.durationMinutes }));
+      return;
+    }
     if (!form.startsAt || !form.endsAt) {
       setForm((f) => ({ ...f, durationMinutes: "" }));
       return;
@@ -312,7 +516,7 @@ function CreateExperienceContent() {
     }
     const diffMinutes = Math.round((end - start) / 60000);
     setForm((f) => ({ ...f, durationMinutes: diffMinutes ? String(diffMinutes) : "" }));
-  }, [form.startsAt, form.endsAt]);
+  }, [form.startsAt, form.endsAt, form.creationMode, form.recurrenceSlotMinutes, isEdit]);
 
   const onSubmit = async () => {
     setLoading(true);
@@ -325,9 +529,7 @@ function CreateExperienceContent() {
         return;
       }
       const isFree = !form.price || Number(form.price) <= 0;
-      const startsAtIso = form.startsAt ? new Date(form.startsAt).toISOString() : undefined;
-      const endsAtIso = form.endsAt ? new Date(form.endsAt).toISOString() : undefined;
-      const payload = {
+      const basePayload = {
         title: form.title,
         shortDescription: form.shortDescription,
         description: form.longDescription,
@@ -336,8 +538,6 @@ function CreateExperienceContent() {
         activityType: form.activityType,
         maxParticipants: form.activityType === "GROUP" ? Number(form.maxParticipants) || 1 : 1,
         environment: form.environment,
-        startsAt: startsAtIso,
-        endsAt: endsAtIso,
         country: form.country,
         countryCode: form.countryCode,
         city: form.city,
@@ -350,13 +550,36 @@ function CreateExperienceContent() {
         coverImageUrl: form.coverImageUrl || images[0] || "",
         mainImageUrl: form.coverImageUrl || images[0] || "",
         images,
-        durationMinutes: form.durationMinutes ? Number(form.durationMinutes) : undefined,
       };
       if (isEdit && editId) {
-        await apiPatch(`/experiences/${editId}`, payload);
+        const startsAtIso = form.startsAt ? new Date(form.startsAt).toISOString() : undefined;
+        const endsAtIso = form.endsAt ? new Date(form.endsAt).toISOString() : undefined;
+        await apiPatch(`/experiences/${editId}`, {
+          ...basePayload,
+          startsAt: startsAtIso,
+          endsAt: endsAtIso,
+          durationMinutes: form.durationMinutes ? Number(form.durationMinutes) : undefined,
+        });
         router.replace("/host");
+      } else if (form.creationMode === "LONG_TERM") {
+        const slotMinutes = Number(form.recurrenceSlotMinutes);
+        await apiPost("/experiences/bulk", {
+          ...basePayload,
+          scheduleType: "LONG_TERM",
+          durationMinutes: slotMinutes,
+          occurrences: recurringOccurrences,
+        });
+        window.localStorage.setItem(EXPERIENCE_CREATED_KEY, "1");
+        router.replace("/experiences");
       } else {
-        await apiPost("/experiences", payload);
+        const startsAtIso = form.startsAt ? new Date(form.startsAt).toISOString() : undefined;
+        const endsAtIso = form.endsAt ? new Date(form.endsAt).toISOString() : undefined;
+        await apiPost("/experiences", {
+          ...basePayload,
+          startsAt: startsAtIso,
+          endsAt: endsAtIso,
+          durationMinutes: form.durationMinutes ? Number(form.durationMinutes) : undefined,
+        });
         window.localStorage.setItem(EXPERIENCE_CREATED_KEY, "1");
         router.replace("/experiences");
       }
@@ -407,6 +630,35 @@ function CreateExperienceContent() {
               />
             </div>
           </div>
+
+          {!isEdit ? (
+            <div className={styles.optionsRow}>
+              <div>
+                <label>{t("create_experience_mode_label")}</label>
+                <div className={styles.chips}>
+                  <button
+                    type="button"
+                    className={`${styles.chip} ${form.creationMode === "ONE_TIME" ? styles.chipActive : ""}`}
+                    onClick={() => onChange("creationMode", "ONE_TIME")}
+                  >
+                    {t("create_experience_mode_single")}
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.chip} ${form.creationMode === "LONG_TERM" ? styles.chipActive : ""}`}
+                    onClick={() => onChange("creationMode", "LONG_TERM")}
+                  >
+                    {t("create_experience_mode_long_term")}
+                  </button>
+                </div>
+                <p className={styles.modeHint}>
+                  {form.creationMode === "ONE_TIME"
+                    ? t("create_experience_mode_single_hint")
+                    : t("create_experience_mode_long_term_hint")}
+                </p>
+              </div>
+            </div>
+          ) : null}
 
           <div className={styles.optionsRow}>
             <div>
@@ -475,22 +727,109 @@ function CreateExperienceContent() {
         <div className={styles.card}>
           <h2>{t("create_experience_step_2")}</h2>
           <div className={styles.grid}>
-            <div>
-              <label>{t("create_experience_starts")}</label>
-              <input className="input" type="datetime-local" value={form.startsAt} onChange={(e) => onChange("startsAt", e.target.value)} />
-            </div>
-            <div>
-              <label>{t("create_experience_ends")}</label>
-              <input className="input" type="datetime-local" value={form.endsAt} onChange={(e) => onChange("endsAt", e.target.value)} />
-            </div>
-            <div>
-              <label>{t("create_experience_duration")}</label>
-              <div className={styles.readonlyField}>{formatDuration(form.durationMinutes) || "—"}</div>
-            </div>
-            <div className={styles.full}>
-              <div className={styles.scheduleHint}>{t("create_experience_schedule_hint")}</div>
-              {scheduleErrorText ? <div className={styles.scheduleError}>{scheduleErrorText}</div> : null}
-            </div>
+            {!isEdit && form.creationMode === "LONG_TERM" ? (
+              <>
+                <div>
+                  <label>{t("create_experience_recurrence_period_start")}</label>
+                  <input
+                    className="input"
+                    type="date"
+                    value={form.recurrenceStartDate}
+                    onChange={(e) => onChange("recurrenceStartDate", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label>{t("create_experience_recurrence_period_end")}</label>
+                  <input
+                    className="input"
+                    type="date"
+                    value={form.recurrenceEndDate}
+                    onChange={(e) => onChange("recurrenceEndDate", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label>{t("create_experience_recurrence_daily_start")}</label>
+                  <input
+                    className="input"
+                    type="time"
+                    value={form.recurrenceDailyStart}
+                    onChange={(e) => onChange("recurrenceDailyStart", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label>{t("create_experience_recurrence_daily_end")}</label>
+                  <input
+                    className="input"
+                    type="time"
+                    value={form.recurrenceDailyEnd}
+                    onChange={(e) => onChange("recurrenceDailyEnd", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label>{t("create_experience_recurrence_slot_minutes")}</label>
+                  <input
+                    className="input"
+                    type="number"
+                    min={15}
+                    step={5}
+                    value={form.recurrenceSlotMinutes}
+                    onChange={(e) => onChange("recurrenceSlotMinutes", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label>{t("create_experience_recurrence_generated_slots")}</label>
+                  <div className={styles.readonlyField}>{recurringOccurrences.length}</div>
+                </div>
+                <div className={styles.full}>
+                  <label>{t("create_experience_recurrence_days_label")}</label>
+                  <div className={styles.chips}>
+                    {weekdayOptions.map((day) => (
+                      <button
+                        key={day.key}
+                        type="button"
+                        className={`${styles.chip} ${form.recurrenceWeekdays.includes(day.key) ? styles.chipActive : ""}`}
+                        onClick={() => toggleWeekday(day.key)}
+                      >
+                        {t(day.labelKey)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className={styles.full}>
+                  <div className={styles.scheduleHint}>{t("create_experience_recurrence_hint")}</div>
+                  {scheduleErrorText ? <div className={styles.scheduleError}>{scheduleErrorText}</div> : null}
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label>{t("create_experience_starts")}</label>
+                  <input
+                    className="input"
+                    type="datetime-local"
+                    value={form.startsAt}
+                    onChange={(e) => onChange("startsAt", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label>{t("create_experience_ends")}</label>
+                  <input
+                    className="input"
+                    type="datetime-local"
+                    value={form.endsAt}
+                    onChange={(e) => onChange("endsAt", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label>{t("create_experience_duration")}</label>
+                  <div className={styles.readonlyField}>{formatDuration(form.durationMinutes) || "—"}</div>
+                </div>
+                <div className={styles.full}>
+                  <div className={styles.scheduleHint}>{t("create_experience_schedule_hint")}</div>
+                  {scheduleErrorText ? <div className={styles.scheduleError}>{scheduleErrorText}</div> : null}
+                </div>
+              </>
+            )}
             <div className={styles.full}>
               <label>{t("create_experience_search_address")}</label>
               <input

@@ -103,6 +103,14 @@
   gap: 16px;
 }
 
+.modeHint {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 720px;
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;

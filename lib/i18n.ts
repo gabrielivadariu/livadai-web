@@ -923,9 +923,12 @@ const messages: Record<Lang, Messages> = {
     create_experience_mode_label: "Tip creare",
     create_experience_mode_single: "Experiență unică",
     create_experience_mode_long_term: "Program pe termen lung",
+    create_experience_mode_select_hint: "Alege manual tipul de creare.",
     create_experience_mode_single_hint: "Publici o singură experiență, cu o dată și o oră fixe.",
     create_experience_mode_long_term_hint:
       "Setezi un interval recurent (zile + ore), iar LIVADAI creează automat sloturile rezervabile.",
+    create_experience_step_1_required_options:
+      "Completează descrierile și selectează manual tipul de creare, tipul de activitate și mediul.",
     create_experience_activity: "Tip activitate",
     create_experience_group_max: "Participanți max.",
     create_experience_environment: "Mediu",
@@ -1951,9 +1954,12 @@ const messages: Record<Lang, Messages> = {
     create_experience_mode_label: "Creation type",
     create_experience_mode_single: "One-time experience",
     create_experience_mode_long_term: "Long-term schedule",
+    create_experience_mode_select_hint: "Manually choose the creation type.",
     create_experience_mode_single_hint: "Publish one experience with a fixed date and time.",
     create_experience_mode_long_term_hint:
       "Set recurring availability (days + hours), and LIVADAI auto-creates bookable slots.",
+    create_experience_step_1_required_options:
+      "Complete all descriptions and manually choose creation type, activity type, and environment.",
     create_experience_activity: "Activity type",
     create_experience_group_max: "Max participants",
     create_experience_environment: "Environment",

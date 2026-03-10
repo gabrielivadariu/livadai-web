@@ -63,7 +63,7 @@ type GeoSuggestion = {
 };
 
 type FormState = {
-  creationMode: "ONE_TIME" | "LONG_TERM";
+  creationMode: "" | "ONE_TIME" | "LONG_TERM";
   title: string;
   shortDescription: string;
   longDescription: string;
@@ -71,9 +71,9 @@ type FormState = {
   pricingMode: "PER_PERSON" | "PER_GROUP";
   groupPackageSize: string;
   currencyCode: string;
-  activityType: "INDIVIDUAL" | "GROUP";
+  activityType: "" | "INDIVIDUAL" | "GROUP";
   maxParticipants: number;
-  environment: "OUTDOOR" | "INDOOR" | "BOTH";
+  environment: "" | "OUTDOOR" | "INDOOR" | "BOTH";
   startsAt: string;
   endsAt: string;
   recurrenceStartDate: string;
@@ -98,7 +98,7 @@ type FormState = {
 };
 
 const initialForm: FormState = {
-  creationMode: "ONE_TIME",
+  creationMode: "",
   title: "",
   shortDescription: "",
   longDescription: "",
@@ -106,9 +106,9 @@ const initialForm: FormState = {
   pricingMode: "PER_PERSON",
   groupPackageSize: "1",
   currencyCode: "RON",
-  activityType: "INDIVIDUAL",
+  activityType: "",
   maxParticipants: 1,
-  environment: "OUTDOOR",
+  environment: "",
   startsAt: "",
   endsAt: "",
   recurrenceStartDate: "",
@@ -130,6 +130,15 @@ const initialForm: FormState = {
   coverImageUrl: "",
   images: [],
   durationMinutes: "",
+};
+
+const normalizePositiveInteger = (rawValue: string) => {
+  const digitsOnly = String(rawValue || "").replace(/\D+/g, "");
+  if (!digitsOnly) return 1;
+  const normalized = digitsOnly.replace(/^0+/, "");
+  const parsed = Number(normalized || "0");
+  if (!Number.isFinite(parsed) || parsed < 1) return 1;
+  return parsed;
 };
 
 const weekdayOptions = [
@@ -477,8 +486,21 @@ function CreateExperienceContent() {
     recurringOccurrences.length,
   ]);
 
+  const hasCreationMode = form.creationMode === "ONE_TIME" || form.creationMode === "LONG_TERM";
+  const hasActivityType = form.activityType === "INDIVIDUAL" || form.activityType === "GROUP";
+  const hasEnvironment = form.environment === "OUTDOOR" || form.environment === "INDOOR" || form.environment === "BOTH";
+
   const canProceed = useMemo(() => {
-    if (step === 1) return form.title && form.shortDescription && form.longDescription;
+    if (step === 1) {
+      return (
+        !!form.title.trim() &&
+        !!form.shortDescription.trim() &&
+        !!form.longDescription.trim() &&
+        hasCreationMode &&
+        hasActivityType &&
+        hasEnvironment
+      );
+    }
     if (step === 2) {
       if (!isEdit && form.creationMode === "LONG_TERM") {
         return (
@@ -503,7 +525,7 @@ function CreateExperienceContent() {
       return packageSize <= maxParticipants;
     }
     return true;
-  }, [form, step, scheduleState, recurringState, isEdit]);
+  }, [form, step, scheduleState, recurringState, isEdit, hasCreationMode, hasActivityType, hasEnvironment]);
 
   const scheduleErrorText = useMemo(() => {
     if (!isEdit && form.creationMode === "LONG_TERM") {
@@ -574,6 +596,14 @@ function CreateExperienceContent() {
         setLoading(false);
         return;
       }
+      if (!hasCreationMode || !hasActivityType || !hasEnvironment) {
+        setError(t("create_experience_step_1_required_options"));
+        setLoading(false);
+        return;
+      }
+      const selectedCreationMode = form.creationMode;
+      const selectedActivityType = form.activityType;
+      const selectedEnvironment = form.environment;
       const isFree = !form.price || Number(form.price) <= 0;
       const basePayload = {
         title: form.title,
@@ -581,14 +611,14 @@ function CreateExperienceContent() {
         description: form.longDescription,
         price: isFree ? 0 : Number(form.price),
         currencyCode: form.currencyCode,
-        activityType: form.activityType,
-        maxParticipants: form.activityType === "GROUP" ? Number(form.maxParticipants) || 1 : 1,
-        pricingMode: form.activityType === "GROUP" ? form.pricingMode : "PER_PERSON",
+        activityType: selectedActivityType,
+        maxParticipants: selectedActivityType === "GROUP" ? Number(form.maxParticipants) || 1 : 1,
+        pricingMode: selectedActivityType === "GROUP" ? form.pricingMode : "PER_PERSON",
         groupPackageSize:
-          form.activityType === "GROUP" && form.pricingMode === "PER_GROUP"
+          selectedActivityType === "GROUP" && form.pricingMode === "PER_GROUP"
             ? Math.max(1, Number(form.groupPackageSize) || Number(form.maxParticipants) || 1)
             : null,
-        environment: form.environment,
+        environment: selectedEnvironment,
         country: form.country,
         countryCode: form.countryCode,
         city: form.city,
@@ -612,7 +642,7 @@ function CreateExperienceContent() {
           durationMinutes: form.durationMinutes ? Number(form.durationMinutes) : undefined,
         });
         router.replace("/host");
-      } else if (form.creationMode === "LONG_TERM") {
+      } else if (selectedCreationMode === "LONG_TERM") {
         const slotMinutes = Number(form.recurrenceSlotMinutes);
         await apiPost("/experiences/bulk", {
           ...basePayload,
@@ -704,7 +734,9 @@ function CreateExperienceContent() {
                   </button>
                 </div>
                 <p className={styles.modeHint}>
-                  {form.creationMode === "ONE_TIME"
+                  {!hasCreationMode
+                    ? t("create_experience_mode_select_hint")
+                    : form.creationMode === "ONE_TIME"
                     ? t("create_experience_mode_single_hint")
                     : t("create_experience_mode_long_term_hint")}
                 </p>
@@ -735,8 +767,8 @@ function CreateExperienceContent() {
                   className="input"
                   type="number"
                   min={1}
-                  value={form.maxParticipants}
-                  onChange={(e) => onChange("maxParticipants", Number(e.target.value))}
+                  value={String(form.maxParticipants).replace(/^0+(?=\d)/, "")}
+                  onChange={(e) => onChange("maxParticipants", normalizePositiveInteger(e.target.value))}
                 />
               </div>
             ) : null}

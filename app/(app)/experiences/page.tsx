@@ -33,6 +33,13 @@ type Experience = {
   maxParticipants?: number;
   remainingSpots?: number;
   availableSpots?: number;
+  pricingMode?: "PER_PERSON" | "PER_GROUP" | string;
+  groupPackageSize?: number | null;
+  isSeries?: boolean;
+  seriesId?: string | null;
+  seriesSlotsCount?: number;
+  seriesAvailableSlots?: number;
+  seriesNextStartsAt?: string | null;
 };
 
 const formatDuration = (minutes: number | undefined, lang: string) => {
@@ -84,6 +91,25 @@ const formatEnvironment = (item: Experience, t: (key: string) => string) => {
   return "";
 };
 
+const formatPricing = (item: Experience, lang: string, t: (key: string) => string) => {
+  const isFree = !item.price || Number(item.price) <= 0;
+  const currency = item.currencyCode || "RON";
+  const pricingMode = String(item.pricingMode || "").toUpperCase() === "PER_GROUP" ? "PER_GROUP" : "PER_PERSON";
+  const packageSize = Math.max(1, Number(item.groupPackageSize) || Number(item.maxParticipants) || 1);
+  if (isFree) {
+    if (pricingMode === "PER_GROUP") {
+      return lang === "en" ? `${t("experiences_free")} / group` : `${t("experiences_free")} / grup`;
+    }
+    return t("experiences_free");
+  }
+  if (pricingMode === "PER_GROUP") {
+    return lang === "en"
+      ? `${item.price || 0} ${currency} / group (${packageSize})`
+      : `${item.price || 0} ${currency} / grup (${packageSize})`;
+  }
+  return `${item.price || 0} ${currency}`;
+};
+
 const normalizeTimeValue = (value?: string) => {
   const raw = String(value || "").trim();
   if (!raw) return "";
@@ -107,7 +133,7 @@ const normalizeTimeValue = (value?: string) => {
 };
 
 const formatStartTimeLabel = (item: Experience, lang: string) => {
-  const start = item.startsAt || item.startDate;
+  const start = item.seriesNextStartsAt || item.startsAt || item.startDate;
   if (start) {
     const date = new Date(start);
     if (!Number.isNaN(date.getTime())) {
@@ -297,13 +323,19 @@ export default function ExperiencesPage() {
         <div className={styles.grid} id="experiences-list">
           {filtered.map((item) => {
             const isFree = !item.price || Number(item.price) <= 0;
-            const priceText = isFree ? t("experiences_free") : `${item.price || 0} ${item.currencyCode || "RON"}`;
-            const start = item.startsAt || item.startDate;
+            const priceText = formatPricing(item, lang, t);
+            const start = item.seriesNextStartsAt || item.startsAt || item.startDate;
             const dateLabel = start ? new Date(start).toLocaleDateString(lang === "en" ? "en-US" : "ro-RO", { day: "numeric", month: "short" }) : "";
             const timeLabel = formatStartTimeLabel(item, lang);
             const groupLabel = formatGroupInfo(item, lang);
             const seats = formatSeatsInfo(item);
             const environmentLabel = formatEnvironment(item, t);
+            const seriesLabel =
+              item.isSeries && item.seriesAvailableSlots
+                ? lang === "en"
+                  ? `${item.seriesAvailableSlots} slots`
+                  : `${item.seriesAvailableSlots} sloturi`
+                : "";
             return (
               <Link key={item._id} href={`/experiences/${item._id}`} className={styles.card}>
                 {item.coverImageUrl ? (
@@ -330,6 +362,7 @@ export default function ExperiencesPage() {
                     {item.languages?.length ? <span className={styles.metaPill}>🗣 {item.languages.slice(0, 2).join(" · ")}</span> : null}
                     {environmentLabel ? <span className={styles.metaPill}>🍃 {environmentLabel}</span> : null}
                     {seats ? <span className={styles.metaPill}>👥 {seats}</span> : null}
+                    {seriesLabel ? <span className={styles.metaPill}>🗓️ {seriesLabel}</span> : null}
                     {item.rating_avg ? <span className={styles.rating}>⭐ {Number(item.rating_avg).toFixed(1)}</span> : null}
                   </div>
                 </div>

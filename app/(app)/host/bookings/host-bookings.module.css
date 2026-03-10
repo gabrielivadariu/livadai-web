@@ -32,46 +32,70 @@
   gap: 14px;
 }
 
-.card {
+.dayCard {
   background: #fff;
   border-radius: 18px;
   border: 1px solid #e6eff2;
   padding: 16px;
-  display: flex;
-  justify-content: space-between;
+  display: grid;
   gap: 12px;
   box-shadow: var(--shadow-soft);
-  cursor: pointer;
-  transition: transform 160ms ease, box-shadow 160ms ease;
 }
 
-.card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+.dayHeader {
+  display: grid;
+  gap: 4px;
 }
 
-.card:focus-visible {
-  outline: 2px solid rgba(var(--brand-rgb), 0.4);
-  outline-offset: 2px;
-}
-
-.title {
+.dayTitle {
   font-weight: 800;
+  font-size: 18px;
+  color: #0f172a;
 }
 
-.meta {
+.dayMeta {
   color: var(--muted);
   font-size: 13px;
-  margin-top: 4px;
 }
 
-.status {
-  background: #eef9fb;
-  border-radius: 999px;
-  padding: 6px 12px;
+.experienceRows {
+  display: grid;
+  gap: 8px;
+}
+
+.expRow {
+  border-radius: 12px;
+  border: 1px solid #e6eff2;
+  background: #f8fcfd;
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.expRowLink {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.expRowLink .expRow {
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.expRowLink:hover .expRow {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
+  border-color: rgba(var(--brand-rgb), 0.35);
+}
+
+.expTitle {
   font-weight: 700;
-  color: var(--primary-dark);
-  height: fit-content;
+  color: #0f172a;
+}
+
+.expMeta {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .empty {
@@ -96,4 +120,12 @@
 
 .emptyText {
   color: var(--muted);
+}
+
+.emptyInline {
+  color: var(--muted);
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px;
+  border: 1px dashed #e6eff2;
 }

@@ -68,6 +68,8 @@ type FormState = {
   shortDescription: string;
   longDescription: string;
   price: string;
+  pricingMode: "PER_PERSON" | "PER_GROUP";
+  groupPackageSize: string;
   currencyCode: string;
   activityType: "INDIVIDUAL" | "GROUP";
   maxParticipants: number;
@@ -100,6 +102,8 @@ const initialForm: FormState = {
   shortDescription: "",
   longDescription: "",
   price: "",
+  pricingMode: "PER_PERSON",
+  groupPackageSize: "1",
   currencyCode: "RON",
   activityType: "INDIVIDUAL",
   maxParticipants: 1,
@@ -173,6 +177,8 @@ function CreateExperienceContent() {
           shortDescription: exp.shortDescription || "",
           longDescription: exp.description || exp.longDescription || "",
           price: exp.price ? String(exp.price) : "",
+          pricingMode: exp.pricingMode === "PER_GROUP" ? "PER_GROUP" : "PER_PERSON",
+          groupPackageSize: exp.groupPackageSize ? String(exp.groupPackageSize) : String(exp.maxParticipants || 1),
           currencyCode: exp.currencyCode || "RON",
           activityType: exp.activityType || "INDIVIDUAL",
           maxParticipants: exp.maxParticipants || 1,
@@ -456,6 +462,11 @@ function CreateExperienceContent() {
       }
       return scheduleState.hasStart && scheduleState.hasEnd && scheduleState.endAfterStart && form.city;
     }
+    if (step === 3 && form.activityType === "GROUP" && form.pricingMode === "PER_GROUP") {
+      const packageSize = Math.max(1, Number(form.groupPackageSize) || 1);
+      const maxParticipants = Math.max(1, Number(form.maxParticipants) || 1);
+      return packageSize <= maxParticipants;
+    }
     return true;
   }, [form, step, scheduleState, recurringState, isEdit]);
 
@@ -537,6 +548,11 @@ function CreateExperienceContent() {
         currencyCode: form.currencyCode,
         activityType: form.activityType,
         maxParticipants: form.activityType === "GROUP" ? Number(form.maxParticipants) || 1 : 1,
+        pricingMode: form.activityType === "GROUP" ? form.pricingMode : "PER_PERSON",
+        groupPackageSize:
+          form.activityType === "GROUP" && form.pricingMode === "PER_GROUP"
+            ? Math.max(1, Number(form.groupPackageSize) || Number(form.maxParticipants) || 1)
+            : null,
         environment: form.environment,
         country: form.country,
         countryCode: form.countryCode,
@@ -876,6 +892,42 @@ function CreateExperienceContent() {
               <label>{t("create_experience_price")}</label>
               <input className="input" type="number" value={form.price} onChange={(e) => onChange("price", e.target.value)} />
             </div>
+            {form.activityType === "GROUP" ? (
+              <>
+                <div className={styles.full}>
+                  <label>{lang === "en" ? "How is the group price charged?" : "Cum se aplică prețul pentru grup?"}</label>
+                  <div className={styles.chips}>
+                    <button
+                      type="button"
+                      className={`${styles.chip} ${form.pricingMode === "PER_PERSON" ? styles.chipActive : ""}`}
+                      onClick={() => onChange("pricingMode", "PER_PERSON")}
+                    >
+                      {lang === "en" ? "Per person" : "Per persoană"}
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.chip} ${form.pricingMode === "PER_GROUP" ? styles.chipActive : ""}`}
+                      onClick={() => onChange("pricingMode", "PER_GROUP")}
+                    >
+                      {lang === "en" ? "Per fixed group" : "Per grup fix"}
+                    </button>
+                  </div>
+                </div>
+                {form.pricingMode === "PER_GROUP" ? (
+                  <div>
+                    <label>{lang === "en" ? "Participants included in one group booking" : "Participanți incluși într-un booking de grup"}</label>
+                    <input
+                      className="input"
+                      type="number"
+                      min={1}
+                      max={Math.max(1, Number(form.maxParticipants) || 1)}
+                      value={form.groupPackageSize}
+                      onChange={(e) => onChange("groupPackageSize", e.target.value)}
+                    />
+                  </div>
+                ) : null}
+              </>
+            ) : null}
             <div>
               <label>{t("create_experience_cover_url")}</label>
               <input className="input" value={form.coverImageUrl} onChange={(e) => onChange("coverImageUrl", e.target.value)} />

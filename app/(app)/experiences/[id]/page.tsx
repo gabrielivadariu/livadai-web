@@ -40,6 +40,13 @@ type Experience = {
   maxParticipants?: number;
   remainingSpots?: number;
   availableSpots?: number;
+  pricingMode?: "PER_PERSON" | "PER_GROUP" | string;
+  groupPackageSize?: number | null;
+  isSeries?: boolean;
+  seriesId?: string | null;
+  seriesSlotsCount?: number;
+  seriesAvailableSlots?: number;
+  seriesNextStartsAt?: string | null;
   host?: { _id?: string; name?: string; displayName?: string; profilePhoto?: string; avatar?: string };
 };
 
@@ -84,6 +91,23 @@ type Booking = {
   host?: { name?: string; email?: string; profilePhoto?: string; avatar?: string };
 };
 
+type AvailabilitySlot = {
+  _id: string;
+  startsAt?: string;
+  endsAt?: string;
+  startDate?: string;
+  endDate?: string;
+  city?: string;
+  country?: string;
+  address?: string;
+  availableSpots?: number;
+  remainingSpots?: number;
+  bookedSpots?: number;
+  maxParticipants?: number;
+  soldOut?: boolean;
+  bookable?: boolean;
+};
+
 export default function ExperienceDetailPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -104,6 +128,10 @@ export default function ExperienceDetailPage() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [selectedSlotId, setSelectedSlotId] = useState<string>("");
+  const [selectedDayKey, setSelectedDayKey] = useState<string>("");
   const [shareNotice, setShareNotice] = useState("");
   const bookingPollRef = useRef<NodeJS.Timeout | null>(null);
   const carouselRef = useRef<HTMLDivElement | null>(null);
@@ -129,19 +157,62 @@ export default function ExperienceDetailPage() {
 
   useEffect(() => {
     let active = true;
+    if (!item?._id) {
+      setAvailabilitySlots([]);
+      setSelectedSlotId("");
+      return;
+    }
+    setAvailabilityLoading(true);
+    apiGet<{ slots?: AvailabilitySlot[] }>(`/experiences/${item._id}/availability`)
+      .then((response) => {
+        if (!active) return;
+        const slots = (response?.slots || []).slice().sort((a, b) => {
+          const aStart = new Date(a.startsAt || a.startDate || 0).getTime();
+          const bStart = new Date(b.startsAt || b.startDate || 0).getTime();
+          return aStart - bStart;
+        });
+        setAvailabilitySlots(slots);
+        if (!slots.length) {
+          setSelectedSlotId("");
+          setSelectedDayKey("");
+          return;
+        }
+        setSelectedSlotId((current) => {
+          if (current && slots.some((slot) => slot._id === current)) return current;
+          const firstBookable = slots.find((slot) => slot.bookable && Number(slot.availableSpots || 0) > 0);
+          return firstBookable?._id || slots[0]._id;
+        });
+      })
+      .catch(() => {
+        if (!active) return;
+        setAvailabilitySlots([]);
+        setSelectedSlotId("");
+        setSelectedDayKey("");
+      })
+      .finally(() => {
+        if (active) setAvailabilityLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [item?._id]);
+
+  useEffect(() => {
+    let active = true;
     const loadBooking = async () => {
       if (!user || !item?._id) {
         if (active) setBookingInfo(null);
         return;
       }
       setBookingLoading(true);
+      const eligibleExperienceIds = new Set<string>([item._id, ...availabilitySlots.map((slot) => slot._id)]);
       const bookingId = searchParams?.get("bookingId");
       if (bookingId) {
         try {
           const direct = await apiGet<Booking>(`/bookings/${bookingId}`);
           const exp = direct?.experience;
           const expId = typeof exp === "string" ? exp : exp?._id;
-          if (expId === item._id && active) {
+          if (expId && eligibleExperienceIds.has(expId) && active) {
             setBookingInfo(direct);
             setBookingLoading(false);
             return;
@@ -180,12 +251,12 @@ export default function ExperienceDetailPage() {
       const allowedMatch = candidates.find((bk) => {
         const exp = bk.experience;
         const expId = typeof exp === "string" ? exp : exp?._id;
-        return expId === item._id && bk.status && allowedStatuses.has(bk.status);
+        return !!expId && eligibleExperienceIds.has(expId) && bk.status && allowedStatuses.has(bk.status);
       });
       const fallbackMatch = candidates.find((bk) => {
         const exp = bk.experience;
         const expId = typeof exp === "string" ? exp : exp?._id;
-        return expId === item._id;
+        return !!expId && eligibleExperienceIds.has(expId);
       });
       if (active) {
         setBookingInfo(allowedMatch || fallbackMatch || null);
@@ -196,7 +267,7 @@ export default function ExperienceDetailPage() {
     return () => {
       active = false;
     };
-  }, [item?._id, user, searchParams]);
+  }, [item?._id, user, searchParams, availabilitySlots]);
 
   const chatAllowed = useMemo(() => {
     if (!bookingInfo?.status && !bookingInfo?.paymentConfirmed) return false;
@@ -221,12 +292,13 @@ export default function ExperienceDetailPage() {
       }
       return;
     }
+    const eligibleExperienceIds = new Set<string>([item?._id || "", ...availabilitySlots.map((slot) => slot._id)]);
     bookingPollRef.current = setTimeout(async () => {
       try {
         const refreshed = await apiGet<Booking>(`/bookings/${bookingId}`);
         const exp = refreshed?.experience;
         const expId = typeof exp === "string" ? exp : exp?._id;
-        if (expId === item?._id) {
+        if (expId && eligibleExperienceIds.has(expId)) {
           setBookingInfo(refreshed);
         }
       } catch {
@@ -239,7 +311,7 @@ export default function ExperienceDetailPage() {
         bookingPollRef.current = null;
       }
     };
-  }, [bookingInfo?._id, bookingInfo?.status, item?._id, searchParams]);
+  }, [bookingInfo?._id, bookingInfo?.status, item?._id, searchParams, availabilitySlots]);
 
   const onReportExperience = async ({ reason, comment }: { reason: string; comment: string }) => {
     if (!item?._id) return;
@@ -284,22 +356,82 @@ export default function ExperienceDetailPage() {
     setActiveIndex(Math.max(0, Math.min(idx, mediaImages.length - 1)));
   };
 
-  const totalSeats = item?.maxParticipants ?? 0;
+  const selectedSlot = useMemo(
+    () => availabilitySlots.find((slot) => slot._id === selectedSlotId) || availabilitySlots[0] || null,
+    [availabilitySlots, selectedSlotId]
+  );
+  useEffect(() => {
+    if (!selectedSlot) {
+      if (!availabilitySlots.length) setSelectedDayKey("");
+      return;
+    }
+    const slotDateValue = selectedSlot.startsAt || selectedSlot.startDate;
+    const slotDate = slotDateValue ? new Date(slotDateValue) : null;
+    if (!slotDate || Number.isNaN(slotDate.getTime())) return;
+    const dayKey = slotDate.toISOString().slice(0, 10);
+    setSelectedDayKey((current) => current || dayKey);
+  }, [selectedSlot, availabilitySlots.length]);
+
+  const dayGroups = useMemo(() => {
+    const groups = new Map<string, AvailabilitySlot[]>();
+    for (const slot of availabilitySlots) {
+      const dateValue = slot.startsAt || slot.startDate;
+      if (!dateValue) continue;
+      const dateObj = new Date(dateValue);
+      if (Number.isNaN(dateObj.getTime())) continue;
+      const key = dateObj.toISOString().slice(0, 10);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)?.push(slot);
+    }
+    return Array.from(groups.entries())
+      .map(([dayKey, slots]) => ({ dayKey, slots }))
+      .sort((a, b) => a.dayKey.localeCompare(b.dayKey));
+  }, [availabilitySlots]);
+
+  const slotsForSelectedDay = useMemo(() => {
+    if (!dayGroups.length) return [];
+    const activeDay = selectedDayKey && dayGroups.some((group) => group.dayKey === selectedDayKey)
+      ? selectedDayKey
+      : dayGroups[0].dayKey;
+    const group = dayGroups.find((entry) => entry.dayKey === activeDay);
+    return group?.slots || [];
+  }, [dayGroups, selectedDayKey]);
+
+  useEffect(() => {
+    if (!slotsForSelectedDay.length) return;
+    if (selectedSlotId && slotsForSelectedDay.some((slot) => slot._id === selectedSlotId)) return;
+    setSelectedSlotId(slotsForSelectedDay[0]._id);
+  }, [slotsForSelectedDay, selectedSlotId]);
+
+  const activeExperience = selectedSlot || item;
+  const pricingMode = String(item?.pricingMode || "").toUpperCase() === "PER_GROUP" ? "PER_GROUP" : "PER_PERSON";
+  const groupPackageSize = Math.max(
+    1,
+    Number(item?.groupPackageSize) || Number(item?.maxParticipants) || Number(activeExperience?.maxParticipants) || 1
+  );
+  const totalSeats = activeExperience?.maxParticipants ?? item?.maxParticipants ?? 0;
   const availableSeats =
-    typeof item?.availableSpots === "number"
-      ? item.availableSpots
-      : typeof item?.remainingSpots === "number"
-        ? item.remainingSpots
+    typeof activeExperience?.availableSpots === "number"
+      ? activeExperience.availableSpots
+      : typeof activeExperience?.remainingSpots === "number"
+        ? activeExperience.remainingSpots
         : totalSeats;
-  const maxQuantity = item?.activityType === "GROUP" ? Math.max(1, availableSeats || totalSeats || 1) : 1;
+  const maxQuantity =
+    item?.activityType === "GROUP" && pricingMode !== "PER_GROUP"
+      ? Math.max(1, availableSeats || totalSeats || 1)
+      : 1;
 
   useEffect(() => {
     if (item?.activityType !== "GROUP") {
       setQuantity(1);
       return;
     }
+    if (pricingMode === "PER_GROUP") {
+      setQuantity(1);
+      return;
+    }
     setQuantity((prev) => Math.min(Math.max(prev, 1), maxQuantity));
-  }, [item?.activityType, maxQuantity]);
+  }, [item?.activityType, maxQuantity, pricingMode]);
 
   useEffect(() => {
     if (!lightboxOpen) return;
@@ -322,6 +454,10 @@ export default function ExperienceDetailPage() {
 
   const onBook = async () => {
     if (!item?._id) return;
+    if (item?.isSeries && !selectedSlot?._id) {
+      setError(lang === "en" ? "Select a slot first." : "Selectează un slot înainte de rezervare.");
+      return;
+    }
     if (!user) {
       router.replace(`/login?reason=auth&next=${encodeURIComponent(`/experiences/${item._id}`)}`);
       return;
@@ -333,9 +469,10 @@ export default function ExperienceDetailPage() {
     setBooking(true);
     setError("");
     try {
-      const seatCount = item.activityType === "GROUP" ? quantity : 1;
+      const targetExperienceId = selectedSlot?._id || item._id;
+      const seatCount = item.activityType === "GROUP" ? (pricingMode === "PER_GROUP" ? groupPackageSize : quantity) : 1;
       const res = await apiPost<{ checkoutUrl?: string; bookingId?: string }>("/payments/create-checkout", {
-        experienceId: item._id,
+        experienceId: targetExperienceId,
         quantity: seatCount,
       });
       if (res?.checkoutUrl) {
@@ -405,8 +542,8 @@ export default function ExperienceDetailPage() {
     );
   }
 
-  const start = item.startsAt || item.startDate;
-  const end = item.endsAt;
+  const start = activeExperience?.startsAt || activeExperience?.startDate || item.seriesNextStartsAt || item.startsAt || item.startDate;
+  const end = activeExperience?.endsAt || activeExperience?.endDate || item.endsAt;
   const location = item.location || {};
   const formattedAddress = location.formattedAddress || item.address || "";
   const streetLine = [location.street, location.streetNumber].filter(Boolean).join(" ").trim();
@@ -425,11 +562,26 @@ export default function ExperienceDetailPage() {
   const startLabel = start ? dateFormatter.format(new Date(start)) : "";
   const endLabel = end ? dateFormatter.format(new Date(end)) : "";
   const isFree = !item.price || Number(item.price) <= 0;
-  const priceText = isFree ? t("experience_free_label") : `${item.price} ${item.currencyCode || "RON"}`;
-  const serviceFeeTotal = (item.activityType === "GROUP" ? quantity : 1) * 2;
+  const priceText = isFree
+    ? pricingMode === "PER_GROUP"
+      ? lang === "en"
+        ? `${t("experience_free_label")} / group`
+        : `${t("experience_free_label")} / grup`
+      : t("experience_free_label")
+    : pricingMode === "PER_GROUP"
+      ? lang === "en"
+        ? `${item.price} ${item.currencyCode || "RON"} / group (${groupPackageSize})`
+        : `${item.price} ${item.currencyCode || "RON"} / grup (${groupPackageSize})`
+      : `${item.price} ${item.currencyCode || "RON"}`;
+  const payableSeats = item.activityType === "GROUP" ? (pricingMode === "PER_GROUP" ? groupPackageSize : quantity) : 1;
+  const serviceFeeTotal = payableSeats * 2;
   const serviceFeeTotalLabel = t("experience_service_fee_total").replace("{{amount}}", String(serviceFeeTotal));
   const isHost = user?.role === "HOST" || user?.role === "BOTH";
-  const bookingDisabled = booking || (item.activityType === "GROUP" && availableSeats <= 0);
+  const bookingDisabled =
+    booking ||
+    (item.isSeries && (!!selectedSlot && !selectedSlot.bookable)) ||
+    (item.activityType === "GROUP" &&
+      (availableSeats <= 0 || (pricingMode === "PER_GROUP" && availableSeats < groupPackageSize)));
   const chatRequiresAuth = !user;
   const chatDisabledReason = chatRequiresAuth
     ? t("login_required")
@@ -507,6 +659,70 @@ export default function ExperienceDetailPage() {
           <div className={styles.kicker}>{t("experience_kicker")}</div>
           <h1>{item.title}</h1>
           <p className={styles.subtitle}>{item.shortDescription || item.description}</p>
+          {item.isSeries ? (
+            <div className={styles.seriesPicker}>
+              <div className={styles.seriesPickerTitle}>
+                {lang === "en" ? "Choose day and slot" : "Alege ziua și slotul"}
+              </div>
+              {availabilityLoading ? (
+                <div className={styles.seriesHint}>{lang === "en" ? "Loading slots..." : "Se încarcă sloturile..."}</div>
+              ) : dayGroups.length ? (
+                <>
+                  <div className={styles.dayChips}>
+                    {dayGroups.map((group) => {
+                      const asDate = new Date(`${group.dayKey}T00:00:00`);
+                      const label = asDate.toLocaleDateString(lang === "en" ? "en-US" : "ro-RO", {
+                        day: "numeric",
+                        month: "short",
+                      });
+                      const isActiveDay = (selectedDayKey || dayGroups[0]?.dayKey) === group.dayKey;
+                      return (
+                        <button
+                          key={group.dayKey}
+                          type="button"
+                          className={`${styles.dayChip} ${isActiveDay ? styles.dayChipActive : ""}`}
+                          onClick={() => setSelectedDayKey(group.dayKey)}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className={styles.slotChips}>
+                    {slotsForSelectedDay.map((slot) => {
+                      const startAt = slot.startsAt || slot.startDate;
+                      const startDate = startAt ? new Date(startAt) : null;
+                      const slotLabel =
+                        startDate && !Number.isNaN(startDate.getTime())
+                          ? startDate.toLocaleTimeString(lang === "en" ? "en-US" : "ro-RO", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: false,
+                            })
+                          : "—";
+                      const isSelected = selectedSlot?._id === slot._id;
+                      const isDisabled = !slot.bookable || Number(slot.availableSpots || 0) <= 0;
+                      return (
+                        <button
+                          key={slot._id}
+                          type="button"
+                          className={`${styles.slotChip} ${isSelected ? styles.slotChipActive : ""}`}
+                          onClick={() => setSelectedSlotId(slot._id)}
+                          disabled={isDisabled}
+                        >
+                          {slotLabel}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <div className={styles.seriesHint}>
+                  {lang === "en" ? "No future slots available right now." : "Nu există sloturi viitoare disponibile momentan."}
+                </div>
+              )}
+            </div>
+          ) : null}
           <div className={styles.metaGrid}>
             <div>
               <span>{t("experience_start")}</span>
@@ -528,7 +744,15 @@ export default function ExperienceDetailPage() {
               <span>{t("experience_seats_label")}</span>
               <strong>
                 {item.activityType === "GROUP"
-                  ? `${formatGroupInfo(item, lang) || "—"}${typeof availableSeats === "number" ? ` · ${t("experience_spots_left").replace("{{count}}", String(availableSeats))}` : ""}`
+                  ? `${
+                      pricingMode === "PER_GROUP"
+                        ? lang === "en"
+                          ? `Group package: ${groupPackageSize}`
+                          : `Pachet grup: ${groupPackageSize}`
+                        : formatGroupInfo({ ...item, ...activeExperience }, lang) || "—"
+                    }${
+                      typeof availableSeats === "number" ? ` · ${t("experience_spots_left").replace("{{count}}", String(availableSeats))}` : ""
+                    }`
                   : t("experience_single_seat")}
               </strong>
             </div>
@@ -555,7 +779,7 @@ export default function ExperienceDetailPage() {
               <strong>{serviceFeeTotalLabel}</strong>
             </div>
           ) : null}
-          {item.activityType === "GROUP" ? (
+          {item.activityType === "GROUP" && pricingMode !== "PER_GROUP" ? (
             <div className={styles.quantityRow}>
               <span>{lang === "en" ? "Seats" : "Locuri"}</span>
               <div className={styles.quantityControls}>
@@ -579,6 +803,13 @@ export default function ExperienceDetailPage() {
                   +
                 </button>
               </div>
+            </div>
+          ) : null}
+          {item.activityType === "GROUP" && pricingMode === "PER_GROUP" ? (
+            <div className={styles.seriesHint}>
+              {lang === "en"
+                ? `This booking reserves a fixed group package of ${groupPackageSize} participants.`
+                : `Această rezervare ocupă un pachet fix de grup de ${groupPackageSize} participanți.`}
             </div>
           ) : null}
           {error ? <div className={styles.error}>{error}</div> : null}

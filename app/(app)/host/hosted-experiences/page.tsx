@@ -24,6 +24,15 @@ type HostExperience = {
   status?: string;
   isActive?: boolean;
   scheduleType?: "ONE_TIME" | "LONG_TERM";
+  isSeries?: boolean;
+  seriesId?: string | null;
+  seriesSlotsCount?: number;
+  seriesAvailableSlots?: number;
+  seriesNextStartsAt?: string | null;
+  pricingMode?: "PER_PERSON" | "PER_GROUP" | string;
+  groupPackageSize?: number | null;
+  price?: number;
+  currencyCode?: string;
 };
 
 export default function HostedExperiencesPage() {
@@ -76,7 +85,7 @@ export default function HostedExperiencesPage() {
   }, [user?._id]);
 
   const getExperienceTime = (exp: HostExperience) => {
-    const raw = exp.endsAt || exp.endDate || exp.startsAt || exp.startDate;
+    const raw = exp.seriesNextStartsAt || exp.endsAt || exp.endDate || exp.startsAt || exp.startDate;
     if (!raw) return null;
     const ts = new Date(raw).getTime();
     return Number.isNaN(ts) ? null : ts;
@@ -180,35 +189,59 @@ export default function HostedExperiencesPage() {
               <div className={styles.list}>
                 {upcomingItems.map((exp) => {
                   const participantsCount = getParticipantsCount(exp);
-                  const seriesActionBusy = busyAction === `series:${exp.scheduleGroupId || ""}`;
+                  const seriesKey = exp.scheduleGroupId || exp.seriesId || "";
+                  const seriesActionBusy = busyAction === `series:${seriesKey}`;
                   const singleActionBusy = busyAction === `slot:${exp._id}`;
+                  const isSeries = !!(exp.isSeries || exp.scheduleGroupId || exp.seriesId);
+                  const startsAtValue = exp.seriesNextStartsAt || exp.startsAt || exp.startDate;
+                  const pricingMode = String(exp.pricingMode || "").toUpperCase() === "PER_GROUP" ? "PER_GROUP" : "PER_PERSON";
+                  const packageSize = Math.max(1, Number(exp.groupPackageSize) || Number(exp.maxParticipants) || 1);
+                  const priceLabel =
+                    exp.price && Number(exp.price) > 0
+                      ? pricingMode === "PER_GROUP"
+                        ? lang === "en"
+                          ? `${exp.price} ${exp.currencyCode || "RON"} / group (${packageSize})`
+                          : `${exp.price} ${exp.currencyCode || "RON"} / grup (${packageSize})`
+                        : `${exp.price} ${exp.currencyCode || "RON"}`
+                      : t("experiences_free");
                   return (
                     <div key={exp._id} className={styles.card}>
                       <div className={styles.title}>{exp.title || t("hosted_experiences_untitled")}</div>
-                      <div className={styles.meta}>{formatDateTime(exp.startsAt || exp.startDate)}</div>
+                      <div className={styles.meta}>{formatDateTime(startsAtValue || undefined)}</div>
                       <div className={styles.meta}>{exp.city || exp.address || ""}</div>
+                      <div className={styles.meta}>{priceLabel}</div>
+                      {isSeries ? (
+                        <div className={styles.meta}>
+                          {lang === "en"
+                            ? `Series slots: ${exp.seriesSlotsCount || 0} · available now: ${exp.seriesAvailableSlots || 0}`
+                            : `Sloturi serie: ${exp.seriesSlotsCount || 0} · disponibile acum: ${exp.seriesAvailableSlots || 0}`}
+                        </div>
+                      ) : null}
                       <div className={styles.meta}>
                         {t("hosted_experiences_participants_label")} {participantsCount}
                       </div>
                       <div className={styles.actions}>
-                        <button
-                          type="button"
-                          className={`${styles.actionBtn} ${styles.deleteBtn}`}
-                          disabled={singleActionBusy}
-                          onClick={() => onDeleteSingle(exp._id)}
-                        >
-                          {singleActionBusy ? t("common_loading") : t("hosted_experiences_delete_slot")}
-                        </button>
-                        {exp.scheduleGroupId ? (
+                        {isSeries ? (
                           <button
                             type="button"
                             className={styles.actionBtn}
-                            disabled={seriesActionBusy}
-                            onClick={() => onDeleteSeries(exp.scheduleGroupId as string)}
+                            disabled={seriesActionBusy || !seriesKey}
+                            onClick={() => {
+                              if (seriesKey) onDeleteSeries(seriesKey);
+                            }}
                           >
                             {seriesActionBusy ? t("common_loading") : t("hosted_experiences_delete_series")}
                           </button>
-                        ) : null}
+                        ) : (
+                          <button
+                            type="button"
+                            className={`${styles.actionBtn} ${styles.deleteBtn}`}
+                            disabled={singleActionBusy}
+                            onClick={() => onDeleteSingle(exp._id)}
+                          >
+                            {singleActionBusy ? t("common_loading") : t("hosted_experiences_delete_slot")}
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -229,10 +262,11 @@ export default function HostedExperiencesPage() {
                     participantsCount === 0
                       ? t("hosted_experiences_status_no_participants")
                       : t("hosted_experiences_status_completed");
+                  const startsAtValue = exp.seriesNextStartsAt || exp.startsAt || exp.startDate;
                   return (
                     <div key={exp._id} className={styles.card}>
                       <div className={styles.title}>{exp.title || t("hosted_experiences_untitled")}</div>
-                      <div className={styles.meta}>{formatDateTime(exp.startsAt || exp.startDate)}</div>
+                      <div className={styles.meta}>{formatDateTime(startsAtValue || undefined)}</div>
                       <div className={styles.meta}>{exp.city || exp.address || ""}</div>
                       <div className={styles.meta}>
                         {t("hosted_experiences_participants_label")} {participantsCount}

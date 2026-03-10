@@ -116,6 +116,76 @@
   line-height: 1.6;
 }
 
+.seriesPicker {
+  margin-top: 12px;
+  margin-bottom: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.seriesPickerTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.seriesHint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.dayChips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.dayChip {
+  border: 1px solid #d7eef2;
+  background: #f6fdff;
+  color: var(--primary-dark);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dayChipActive {
+  background: rgba(var(--brand-rgb), 0.14);
+  border-color: rgba(var(--brand-rgb), 0.45);
+}
+
+.slotChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.slotChip {
+  border: 1px solid #d7eef2;
+  background: #fff;
+  color: var(--text);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.slotChipActive {
+  background: rgba(var(--brand-rgb), 0.14);
+  border-color: rgba(var(--brand-rgb), 0.45);
+  color: var(--primary-dark);
+}
+
+.slotChip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .metaGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));

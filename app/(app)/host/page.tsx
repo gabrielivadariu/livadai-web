@@ -87,6 +87,14 @@ export default function HostDashboardPage() {
             </div>
             <span className={styles.chev}>›</span>
           </Link>
+          <Link href="/host/hosted-experiences" className={styles.menuCard}>
+            <div className={styles.menuIcon}>🗂️</div>
+            <div>
+              <div className={styles.menuTitle}>{t("host_menu_experiences")}</div>
+              <div className={styles.menuText}>{t("host_menu_experiences_text")}</div>
+            </div>
+            <span className={styles.chev}>›</span>
+          </Link>
           <Link href="/host/wallet" className={styles.menuCard}>
             <div className={styles.menuIcon}>💳</div>
             <div>

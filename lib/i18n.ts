@@ -943,6 +943,10 @@ const messages: Record<Lang, Messages> = {
     create_experience_recurrence_slot_minutes: "Durata unui slot (minute)",
     create_experience_recurrence_generated_slots: "Sloturi generate",
     create_experience_recurrence_days_label: "Zile active",
+    create_experience_recurrence_excluded_label: "Zile indisponibile (opțional)",
+    create_experience_recurrence_excluded_add: "Adaugă zi liberă",
+    create_experience_recurrence_excluded_empty: "Nicio zi indisponibilă selectată.",
+    create_experience_recurrence_excluded_hint: "Zilele indisponibile sunt excluse automat din sloturile generate.",
     create_experience_recurrence_hint:
       "Hostul setează perioada și intervalul zilnic, iar clienții pot rezerva fiecare slot disponibil.",
     create_experience_recurrence_period_required: "Alege perioada de început și de final.",
@@ -1967,6 +1971,10 @@ const messages: Record<Lang, Messages> = {
     create_experience_recurrence_slot_minutes: "Slot duration (minutes)",
     create_experience_recurrence_generated_slots: "Generated slots",
     create_experience_recurrence_days_label: "Active weekdays",
+    create_experience_recurrence_excluded_label: "Unavailable days (optional)",
+    create_experience_recurrence_excluded_add: "Add day off",
+    create_experience_recurrence_excluded_empty: "No unavailable days selected.",
+    create_experience_recurrence_excluded_hint: "Unavailable days are automatically skipped from generated slots.",
     create_experience_recurrence_hint:
       "The host sets the period and daily interval, and clients can book each available slot.",
     create_experience_recurrence_period_required: "Choose both start and end period dates.",

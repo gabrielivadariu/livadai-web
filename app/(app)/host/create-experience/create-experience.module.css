@@ -88,6 +88,31 @@
   margin-top: 6px;
 }
 
+.excludedRow {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.excludedAddBtn {
+  justify-self: start;
+}
+
+.excludedList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.excludedChip {
+  color: #7f1d1d;
+  border-color: #fecaca;
+  background: #fff1f2;
+}
+
 .textarea {
   width: 100%;
   min-height: 140px;
@@ -323,5 +348,9 @@
 
   .footerActions {
     flex-direction: column;
+  }
+
+  .excludedRow {
+    grid-template-columns: 1fr;
   }
 }

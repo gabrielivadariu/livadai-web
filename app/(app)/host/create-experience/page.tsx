@@ -82,6 +82,7 @@ type FormState = {
   recurrenceDailyStart: string;
   recurrenceDailyEnd: string;
   recurrenceSlotMinutes: string;
+  recurrenceExcludedDates: string[];
   country: string;
   countryCode: string;
   city: string;
@@ -116,6 +117,7 @@ const initialForm: FormState = {
   recurrenceDailyStart: "14:00",
   recurrenceDailyEnd: "22:00",
   recurrenceSlotMinutes: "60",
+  recurrenceExcludedDates: [],
   country: "Romania",
   countryCode: "RO",
   city: "",
@@ -156,6 +158,7 @@ function CreateExperienceContent() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [dragActive, setDragActive] = useState(false);
+  const [recurrenceExcludedInput, setRecurrenceExcludedInput] = useState("");
   const editId = searchParams?.get("edit");
   const isEdit = Boolean(editId);
 
@@ -191,6 +194,7 @@ function CreateExperienceContent() {
           recurrenceDailyStart: "14:00",
           recurrenceDailyEnd: "22:00",
           recurrenceSlotMinutes: exp.durationMinutes ? String(exp.durationMinutes) : "60",
+          recurrenceExcludedDates: Array.isArray(exp.recurrenceExcludedDates) ? exp.recurrenceExcludedDates : [],
           country: exp.country || "",
           countryCode: exp.countryCode || "RO",
           city: exp.city || "",
@@ -274,6 +278,7 @@ function CreateExperienceContent() {
     recurrenceDailyStart: string;
     recurrenceDailyEnd: string;
     recurrenceSlotMinutes: string;
+    recurrenceExcludedDates: string[];
   }) => {
     const {
       recurrenceStartDate,
@@ -282,6 +287,7 @@ function CreateExperienceContent() {
       recurrenceDailyStart,
       recurrenceDailyEnd,
       recurrenceSlotMinutes,
+      recurrenceExcludedDates,
     } = options;
     if (
       !recurrenceStartDate ||
@@ -294,6 +300,7 @@ function CreateExperienceContent() {
     }
     const slotMinutes = Number(recurrenceSlotMinutes);
     if (!Number.isFinite(slotMinutes) || slotMinutes < 15) return [];
+    const excludedDateSet = new Set((recurrenceExcludedDates || []).filter(Boolean));
 
     const startDate = new Date(`${recurrenceStartDate}T00:00:00`);
     const endDate = new Date(`${recurrenceEndDate}T00:00:00`);
@@ -311,6 +318,10 @@ function CreateExperienceContent() {
     const now = Date.now();
     const occurrences: Array<{ startsAt: string; endsAt: string; durationMinutes: number }> = [];
     for (const cursor = new Date(startDate); cursor <= endDate; cursor.setDate(cursor.getDate() + 1)) {
+      const dayKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(
+        cursor.getDate()
+      ).padStart(2, "0")}`;
+      if (excludedDateSet.has(dayKey)) continue;
       const dayOfWeek = cursor.getDay();
       if (!recurrenceWeekdays.includes(dayOfWeek)) continue;
 
@@ -334,6 +345,28 @@ function CreateExperienceContent() {
     }
 
     return occurrences;
+  };
+
+  const addExcludedDate = () => {
+    const value = String(recurrenceExcludedInput || "").trim();
+    if (!value) return;
+    const parsed = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) return;
+    setForm((f) => {
+      if (f.recurrenceExcludedDates.includes(value)) return f;
+      return {
+        ...f,
+        recurrenceExcludedDates: [...f.recurrenceExcludedDates, value].sort((a, b) => a.localeCompare(b)),
+      };
+    });
+    setRecurrenceExcludedInput("");
+  };
+
+  const removeExcludedDate = (value: string) => {
+    setForm((f) => ({
+      ...f,
+      recurrenceExcludedDates: f.recurrenceExcludedDates.filter((day) => day !== value),
+    }));
   };
 
   const uploadFile = async (file: File) => {
@@ -387,6 +420,7 @@ function CreateExperienceContent() {
         recurrenceDailyStart: form.recurrenceDailyStart,
         recurrenceDailyEnd: form.recurrenceDailyEnd,
         recurrenceSlotMinutes: form.recurrenceSlotMinutes,
+        recurrenceExcludedDates: form.recurrenceExcludedDates,
       }),
     [
       form.recurrenceStartDate,
@@ -395,6 +429,7 @@ function CreateExperienceContent() {
       form.recurrenceDailyStart,
       form.recurrenceDailyEnd,
       form.recurrenceSlotMinutes,
+      form.recurrenceExcludedDates,
     ]
   );
 
@@ -583,6 +618,7 @@ function CreateExperienceContent() {
           ...basePayload,
           scheduleType: "LONG_TERM",
           durationMinutes: slotMinutes,
+          recurrenceExcludedDates: form.recurrenceExcludedDates,
           occurrences: recurringOccurrences,
         });
         window.localStorage.setItem(EXPERIENCE_CREATED_KEY, "1");
@@ -812,7 +848,38 @@ function CreateExperienceContent() {
                   </div>
                 </div>
                 <div className={styles.full}>
+                  <label>{t("create_experience_recurrence_excluded_label")}</label>
+                  <div className={styles.excludedRow}>
+                    <input
+                      className="input"
+                      type="date"
+                      value={recurrenceExcludedInput}
+                      onChange={(e) => setRecurrenceExcludedInput(e.target.value)}
+                    />
+                    <button type="button" className={`${styles.chip} ${styles.excludedAddBtn}`} onClick={addExcludedDate}>
+                      {t("create_experience_recurrence_excluded_add")}
+                    </button>
+                  </div>
+                  {form.recurrenceExcludedDates.length ? (
+                    <div className={styles.excludedList}>
+                      {form.recurrenceExcludedDates.map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          className={`${styles.chip} ${styles.excludedChip}`}
+                          onClick={() => removeExcludedDate(value)}
+                        >
+                          {value} ×
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className={styles.scheduleHint}>{t("create_experience_recurrence_excluded_empty")}</div>
+                  )}
+                </div>
+                <div className={styles.full}>
                   <div className={styles.scheduleHint}>{t("create_experience_recurrence_hint")}</div>
+                  <div className={styles.scheduleHint}>{t("create_experience_recurrence_excluded_hint")}</div>
                   {scheduleErrorText ? <div className={styles.scheduleError}>{scheduleErrorText}</div> : null}
                 </div>
               </>

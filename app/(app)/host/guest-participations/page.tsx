@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { apiGet } from "@/lib/api";
+import { dedupeBookings } from "@/lib/booking-dedupe";
 import { useAuth } from "@/context/auth-context";
 import { useT } from "@/lib/i18n";
 import styles from "./guest-participations.module.css";
@@ -67,7 +68,7 @@ export default function GuestParticipationsPage() {
     apiGet<Booking[]>("/bookings/me")
       .then((bookingsRes) => {
         if (!active) return;
-        const ownParticipantBookings = (bookingsRes || []).filter((b) => {
+        const ownParticipantBookings = dedupeBookings(bookingsRes || []).filter((b) => {
           const participantId = getId(b.explorer || b.user);
           return participantId && participantId === userId;
         });

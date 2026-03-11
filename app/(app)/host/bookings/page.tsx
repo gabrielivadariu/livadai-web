@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiGet } from "@/lib/api";
+import { dedupeBookings } from "@/lib/booking-dedupe";
 import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
 import styles from "./host-bookings.module.css";
@@ -48,7 +49,7 @@ export default function HostBookingsPage() {
     let active = true;
     apiGet<Booking[]>("/bookings/host")
       .then((data) => {
-        if (active) setItems(data || []);
+        if (active) setItems(dedupeBookings(data || []));
       })
       .catch(() => {
         if (active) setItems([]);

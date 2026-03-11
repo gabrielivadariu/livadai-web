@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiGet, apiPost } from "@/lib/api";
+import { dedupeBookings } from "@/lib/booking-dedupe";
 import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
 import styles from "./participants.module.css";
@@ -37,7 +38,7 @@ export default function HostParticipantsPage() {
     try {
       setLoading(true);
       const data = await apiGet<Booking[]>(`/bookings/host/experience/${id}`);
-      setBookings(data || []);
+      setBookings(dedupeBookings(data || []));
     } catch {
       setBookings([]);
     } finally {

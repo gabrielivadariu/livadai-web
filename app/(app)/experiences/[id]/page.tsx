@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiGet, apiPost } from "@/lib/api";
+import { dedupeBookings } from "@/lib/booking-dedupe";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
@@ -226,7 +227,7 @@ export default function ExperienceDetailPage() {
       if (role === "HOST" || role === "BOTH") {
         try {
           const hostBookings = await apiGet<Booking[]>("/bookings/host");
-          candidates.push(...(hostBookings || []));
+          candidates.push(...dedupeBookings(hostBookings || []));
         } catch {
           // ignore
         }
@@ -234,7 +235,7 @@ export default function ExperienceDetailPage() {
       if (role === "EXPLORER" || role === "BOTH") {
         try {
           const myBookings = await apiGet<Booking[]>("/bookings/me");
-          candidates.push(...(myBookings || []));
+          candidates.push(...dedupeBookings(myBookings || []));
         } catch {
           // ignore
         }

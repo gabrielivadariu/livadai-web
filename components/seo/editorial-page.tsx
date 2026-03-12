@@ -69,11 +69,13 @@ export default function EditorialPage({
           <p className={styles.eyebrow}>{eyebrow}</p>
           <h1 className={styles.title}>{title}</h1>
           <p className={styles.lead}>{lead}</p>
-          <div className={styles.intro}>
-            {intro.map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
-            ))}
-          </div>
+          {intro.length ? (
+            <div className={styles.intro}>
+              {intro.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
+          ) : null}
         </header>
 
         <div className={styles.grid}>

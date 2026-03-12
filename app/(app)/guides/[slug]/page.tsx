@@ -5,7 +5,13 @@ import JsonLd from "@/components/seo/json-ld";
 import { buildSeoMetadata } from "@/lib/seo/metadata";
 import { cityGuides, guidePages, majorCityOrder, type CitySlug } from "@/lib/seo/content";
 import { getCityExperiences, getFeaturedExperiences } from "@/lib/seo/server";
-import { buildArticleSchema, buildBreadcrumbSchema, buildFaqSchema, buildItemListSchema } from "@/lib/seo/schema";
+import {
+  buildArticleSchema,
+  buildBreadcrumbSchema,
+  buildFaqSchema,
+  buildItemListSchema,
+  buildWebPageSchema,
+} from "@/lib/seo/schema";
 
 export const revalidate = 3600;
 export const dynamicParams = false;
@@ -71,6 +77,11 @@ export default async function GuideDetailPage({ params }: PageProps) {
       { name: "Ghiduri LIVADAI", path: "/guides" },
       { name: guide.title, path: `/guides/${guide.slug}` },
     ]),
+    buildWebPageSchema({
+      title: guide.title,
+      description: guide.description,
+      path: `/guides/${guide.slug}`,
+    }),
     buildArticleSchema({
       title: guide.title,
       description: guide.description,
@@ -92,8 +103,8 @@ export default async function GuideDetailPage({ params }: PageProps) {
       <EditorialPage
         eyebrow="Ghid editorial"
         title={guide.title}
-        lead={guide.description}
-        intro={guide.intro}
+        lead={guide.intro.join(" ")}
+        intro={[]}
         breadcrumbs={[
           { name: "LIVADAI", href: "/experiences" },
           { name: "Ghiduri LIVADAI", href: "/guides" },

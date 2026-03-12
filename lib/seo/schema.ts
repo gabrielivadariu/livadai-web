@@ -43,6 +43,28 @@ export const buildBreadcrumbSchema = (items: BreadcrumbItem[]) => ({
   })),
 });
 
+export const buildWebPageSchema = ({
+  title,
+  description,
+  path,
+}: {
+  title: string;
+  description: string;
+  path: string;
+}) => ({
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: title,
+  description,
+  url: absoluteUrl(path),
+  inLanguage: "ro",
+  isPartOf: {
+    "@type": "WebSite",
+    name: SITE_NAME,
+    url: SITE_URL,
+  },
+});
+
 export const buildFaqSchema = (items: FAQItem[]) => ({
   "@context": "https://schema.org",
   "@type": "FAQPage",

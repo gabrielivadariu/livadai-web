@@ -13,7 +13,13 @@ import {
   type QuerySlug,
 } from "@/lib/seo/content";
 import { getCityExperiences } from "@/lib/seo/server";
-import { buildArticleSchema, buildBreadcrumbSchema, buildFaqSchema, buildItemListSchema } from "@/lib/seo/schema";
+import {
+  buildArticleSchema,
+  buildBreadcrumbSchema,
+  buildFaqSchema,
+  buildItemListSchema,
+  buildWebPageSchema,
+} from "@/lib/seo/schema";
 
 export const revalidate = 3600;
 export const dynamicParams = false;
@@ -117,6 +123,11 @@ export default async function QueryLandingPage({ params }: PageProps) {
       { name: guide.name, path: `/${city}` },
       { name: template.h1(guide), path: `/${city}/${topic}` },
     ]),
+    buildWebPageSchema({
+      title: template.h1(guide),
+      description: template.description(guide),
+      path: `/${city}/${topic}`,
+    }),
     buildArticleSchema({
       title: template.h1(guide),
       description: template.description(guide),
@@ -133,8 +144,8 @@ export default async function QueryLandingPage({ params }: PageProps) {
       <EditorialPage
         eyebrow={`Intentie de cautare · ${guide.name}`}
         title={template.h1(guide)}
-        lead={template.intro(guide)[0]}
-        intro={template.intro(guide).slice(1)}
+        lead={`${template.intro(guide)[0]} ${template.intro(guide)[1]}`}
+        intro={template.intro(guide).slice(2)}
         breadcrumbs={[
           { name: "LIVADAI", href: "/experiences" },
           { name: guide.name, href: `/${city}` },

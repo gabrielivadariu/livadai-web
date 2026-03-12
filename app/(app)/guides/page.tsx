@@ -4,7 +4,7 @@ import JsonLd from "@/components/seo/json-ld";
 import { buildSeoMetadata } from "@/lib/seo/metadata";
 import { cityGuides, guidePages, majorCityOrder } from "@/lib/seo/content";
 import { getFeaturedExperiences } from "@/lib/seo/server";
-import { buildArticleSchema, buildBreadcrumbSchema, buildItemListSchema } from "@/lib/seo/schema";
+import { buildArticleSchema, buildBreadcrumbSchema, buildItemListSchema, buildWebPageSchema } from "@/lib/seo/schema";
 
 export const revalidate = 3600;
 
@@ -49,6 +49,12 @@ export default async function GuidesIndexPage() {
       { name: "LIVADAI", path: "/experiences" },
       { name: "Ghiduri LIVADAI", path: "/guides" },
     ]),
+    buildWebPageSchema({
+      title: "Ghiduri LIVADAI",
+      description:
+        "Hub editorial LIVADAI cu ghiduri utile despre ce e de facut in marile orase din Romania.",
+      path: "/guides",
+    }),
     buildArticleSchema({
       title: "Ghiduri LIVADAI",
       description:
@@ -68,11 +74,8 @@ export default async function GuidesIndexPage() {
       <EditorialPage
         eyebrow="Descopera · Ghiduri"
         title="Ghiduri LIVADAI pentru orase, weekenduri si idei de iesit"
-        lead="Aici gasesti layer-ul editorial al platformei: raspunsuri directe la cautari reale, pagini de oras, long-tail pages si legaturi clare catre experientele publicate pe LIVADAI."
-        intro={[
-          "Zona de ghiduri este construita special pentru oameni care cauta idei bune, dar si pentru crawlerele care au nevoie de continut clar, server-rendered si usor de inteles semantic.",
-          "Poti porni fie de la un oras, fie de la intentia de cautare care te intereseaza: ce e de facut, weekend, date ideas sau activitati de cuplu.",
-        ]}
+        lead="Ghidurile LIVADAI sunt hubul editorial separat al platformei: aici gasesti raspunsuri directe la cautari reale precum ce e de facut intr-un oras, ce faci in weekend, idei de date sau activitati de cuplu. Paginile sunt statice, indexabile si construite cu text vizibil in HTML, FAQ-uri clare, linkuri interne utile si schema JSON-LD pentru o intelegere mai buna in Google si in instrumentele AI. Din acest hub poti intra in paginile de oras, ghidurile editoriale si experientele relevante fara sa schimbi flow-urile principale ale platformei."
+        intro={[]}
         breadcrumbs={[
           { name: "LIVADAI", href: "/experiences" },
           { name: "Ghiduri LIVADAI", href: "/guides" },

@@ -12,7 +12,13 @@ import {
   type CitySlug,
 } from "@/lib/seo/content";
 import { getCityExperiences } from "@/lib/seo/server";
-import { buildArticleSchema, buildBreadcrumbSchema, buildFaqSchema, buildItemListSchema } from "@/lib/seo/schema";
+import {
+  buildArticleSchema,
+  buildBreadcrumbSchema,
+  buildFaqSchema,
+  buildItemListSchema,
+  buildWebPageSchema,
+} from "@/lib/seo/schema";
 
 export const revalidate = 3600;
 export const dynamicParams = false;
@@ -85,28 +91,28 @@ export default async function CityLandingPage({ params }: PageProps) {
 
   const sections: EditorialSection[] = [
     {
-      title: "Top lucruri de facut",
+      title: `Top lucruri de facut in ${guide.name}`,
       paragraphs: [
         `Daca vrei un raspuns simplu pentru ${guide.name}, incepe cu un mix intre oras, experiente locale si timp bine structurat. Sectiunea aceasta functioneaza ca raspuns rapid pentru cautarile de tip ce e de facut in ${guide.name}.`,
       ],
       bullets: guide.topThingsToDo,
     },
     {
-      title: "Experiente unice",
+      title: `Experiente unice in ${guide.name}`,
       paragraphs: [
         `Experientele cu adevarat bune din ${guide.name} sunt cele in care participi activ, nu doar treci printr-un loc. De aceea merita sa legi orasul de activitati locale, rezervabile si explicate clar.`,
       ],
       bullets: guide.uniqueExperiences,
     },
     {
-      title: "Idei de date",
+      title: `Idei de date in ${guide.name}`,
       paragraphs: [
         `Pentru cupluri sau pentru oameni care vor o iesire bine gandita, ${guide.name} are suficienta varietate cat sa creezi un date memorabil fara sa complici inutil programul.`,
       ],
       bullets: guide.dateIdeas,
     },
     {
-      title: "Activitati de weekend",
+      title: `Activitati de weekend in ${guide.name}`,
       paragraphs: [
         `Weekendul in ${guide.name} merge cel mai bine cand ai una sau doua activitati clare, nu un program incarcat doar ca sa bifezi locuri.`,
       ],
@@ -137,6 +143,11 @@ export default async function CityLandingPage({ params }: PageProps) {
       { name: "LIVADAI", path: "/experiences" },
       { name: guide.name, path: `/${city}` },
     ]),
+    buildWebPageSchema({
+      title: `Ce e de facut in ${guide.name}?`,
+      description: guide.directAnswer,
+      path: `/${city}`,
+    }),
     buildArticleSchema({
       title: `Ce e de facut in ${guide.name}`,
       description: guide.directAnswer,
@@ -152,9 +163,9 @@ export default async function CityLandingPage({ params }: PageProps) {
       <JsonLd data={schema} />
       <EditorialPage
         eyebrow={`Ghid de oras · ${guide.region}`}
-        title={guide.heroTitle}
-        lead={guide.directAnswer}
-        intro={guide.intro}
+        title={`Ce e de facut in ${guide.name}?`}
+        lead={`${guide.directAnswer} ${guide.intro[0]}`}
+        intro={guide.intro.slice(1)}
         breadcrumbs={breadcrumbs}
         sections={sections}
         faqs={guide.faq}

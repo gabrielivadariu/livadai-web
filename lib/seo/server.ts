@@ -29,6 +29,11 @@ const cityAliases: Record<CitySlug, string[]> = {
   bucuresti: ["bucuresti", "bucurești", "bucharest"],
   timisoara: ["timisoara", "timișoara"],
   brasov: ["brasov", "brașov"],
+  constanta: ["constanta", "constanța"],
+  sibiu: ["sibiu"],
+  oradea: ["oradea"],
+  craiova: ["craiova"],
+  suceava: ["suceava"],
 };
 
 const normalizeText = (value: string) =>

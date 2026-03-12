@@ -119,6 +119,27 @@ export default async function CityLandingPage({ params }: PageProps) {
       bullets: guide.weekendActivities,
     },
     {
+      title: `Lucruri cool de facut in ${guide.name}`,
+      paragraphs: [
+        `Cand oamenii cauta lucruri cool de facut in ${guide.name}, de obicei nu cauta inca o locatie cunoscuta, ci o iesire care sa aiba un mic concept, o energie buna si un motiv real pentru care merita sa iasa din casa.`,
+      ],
+      bullets: guide.coolIdeas,
+    },
+    {
+      title: `Activitati pentru familie in ${guide.name}`,
+      paragraphs: [
+        `Pentru familii, cele mai bune planuri in ${guide.name} sunt cele care au durata clara, putina logistica si loc suficient pentru pauze. Sectiunea aceasta este gandita pentru cautari de tip activitati pentru familie in ${guide.name}.`,
+      ],
+      bullets: guide.familyIdeas,
+    },
+    {
+      title: `Hidden gems si descoperiri locale in ${guide.name}`,
+      paragraphs: [
+        `Daca vrei sa vezi partea mai putin previzibila a orasului, merita sa cauti si hidden gems in ${guide.name}: activitati locale, contexte bine construite si planuri care ies din traseul standard.`,
+      ],
+      bullets: guide.hiddenGems,
+    },
+    {
       title: `Pagini utile pentru cautari de tip intentie in ${guide.name}`,
       paragraphs: [
         `Fiecare pagina de mai jos raspunde direct unei cautari reale: ce faci in weekend, idei de date, activitati de cuplu sau lucruri cool de facut in ${guide.name}.`,
@@ -152,7 +173,16 @@ export default async function CityLandingPage({ params }: PageProps) {
       title: `Ce e de facut in ${guide.name}`,
       description: guide.directAnswer,
       path: `/${city}`,
-      articleSection: ["Top lucruri de facut", "Experiente unice", "Idei de date", "Activitati de weekend", "Intrebari frecvente"],
+      articleSection: [
+        "Top lucruri de facut",
+        "Experiente unice",
+        "Idei de date",
+        "Activitati de weekend",
+        "Lucruri cool",
+        "Activitati pentru familie",
+        "Hidden gems",
+        "Intrebari frecvente",
+      ],
     }),
     buildFaqSchema(guide.faq),
     itemList.length ? buildItemListSchema({ title: `Experiente LIVADAI in ${guide.name}`, items: itemList }) : null,

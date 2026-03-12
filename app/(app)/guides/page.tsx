@@ -11,7 +11,7 @@ export const revalidate = 3600;
 export const metadata: Metadata = buildSeoMetadata({
   title: "Ghiduri LIVADAI | Ce e de facut in marile orase din Romania",
   description:
-    "Hub editorial LIVADAI cu ghiduri utile despre ce e de facut in Iasi, Cluj, Bucuresti, Timisoara si Brasov, plus idei de date si experiente locale.",
+    "Hub editorial LIVADAI cu ghiduri utile despre ce e de facut in marile orase din Romania, idei de date, activitati de weekend si experiente locale.",
   path: "/guides",
 });
 
@@ -41,6 +41,16 @@ export default async function GuidesIndexPage() {
         "Daca vrei sa pornesti de la un oras si abia apoi sa alegi intentia de cautare, foloseste huburile locale de mai jos. Ele concentreaza ideile de top, experientele si legaturile spre paginile long-tail.",
       ],
       links: majorCityOrder.map((city) => ({ href: `/${city}`, title: `Ce e de facut in ${cityGuides[city].name}`, description: cityGuides[city].directAnswer })),
+    },
+    {
+      title: "Orase acoperite in ghidurile LIVADAI",
+      paragraphs: [
+        "Acest hub editorial acopera acum mai multe orase importante din Romania, astfel incat oamenii sa gaseasca raspunsuri utile si citabile pentru cautari reale precum ce e de facut, idei de date, activitati de weekend, hidden gems sau planuri pentru familie.",
+      ],
+      bullets: majorCityOrder.map(
+        (city) =>
+          `${cityGuides[city].name} - ghid de oras, pagini long-tail si linkuri interne catre experiente relevante.`,
+      ),
     },
   ];
 
@@ -74,7 +84,7 @@ export default async function GuidesIndexPage() {
       <EditorialPage
         eyebrow="Descopera · Ghiduri"
         title="Ghiduri LIVADAI pentru orase, weekenduri si idei de iesit"
-        lead="Ghidurile LIVADAI sunt hubul editorial separat al platformei: aici gasesti raspunsuri directe la cautari reale precum ce e de facut intr-un oras, ce faci in weekend, idei de date sau activitati de cuplu. Paginile sunt statice, indexabile si construite cu text vizibil in HTML, FAQ-uri clare, linkuri interne utile si schema JSON-LD pentru o intelegere mai buna in Google si in instrumentele AI. Din acest hub poti intra in paginile de oras, ghidurile editoriale si experientele relevante fara sa schimbi flow-urile principale ale platformei."
+        lead="Ghidurile LIVADAI sunt hubul editorial separat al platformei: aici gasesti raspunsuri directe la cautari reale precum ce e de facut intr-un oras, ce faci in weekend, idei de date, hidden gems, activitati pentru familie sau activitati de cuplu. Paginile sunt statice, indexabile si construite cu text vizibil in HTML, FAQ-uri clare, linkuri interne utile si schema JSON-LD pentru o intelegere mai buna in Google si in instrumentele AI. Din acest hub poti intra in paginile de oras, ghidurile editoriale si experientele relevante fara sa schimbi flow-urile principale ale platformei."
         intro={[]}
         breadcrumbs={[
           { name: "LIVADAI", href: "/experiences" },

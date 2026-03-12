@@ -1,0 +1,86 @@
+import type { Metadata } from "next";
+import EditorialPage, { type EditorialSection } from "@/components/seo/editorial-page";
+import JsonLd from "@/components/seo/json-ld";
+import { buildSeoMetadata } from "@/lib/seo/metadata";
+import { cityGuides, guidePages, majorCityOrder } from "@/lib/seo/content";
+import { getFeaturedExperiences } from "@/lib/seo/server";
+import { buildArticleSchema, buildBreadcrumbSchema, buildItemListSchema } from "@/lib/seo/schema";
+
+export const revalidate = 3600;
+
+export const metadata: Metadata = buildSeoMetadata({
+  title: "Ghiduri LIVADAI | Ce e de facut in marile orase din Romania",
+  description:
+    "Hub editorial LIVADAI cu ghiduri utile despre ce e de facut in Iasi, Cluj, Bucuresti, Timisoara si Brasov, plus idei de date si experiente locale.",
+  path: "/guides",
+});
+
+export default async function GuidesIndexPage() {
+  const featuredExperiences = (await getFeaturedExperiences()).slice(0, 6).map((item) => ({
+    href: `/experiences/${item._id}`,
+    title: item.title,
+    description:
+      item.shortDescription ||
+      item.description ||
+      `Vezi o experienta locala si foloseste pagina ei pentru a continua explorarea in orasul potrivit.`,
+    meta: [item.city || "Romania", item.address || "Locatie disponibila pe pagina experientei", item.price ? `${item.price} ${item.currencyCode || "RON"}` : "Vezi disponibilitatea"].filter(Boolean).join(" · "),
+  }));
+
+  const sections: EditorialSection[] = [
+    {
+      title: "Ce gasesti in zona de Guides",
+      paragraphs: [
+        "Ghidurile LIVADAI sunt pagini editoriale statice, create pentru intrebari reale pe care oamenii le cauta in Google sau le pun direct instrumentelor AI: ce e de facut intr-un oras, ce faci in weekend, idei de date sau experiente care merita atentia ta.",
+        "Fiecare ghid are continut vizibil, structurat, indexabil si legaturi interne catre huburile de oras si experientele reale de pe platforma.",
+      ],
+      links: guidePages.map((page) => ({ href: `/guides/${page.slug}`, title: page.title, description: page.description })),
+    },
+    {
+      title: "Huburi urbane importante",
+      paragraphs: [
+        "Daca vrei sa pornesti de la un oras si abia apoi sa alegi intentia de cautare, foloseste huburile locale de mai jos. Ele concentreaza ideile de top, experientele si legaturile spre paginile long-tail.",
+      ],
+      links: majorCityOrder.map((city) => ({ href: `/${city}`, title: `Ce e de facut in ${cityGuides[city].name}`, description: cityGuides[city].directAnswer })),
+    },
+  ];
+
+  const schema = [
+    buildBreadcrumbSchema([
+      { name: "LIVADAI", path: "/experiences" },
+      { name: "Ghiduri LIVADAI", path: "/guides" },
+    ]),
+    buildArticleSchema({
+      title: "Ghiduri LIVADAI",
+      description:
+        "Hub editorial LIVADAI cu ghiduri utile despre ce e de facut in marile orase din Romania.",
+      path: "/guides",
+      articleSection: ["Ghiduri", "Orase", "Experiente"],
+    }),
+    buildItemListSchema({
+      title: "Ghiduri LIVADAI",
+      items: guidePages.map((page) => ({ name: page.title, path: `/guides/${page.slug}`, description: page.description })),
+    }),
+  ];
+
+  return (
+    <>
+      <JsonLd data={schema} />
+      <EditorialPage
+        eyebrow="Descopera · Ghiduri"
+        title="Ghiduri LIVADAI pentru orase, weekenduri si idei de iesit"
+        lead="Aici gasesti layer-ul editorial al platformei: raspunsuri directe la cautari reale, pagini de oras, long-tail pages si legaturi clare catre experientele publicate pe LIVADAI."
+        intro={[
+          "Zona de ghiduri este construita special pentru oameni care cauta idei bune, dar si pentru crawlerele care au nevoie de continut clar, server-rendered si usor de inteles semantic.",
+          "Poti porni fie de la un oras, fie de la intentia de cautare care te intereseaza: ce e de facut, weekend, date ideas sau activitati de cuplu.",
+        ]}
+        breadcrumbs={[
+          { name: "LIVADAI", href: "/experiences" },
+          { name: "Ghiduri LIVADAI", href: "/guides" },
+        ]}
+        sections={sections}
+        experiences={featuredExperiences}
+        relatedLinks={majorCityOrder.map((city) => ({ href: `/${city}`, title: `Hub ${cityGuides[city].name}`, description: cityGuides[city].directAnswer }))}
+      />
+    </>
+  );
+}

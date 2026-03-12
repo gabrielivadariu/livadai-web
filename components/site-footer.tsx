@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { footerCityLinks, footerGuideLinks } from "@/lib/seo/navigation";
 import styles from "./site-footer.module.css";
 import { useT } from "@/lib/i18n";
 
@@ -11,7 +12,7 @@ export default function SiteFooter() {
   const anpcSalUrl = "https://anpc.ro/sal/";
   const odrUrl = "https://ec.europa.eu/consumers/odr";
   const stripeUrl = "https://stripe.com";
-  const links = [
+  const platformLinks = [
     { href: "/about", label: t("footer_about") },
     { href: "/privacy", label: t("footer_privacy") },
     { href: "/terms", label: t("footer_terms") },
@@ -19,6 +20,11 @@ export default function SiteFooter() {
     { href: "/cookies", label: t("footer_cookies") },
     { href: "/contact", label: t("footer_contact") },
     { href: iosAppUrl, label: t("footer_download_ios"), external: true },
+  ];
+  const cityLinks = footerCityLinks;
+  const guideLinks = [
+    { href: "/guides", label: t("footer_guides_index") },
+    ...footerGuideLinks.filter((link) => link.href !== "/guides"),
   ];
 
   return (
@@ -28,24 +34,54 @@ export default function SiteFooter() {
           <p className={styles.subtitle}>{t("footer_rights_reserved")}</p>
         </div>
 
-        <div className={styles.links}>
-          {links.map((link) => (
-            link.external ? (
-              <a
-                key={link.href}
-                href={link.href}
-                className={styles.link}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {link.label}
-              </a>
-            ) : (
-              <Link key={link.href} href={link.href} className={styles.link}>
-                {link.label}
-              </Link>
-            )
-          ))}
+        <div className={styles.sections}>
+          <section className={styles.sectionBlock}>
+            <h2 className={styles.sectionTitle}>{t("footer_platform_title")}</h2>
+            <p className={styles.sectionText}>{t("footer_platform_text")}</p>
+            <div className={styles.links}>
+              {platformLinks.map((link) =>
+                link.external ? (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    className={styles.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link key={link.href} href={link.href} className={styles.link}>
+                    {link.label}
+                  </Link>
+                )
+              )}
+            </div>
+          </section>
+
+          <section className={styles.sectionBlock}>
+            <h2 className={styles.sectionTitle}>{t("footer_cities_title")}</h2>
+            <p className={styles.sectionText}>{t("footer_cities_text")}</p>
+            <div className={styles.links}>
+              {cityLinks.map((link) => (
+                <Link key={link.href} href={link.href} className={styles.link}>
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section className={styles.sectionBlock}>
+            <h2 className={styles.sectionTitle}>{t("footer_guides_title")}</h2>
+            <p className={styles.sectionText}>{t("footer_guides_text")}</p>
+            <div className={styles.links}>
+              {guideLinks.map((link) => (
+                <Link key={link.href} href={link.href} className={styles.link}>
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </section>
         </div>
 
         <div className={styles.badgesCompact} aria-label={t("footer_consumer_title")}>

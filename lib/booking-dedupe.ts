@@ -12,11 +12,48 @@ type BookingLike = {
 };
 
 const pendingStatuses = new Set(["PENDING", "CONFIRMED"]);
+const statusPriority: Record<string, number> = {
+  DISPUTE_WON: 120,
+  DISPUTED: 115,
+  DISPUTE_LOST: 110,
+  REFUNDED: 105,
+  REFUND_FAILED: 100,
+  COMPLETED: 95,
+  AUTO_COMPLETED: 90,
+  NO_SHOW: 85,
+  PENDING_ATTENDANCE: 80,
+  PAID: 70,
+  DEPOSIT_PAID: 65,
+  CANCELLED: 60,
+  CONFIRMED: 20,
+  PENDING: 10,
+};
+
+const readStringProp = (value: Record<string, unknown>, key: string) =>
+  key in value && typeof value[key] === "string" ? String(value[key]) : "";
+
+const buildExperienceFallbackKey = (value: Record<string, unknown>) => {
+  const title = readStringProp(value, "title");
+  const startsAt = readStringProp(value, "startsAt");
+  const startDate = readStringProp(value, "startDate");
+  const date = readStringProp(value, "date");
+  const timeSlot = readStringProp(value, "timeSlot");
+  if (!title && !startsAt && !startDate && !date && !timeSlot) return "";
+  return [title, startsAt || startDate || date, timeSlot].filter(Boolean).join("::");
+};
 
 const toId = (value: IdLike) => {
   if (!value) return "";
   if (typeof value === "string") return value;
-  return value._id || value.id || "";
+  return (
+    value._id ||
+    value.id ||
+    readStringProp(value, "email") ||
+    readStringProp(value, "phone") ||
+    readStringProp(value, "displayName") ||
+    readStringProp(value, "name") ||
+    buildExperienceFallbackKey(value)
+  );
 };
 
 const toTimestamp = (value?: string) => {
@@ -48,24 +85,19 @@ export function dedupeBookings<T extends BookingLike>(bookings: T[]): T[] {
   });
 
   groups.forEach((group) => {
-    const nonPending = group.filter((booking) => !pendingStatuses.has(String(booking.status || "")));
-    if (nonPending.length) {
-      nonPending.forEach((booking) => {
-        const bookingId = booking._id || booking.id;
-        if (bookingId) keepIds.add(String(bookingId));
-      });
-      return;
-    }
-
-    const newestPending = group
+    const preferred = group
       .slice()
       .sort((a, b) => {
+        const aPending = pendingStatuses.has(String(a.status || ""));
+        const bPending = pendingStatuses.has(String(b.status || ""));
+        if (aPending !== bPending) return aPending ? 1 : -1;
         const aTime = toTimestamp(a.updatedAt) || toTimestamp(a.createdAt);
         const bTime = toTimestamp(b.updatedAt) || toTimestamp(b.createdAt);
-        return bTime - aTime;
+        if (aTime !== bTime) return bTime - aTime;
+        return (statusPriority[String(b.status || "")] || 0) - (statusPriority[String(a.status || "")] || 0);
       })[0];
 
-    const bookingId = newestPending?._id || newestPending?.id;
+    const bookingId = preferred?._id || preferred?.id;
     if (bookingId) keepIds.add(String(bookingId));
   });
 

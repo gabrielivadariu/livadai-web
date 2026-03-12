@@ -25,33 +25,6 @@
   font-weight: 500;
 }
 
-.sections {
-  display: grid;
-  gap: 18px;
-}
-
-.sectionBlock {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid #e5e7eb;
-  border-radius: 18px;
-  padding: 18px;
-  box-shadow: var(--shadow-soft);
-}
-
-.sectionTitle {
-  margin: 0 0 8px;
-  font-size: 16px;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.sectionText {
-  margin: 0 0 14px;
-  color: #64748b;
-  line-height: 1.55;
-  font-size: 14px;
-}
-
 .links {
   display: grid;
   gap: 10px;
@@ -136,11 +109,6 @@
 
   .inner {
     padding: 0 56px;
-  }
-
-  .sections {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: start;
   }
 
   .badgesCompact {

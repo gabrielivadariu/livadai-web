@@ -352,7 +352,7 @@ export default function ExperiencesPage() {
                       </div>
                       {item.shortDescription ? <div className={styles.cardDesc}>{item.shortDescription}</div> : null}
                     </div>
-                    <div className={styles.priceBadge} style={isFree ? { background: "#0ea37d" } : undefined}>
+                    <div className={styles.priceBadge}>
                       {priceText}
                     </div>
                   </div>

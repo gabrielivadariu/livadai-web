@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import { useLang } from "@/context/lang-context";
-import { useT } from "@/lib/i18n";
+import { getMessage, useT } from "@/lib/i18n";
 import styles from "./create-experience.module.css";
 
 const EXPERIENCE_CREATED_KEY = "livadai-experience-created";
@@ -235,7 +235,7 @@ function CreateExperienceContent() {
         });
         setImages(exp.images || []);
       } catch (err) {
-        setError((err as Error).message || t("create_experience_error"));
+        setError((err as Error).message || getMessage(lang, "create_experience_error"));
       } finally {
         if (active) setLoadingExperience(false);
       }
@@ -244,7 +244,7 @@ function CreateExperienceContent() {
     return () => {
       active = false;
     };
-  }, [editId, t]);
+  }, [editId, lang]);
 
   const toggleLanguage = (code: string) => {
     setForm((f) => {

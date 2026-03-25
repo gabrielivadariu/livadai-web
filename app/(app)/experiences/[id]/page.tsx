@@ -577,7 +577,6 @@ export default function ExperienceDetailPage() {
   const payableSeats = item.activityType === "GROUP" ? (pricingMode === "PER_GROUP" ? groupPackageSize : quantity) : 1;
   const serviceFeeTotal = payableSeats * 2;
   const serviceFeeTotalLabel = t("experience_service_fee_total").replace("{{amount}}", String(serviceFeeTotal));
-  const isHost = user?.role === "HOST" || user?.role === "BOTH";
   const bookingDisabled =
     booking ||
     (item.isSeries && (!!selectedSlot && !selectedSlot.bookable)) ||
@@ -585,7 +584,7 @@ export default function ExperienceDetailPage() {
       (availableSeats <= 0 || (pricingMode === "PER_GROUP" && availableSeats < groupPackageSize)));
   const chatRequiresAuth = !user;
   const chatDisabledReason = chatRequiresAuth
-    ? t("login_required")
+    ? t("chat_login_prompt")
     : bookingLoading
       ? t("chat_loading_booking")
       : !bookingInfo
@@ -593,6 +592,8 @@ export default function ExperienceDetailPage() {
         : !chatAllowed
           ? t("chat_requires_payment")
           : "";
+  const chatActionText = chatAllowed ? t("chat_ready_hint") : chatDisabledReason;
+  const shareActionText = shareNotice || t("share_experience_hint");
   return (
     <div className={styles.page}>
       <div className={styles.hero}>
@@ -819,25 +820,41 @@ export default function ExperienceDetailPage() {
             {booking ? t("experience_booking") : t("experience_book")}
           </button>
           {!user ? <div className={styles.guestReserveHint}>{t("guest_reserve_hint")}</div> : null}
-          <button
-            className={styles.chatLink}
-            type="button"
-            onClick={() => {
-              if (chatRequiresAuth) {
-                router.replace(`/login?reason=auth&next=${encodeURIComponent(`/experiences/${item?._id}`)}`);
-                return;
-              }
-              if (bookingInfo?._id && chatAllowed) router.push(`/messages/${bookingInfo._id}`);
-            }}
-            disabled={!chatRequiresAuth && !chatAllowed}
-          >
-            {t("chat_open")}
-          </button>
-          <button className={styles.shareLink} type="button" onClick={handleShare}>
-            {t("share_experience")}
-          </button>
-          {shareNotice ? <div className={styles.shareHint}>{shareNotice}</div> : null}
-          {!chatAllowed ? <div className={styles.chatHint}>{chatDisabledReason}</div> : null}
+          <div className={styles.supportTray}>
+            <div className={styles.supportIntro}>
+              <div className={styles.supportKicker}>{t("experience_support_kicker")}</div>
+              <p className={styles.supportTitle}>{t("experience_support_title")}</p>
+            </div>
+            <div className={styles.supportActions}>
+              <button
+                className={`${styles.supportCard} ${!chatRequiresAuth && !chatAllowed ? styles.supportCardMuted : ""}`}
+                type="button"
+                onClick={() => {
+                  if (chatRequiresAuth) {
+                    router.replace(`/login?reason=auth&next=${encodeURIComponent(`/experiences/${item?._id}`)}`);
+                    return;
+                  }
+                  if (bookingInfo?._id && chatAllowed) router.push(`/messages/${bookingInfo._id}`);
+                }}
+                disabled={!chatRequiresAuth && !chatAllowed}
+              >
+                <span className={`${styles.supportAccent} ${styles.supportAccentChat}`} aria-hidden="true" />
+                <span className={styles.supportCardLabel}>{t("chat_open")}</span>
+                <span className={styles.supportCardText}>{chatActionText}</span>
+              </button>
+              <button
+                className={`${styles.supportCard} ${shareNotice ? styles.supportCardSuccess : ""}`}
+                type="button"
+                onClick={handleShare}
+              >
+                <span className={`${styles.supportAccent} ${styles.supportAccentShare}`} aria-hidden="true" />
+                <span className={styles.supportCardLabel}>{t("share_experience")}</span>
+                <span className={styles.supportCardText} aria-live="polite">
+                  {shareActionText}
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

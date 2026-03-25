@@ -23,6 +23,36 @@ const countryCodes = [
   { code: "+36", label: "HU" },
 ];
 
+const PHONE_ALLOWED_CHARS_REGEX = /[^\d\s()+-]/g;
+
+const digitsOnly = (value: string) => value.replace(/\D/g, "");
+
+const sanitizePhoneDraft = (value: string) => value.replace(PHONE_ALLOWED_CHARS_REGEX, "");
+
+const normalizePhoneForRegister = (value: string, phoneCountryCode: string) => {
+  const raw = value.trim();
+  if (!raw) return "";
+
+  let digits = digitsOnly(raw);
+  if (!digits) return "";
+
+  const countryCodeDigits = digitsOnly(phoneCountryCode);
+  if (raw.startsWith("+") && countryCodeDigits && digits.startsWith(countryCodeDigits)) {
+    digits = digits.slice(countryCodeDigits.length);
+  } else if (raw.startsWith("+")) {
+    return "";
+  } else if (digits.startsWith("00")) {
+    const internationalDigits = digits.slice(2);
+    if (countryCodeDigits && internationalDigits.startsWith(countryCodeDigits)) {
+      digits = internationalDigits.slice(countryCodeDigits.length);
+    } else {
+      return "";
+    }
+  }
+
+  return digits.replace(/^0+/, "");
+};
+
 export default function RegisterPage() {
   const router = useRouter();
   const { register, refresh } = useAuth();
@@ -46,12 +76,17 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
     setSuccess("");
+    const normalizedPhone = normalizePhoneForRegister(phone, phoneCode);
     if (!termsChecked) {
       setError(t("register_terms_error"));
       return;
     }
     if (password !== confirmPassword) {
       setError(t("register_password_mismatch"));
+      return;
+    }
+    if (!/^\d{6,15}$/.test(normalizedPhone)) {
+      setError(t("register_phone_error"));
       return;
     }
     try {
@@ -61,7 +96,7 @@ export default function RegisterPage() {
         password,
         confirmPassword,
         role,
-        phone,
+        phone: normalizedPhone,
         phoneCountryCode: phoneCode,
         termsAccepted: true,
         termsAcceptedAt: new Date().toISOString(),
@@ -178,23 +213,28 @@ export default function RegisterPage() {
             <input
               className="input"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="712345678"
+              onChange={(e) => setPhone(sanitizePhoneDraft(e.target.value))}
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel-national"
+              placeholder={t("register_phone_placeholder")}
+              maxLength={20}
               required
             />
           </div>
+          <div className={styles.hint}>{t("register_phone_hint")}</div>
 
           <label className={styles.termsRow}>
             <input type="checkbox" checked={termsChecked} onChange={(e) => setTermsChecked(e.target.checked)} />
             <span>
               {t("register_terms_prefix")}{" "}
-              <a href="/terms">
+              <Link href="/terms">
                 {t("register_terms")}
-              </a>{" "}
+              </Link>{" "}
               {t("register_terms_and")}{" "}
-              <a href="/privacy">
+              <Link href="/privacy">
                 {t("register_privacy")}
-              </a>
+              </Link>
             </span>
           </label>
 

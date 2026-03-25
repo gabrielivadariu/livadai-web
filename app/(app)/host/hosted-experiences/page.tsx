@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { apiDelete, apiGet } from "@/lib/api";
+import { apiDelete, apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
@@ -121,14 +122,21 @@ export default function HostedExperiencesPage() {
     return 0;
   };
 
-  const onDeleteSingle = async (experienceId: string) => {
-    const ok = window.confirm(t("hosted_experiences_delete_confirm_slot"));
+  const onSingleAction = async (experienceId: string, hasBookings: boolean) => {
+    const ok = window.confirm(
+      hasBookings ? t("hosted_experiences_cancel_confirm_experience") : t("hosted_experiences_delete_confirm_experience")
+    );
     if (!ok) return;
     setFeedback(null);
     setBusyAction(`slot:${experienceId}`);
     try {
-      await apiDelete(`/experiences/${experienceId}`);
-      setFeedback({ type: "success", text: t("hosted_experiences_delete_slot_success") });
+      if (hasBookings) {
+        await apiPost(`/experiences/${experienceId}/cancel`, {});
+        setFeedback({ type: "success", text: t("hosted_experiences_cancel_experience_success") });
+      } else {
+        await apiDelete(`/experiences/${experienceId}`);
+        setFeedback({ type: "success", text: t("hosted_experiences_delete_experience_success") });
+      }
       await loadActivities();
     } catch (err) {
       setFeedback({
@@ -193,6 +201,9 @@ export default function HostedExperiencesPage() {
                   const seriesActionBusy = busyAction === `series:${seriesKey}`;
                   const singleActionBusy = busyAction === `slot:${exp._id}`;
                   const isSeries = !!(exp.isSeries || exp.scheduleGroupId || exp.seriesId);
+                  const hasBookings = participantsCount > 0;
+                  const isCancelled = String(exp.status || "").toLowerCase() === "cancelled";
+                  const canEdit = !isSeries && !isCancelled;
                   const startsAtValue = exp.seriesNextStartsAt || exp.startsAt || exp.startDate;
                   const pricingMode = String(exp.pricingMode || "").toUpperCase() === "PER_GROUP" ? "PER_GROUP" : "PER_PERSON";
                   const packageSize = Math.max(1, Number(exp.groupPackageSize) || Number(exp.maxParticipants) || 1);
@@ -233,14 +244,27 @@ export default function HostedExperiencesPage() {
                             {seriesActionBusy ? t("common_loading") : t("hosted_experiences_delete_series")}
                           </button>
                         ) : (
-                          <button
-                            type="button"
-                            className={`${styles.actionBtn} ${styles.deleteBtn}`}
-                            disabled={singleActionBusy}
-                            onClick={() => onDeleteSingle(exp._id)}
-                          >
-                            {singleActionBusy ? t("common_loading") : t("hosted_experiences_delete_slot")}
-                          </button>
+                          <>
+                            {canEdit ? (
+                              <Link className={styles.actionBtn} href={`/host/create-experience?edit=${exp._id}`}>
+                                {t("hosted_experiences_edit")}
+                              </Link>
+                            ) : null}
+                            {!isCancelled ? (
+                              <button
+                                type="button"
+                                className={`${styles.actionBtn} ${styles.deleteBtn}`}
+                                disabled={singleActionBusy}
+                                onClick={() => onSingleAction(exp._id, hasBookings)}
+                              >
+                                {singleActionBusy
+                                  ? t("common_loading")
+                                  : hasBookings
+                                    ? t("hosted_experiences_cancel_experience")
+                                    : t("hosted_experiences_delete_experience")}
+                              </button>
+                            ) : null}
+                          </>
                         )}
                       </div>
                     </div>

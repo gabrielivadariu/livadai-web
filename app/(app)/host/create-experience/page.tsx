@@ -62,6 +62,22 @@ type GeoSuggestion = {
   lng?: number;
 };
 
+type EditableExperienceResponse = Partial<FormState> & {
+  startsAt?: string;
+  startDate?: string;
+  endsAt?: string;
+  endDate?: string;
+  description?: string;
+  longDescription?: string;
+  price?: number;
+  groupPackageSize?: number;
+  maxParticipants?: number;
+  durationMinutes?: number;
+  recurrenceExcludedDates?: string[];
+  latitude?: number | null;
+  longitude?: number | null;
+};
+
 type FormState = {
   creationMode: "" | "ONE_TIME" | "LONG_TERM";
   title: string;
@@ -178,7 +194,7 @@ function CreateExperienceContent() {
       setLoadingExperience(true);
       setError("");
       try {
-        const exp = await apiGet<any>(`/experiences/${editId}`);
+        const exp = await apiGet<EditableExperienceResponse>(`/experiences/${editId}`);
         if (!active || !exp) return;
         const startsAt = exp.startsAt || exp.startDate;
         const endsAt = exp.endsAt || exp.endDate;
@@ -405,11 +421,38 @@ function CreateExperienceContent() {
       if (!form.coverImageUrl && uploaded[0]) {
         setForm((f) => ({ ...f, coverImageUrl: uploaded[0] }));
       }
-    } catch (err) {
+    } catch {
       setError(t("create_experience_upload_error"));
     } finally {
       setUploading(false);
     }
+  };
+
+  const onPickCoverImage = async (file?: File | null) => {
+    if (!file) return;
+    setUploading(true);
+    setError("");
+    try {
+      const url = await uploadFile(file);
+      if (!url) return;
+      setForm((f) => ({ ...f, coverImageUrl: url }));
+      setImages((prev) => (prev.includes(url) ? prev : [url, ...prev]));
+    } catch {
+      setError(t("create_experience_upload_error"));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeUploadedImage = (url: string) => {
+    setImages((prev) => {
+      const next = prev.filter((img) => img !== url);
+      setForm((f) => ({
+        ...f,
+        coverImageUrl: f.coverImageUrl === url ? next[0] || "" : f.coverImageUrl,
+      }));
+      return next;
+    });
   };
 
   const scheduleState = useMemo(() => {
@@ -633,15 +676,16 @@ function CreateExperienceContent() {
         images,
       };
       if (isEdit && editId) {
-        const startsAtIso = form.startsAt ? new Date(form.startsAt).toISOString() : undefined;
-        const endsAtIso = form.endsAt ? new Date(form.endsAt).toISOString() : undefined;
+        const primaryImage = form.coverImageUrl || images[0] || "";
         await apiPatch(`/experiences/${editId}`, {
-          ...basePayload,
-          startsAt: startsAtIso,
-          endsAt: endsAtIso,
-          durationMinutes: form.durationMinutes ? Number(form.durationMinutes) : undefined,
+          title: form.title,
+          shortDescription: form.shortDescription,
+          description: form.longDescription,
+          coverImageUrl: primaryImage,
+          mainImageUrl: primaryImage,
+          images,
         });
-        router.replace("/host");
+        router.replace("/host/hosted-experiences");
       } else if (selectedCreationMode === "LONG_TERM") {
         const slotMinutes = Number(form.recurrenceSlotMinutes);
         await apiPost("/experiences/bulk", {
@@ -671,6 +715,144 @@ function CreateExperienceContent() {
       setLoading(false);
     }
   };
+
+  const editCoverImage = form.coverImageUrl || images[0] || "";
+
+  if (isEdit) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.header}>
+          <div>
+            <div className={styles.kicker}>{t("create_experience_kicker")}</div>
+            <h1>{t("edit_experience_title")}</h1>
+            <p>{t("edit_experience_subtitle")}</p>
+          </div>
+        </div>
+
+        {loadingExperience ? (
+          <div className="muted">{t("common_loading_experiences")}</div>
+        ) : (
+          <>
+            <div className={styles.lockedNotice}>{t("edit_experience_locked")}</div>
+
+            <div className={styles.card}>
+              <h2>{t("create_experience_step_1")}</h2>
+              <div className={styles.grid}>
+                <div>
+                  <label>{t("create_experience_label_title")}</label>
+                  <input className="input" value={form.title} onChange={(e) => onChange("title", e.target.value)} />
+                </div>
+                <div>
+                  <label>{t("create_experience_label_short")}</label>
+                  <input
+                    className="input"
+                    value={form.shortDescription}
+                    maxLength={50}
+                    onChange={(e) => onChange("shortDescription", e.target.value.slice(0, 50))}
+                  />
+                </div>
+                <div className={styles.full}>
+                  <label>{t("create_experience_label_long")}</label>
+                  <textarea
+                    className={styles.textarea}
+                    value={form.longDescription}
+                    onChange={(e) => onChange("longDescription", e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.card}>
+              <h2>{t("edit_experience_media_title")}</h2>
+              <div className={styles.grid}>
+                <div className={styles.full}>
+                  <label>{t("create_experience_cover_photo")}</label>
+                  <div className={styles.coverRow}>
+                    <label className={styles.coverPicker}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) onPickCoverImage(file);
+                        }}
+                      />
+                      <span>{t("create_experience_cover_upload")}</span>
+                    </label>
+                    <div className={styles.coverPreview}>
+                      {editCoverImage ? (
+                        <img src={editCoverImage} alt="cover" />
+                      ) : (
+                        <div className={styles.coverPlaceholder}>{t("create_experience_cover_empty")}</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.full}>
+                  <label>{t("create_experience_upload_images")}</label>
+                  <div
+                    className={`${styles.dropzone} ${dragActive ? styles.dropzoneActive : ""}`}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragActive(true);
+                    }}
+                    onDragLeave={() => setDragActive(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragActive(false);
+                      const files = Array.from(e.dataTransfer.files || []).filter((file) => file.type.startsWith("image/"));
+                      onPickImages(files);
+                    }}
+                  >
+                    <input
+                      className={styles.file}
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => onPickImages(Array.from(e.target.files || []))}
+                    />
+                    <div className={styles.dropzoneText}>
+                      <strong>{t("create_experience_drop_title")}</strong>
+                      <span>{t("create_experience_drop_sub")}</span>
+                    </div>
+                  </div>
+                  {uploading ? <div className="muted">{t("create_experience_uploading")}</div> : null}
+                  {images.length ? (
+                    <div className={styles.imageGrid}>
+                      {images.map((img) => (
+                        <div key={img} className={styles.imageThumb}>
+                          <img src={img} alt="upload" />
+                          <div className={styles.imageThumbActions}>
+                            <button type="button" className={styles.removeImageBtn} onClick={() => removeUploadedImage(img)}>
+                              {t("edit_experience_remove_image")}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.footer}>
+              {error ? <div className={styles.error}>{error}</div> : null}
+              {success ? <div className={styles.success}>{success}</div> : null}
+              <div className={styles.footerActions}>
+                <button className="button secondary" type="button" onClick={() => router.push("/host/hosted-experiences")}>
+                  {t("create_experience_back")}
+                </button>
+                <button className="button" type="button" onClick={onSubmit} disabled={loading || uploading}>
+                  {loading ? t("common_publishing") : t("edit_experience_save")}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>

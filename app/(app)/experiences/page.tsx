@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiGet } from "@/lib/api";
+import { buildCoverObjectPosition } from "@/lib/cover-focus";
 import { useLang } from "@/context/lang-context";
 import { useAuth } from "@/context/auth-context";
 import { useT } from "@/lib/i18n";
@@ -22,6 +23,8 @@ type Experience = {
   currencyCode?: string;
   rating_avg?: number;
   coverImageUrl?: string;
+  coverFocusX?: number;
+  coverFocusY?: number;
   category?: string;
   languages?: string[];
   startsAt?: string;
@@ -158,7 +161,10 @@ export default function ExperiencesPage() {
   const [items, setItems] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [showCreated, setShowCreated] = useState(false);
+  const [showCreated, setShowCreated] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return Boolean(window.localStorage.getItem(EXPERIENCE_CREATED_KEY));
+  });
 
   useEffect(() => {
     let active = true;
@@ -178,12 +184,9 @@ export default function ExperiencesPage() {
   }, []);
 
   useEffect(() => {
-    const created = window.localStorage.getItem(EXPERIENCE_CREATED_KEY);
-    if (created) {
-      setShowCreated(true);
-      window.localStorage.removeItem(EXPERIENCE_CREATED_KEY);
-    }
-  }, []);
+    if (!showCreated) return;
+    window.localStorage.removeItem(EXPERIENCE_CREATED_KEY);
+  }, [showCreated]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -339,7 +342,7 @@ export default function ExperiencesPage() {
             return (
               <Link key={item._id} href={`/experiences/${item._id}`} className={styles.card}>
                 {item.coverImageUrl ? (
-                  <img src={item.coverImageUrl} alt={item.title} className={styles.cover} />
+                  <img src={item.coverImageUrl} alt={item.title} className={styles.cover} style={buildCoverObjectPosition(item)} />
                 ) : (
                   <div className={styles.coverPlaceholder} />
                 )}

@@ -1,8 +1,10 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
+import { DEFAULT_COVER_FOCUS, buildCoverObjectPosition, normalizeCoverFocusValue, resolveCoverFocus } from "@/lib/cover-focus";
 import { useLang } from "@/context/lang-context";
 import { getMessage, useT } from "@/lib/i18n";
 import styles from "./create-experience.module.css";
@@ -109,6 +111,8 @@ type FormState = {
   locationLat: number | null;
   locationLng: number | null;
   coverImageUrl: string;
+  coverFocusX: number;
+  coverFocusY: number;
   images: string[];
   durationMinutes: string;
 };
@@ -144,6 +148,8 @@ const initialForm: FormState = {
   locationLat: null,
   locationLng: null,
   coverImageUrl: "",
+  coverFocusX: DEFAULT_COVER_FOCUS,
+  coverFocusY: DEFAULT_COVER_FOCUS,
   images: [],
   durationMinutes: "",
 };
@@ -166,6 +172,74 @@ const weekdayOptions = [
   { key: 6, labelKey: "weekday_saturday_short" },
   { key: 0, labelKey: "weekday_sunday_short" },
 ] as const;
+
+type CoverFocusEditorProps = {
+  imageUrl: string;
+  focusX: number;
+  focusY: number;
+  title: string;
+  hint: string;
+  resetLabel: string;
+  emptyLabel: string;
+  onChange: (focusX: number, focusY: number) => void;
+  onReset: () => void;
+};
+
+function CoverFocusEditor({
+  imageUrl,
+  focusX,
+  focusY,
+  title,
+  hint,
+  resetLabel,
+  emptyLabel,
+  onChange,
+  onReset,
+}: CoverFocusEditorProps) {
+  const updateFocus = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!imageUrl) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const nextX = ((event.clientX - rect.left) / rect.width) * 100;
+    const nextY = ((event.clientY - rect.top) / rect.height) * 100;
+    onChange(normalizeCoverFocusValue(nextX), normalizeCoverFocusValue(nextY));
+  };
+
+  return (
+    <div className={styles.coverFocusCard}>
+      <div className={styles.coverFocusHeader}>
+        <div>
+          <div className={styles.coverFocusTitle}>{title}</div>
+          <p className={styles.coverFocusHint}>{hint}</p>
+        </div>
+        <button type="button" className={styles.coverFocusReset} onClick={onReset} disabled={!imageUrl}>
+          {resetLabel}
+        </button>
+      </div>
+      <div
+        className={styles.coverFocusStage}
+        onPointerDown={(event) => {
+          updateFocus(event);
+          event.currentTarget.setPointerCapture?.(event.pointerId);
+        }}
+        onPointerMove={(event) => {
+          if (event.buttons !== 1) return;
+          updateFocus(event);
+        }}
+      >
+        {imageUrl ? (
+          <>
+            <img src={imageUrl} alt="cover focus" style={buildCoverObjectPosition({ coverFocusX: focusX, coverFocusY: focusY })} />
+            <div className={styles.coverFocusOverlay} />
+            <div className={styles.coverFocusMarker} style={{ left: `${focusX}%`, top: `${focusY}%` }} />
+          </>
+        ) : (
+          <div className={styles.coverFocusEmpty}>{emptyLabel}</div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function CreateExperienceContent() {
   const t = useT();
@@ -198,6 +272,7 @@ function CreateExperienceContent() {
         if (!active || !exp) return;
         const startsAt = exp.startsAt || exp.startDate;
         const endsAt = exp.endsAt || exp.endDate;
+        const focus = resolveCoverFocus(exp);
         const toInput = (value?: string) => (value ? new Date(value).toISOString().slice(0, 16) : "");
         setForm({
           creationMode: "ONE_TIME",
@@ -230,6 +305,8 @@ function CreateExperienceContent() {
           locationLat: exp.locationLat ?? exp.latitude ?? null,
           locationLng: exp.locationLng ?? exp.longitude ?? null,
           coverImageUrl: exp.coverImageUrl || "",
+          coverFocusX: focus.x,
+          coverFocusY: focus.y,
           images: exp.images || [],
           durationMinutes: exp.durationMinutes ? String(exp.durationMinutes) : "",
         });
@@ -255,6 +332,15 @@ function CreateExperienceContent() {
 
   const onChange = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  const setCoverFocus = (coverFocusX: number, coverFocusY: number) =>
+    setForm((f) => ({
+      ...f,
+      coverFocusX: normalizeCoverFocusValue(coverFocusX),
+      coverFocusY: normalizeCoverFocusValue(coverFocusY),
+    }));
+
+  const resetCoverFocus = () => setCoverFocus(DEFAULT_COVER_FOCUS, DEFAULT_COVER_FOCUS);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -419,7 +505,12 @@ function CreateExperienceContent() {
       }
       setImages((prev) => [...prev, ...uploaded]);
       if (!form.coverImageUrl && uploaded[0]) {
-        setForm((f) => ({ ...f, coverImageUrl: uploaded[0] }));
+        setForm((f) => ({
+          ...f,
+          coverImageUrl: uploaded[0],
+          coverFocusX: DEFAULT_COVER_FOCUS,
+          coverFocusY: DEFAULT_COVER_FOCUS,
+        }));
       }
     } catch {
       setError(t("create_experience_upload_error"));
@@ -435,7 +526,12 @@ function CreateExperienceContent() {
     try {
       const url = await uploadFile(file);
       if (!url) return;
-      setForm((f) => ({ ...f, coverImageUrl: url }));
+      setForm((f) => ({
+        ...f,
+        coverImageUrl: url,
+        coverFocusX: DEFAULT_COVER_FOCUS,
+        coverFocusY: DEFAULT_COVER_FOCUS,
+      }));
       setImages((prev) => (prev.includes(url) ? prev : [url, ...prev]));
     } catch {
       setError(t("create_experience_upload_error"));
@@ -450,6 +546,8 @@ function CreateExperienceContent() {
       setForm((f) => ({
         ...f,
         coverImageUrl: f.coverImageUrl === url ? next[0] || "" : f.coverImageUrl,
+        coverFocusX: f.coverImageUrl === url ? DEFAULT_COVER_FOCUS : f.coverFocusX,
+        coverFocusY: f.coverImageUrl === url ? DEFAULT_COVER_FOCUS : f.coverFocusY,
       }));
       return next;
     });
@@ -648,6 +746,7 @@ function CreateExperienceContent() {
       const selectedActivityType = form.activityType;
       const selectedEnvironment = form.environment;
       const isFree = !form.price || Number(form.price) <= 0;
+      const coverFocus = resolveCoverFocus(form);
       const basePayload = {
         title: form.title,
         shortDescription: form.shortDescription,
@@ -672,6 +771,8 @@ function CreateExperienceContent() {
         locationLat: form.locationLat,
         locationLng: form.locationLng,
         coverImageUrl: form.coverImageUrl || images[0] || "",
+        coverFocusX: coverFocus.x,
+        coverFocusY: coverFocus.y,
         mainImageUrl: form.coverImageUrl || images[0] || "",
         images,
       };
@@ -682,6 +783,8 @@ function CreateExperienceContent() {
           shortDescription: form.shortDescription,
           description: form.longDescription,
           coverImageUrl: primaryImage,
+          coverFocusX: coverFocus.x,
+          coverFocusY: coverFocus.y,
           mainImageUrl: primaryImage,
           images,
         });
@@ -717,6 +820,7 @@ function CreateExperienceContent() {
   };
 
   const editCoverImage = form.coverImageUrl || images[0] || "";
+  const coverFocus = resolveCoverFocus(form);
 
   if (isEdit) {
     return (
@@ -781,12 +885,23 @@ function CreateExperienceContent() {
                     </label>
                     <div className={styles.coverPreview}>
                       {editCoverImage ? (
-                        <img src={editCoverImage} alt="cover" />
+                        <img src={editCoverImage} alt="cover" style={buildCoverObjectPosition(form)} />
                       ) : (
                         <div className={styles.coverPlaceholder}>{t("create_experience_cover_empty")}</div>
                       )}
                     </div>
                   </div>
+                  <CoverFocusEditor
+                    imageUrl={editCoverImage}
+                    focusX={coverFocus.x}
+                    focusY={coverFocus.y}
+                    title={t("create_experience_cover_focus_title")}
+                    hint={t("create_experience_cover_focus_hint")}
+                    resetLabel={t("create_experience_cover_focus_reset")}
+                    emptyLabel={t("create_experience_cover_empty")}
+                    onChange={setCoverFocus}
+                    onReset={resetCoverFocus}
+                  />
                 </div>
 
                 <div className={styles.full}>
@@ -1222,19 +1337,30 @@ function CreateExperienceContent() {
                     accept="image/*"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) onPickImages([file]);
+                      if (file) onPickCoverImage(file);
                     }}
                   />
                   <span>{t("create_experience_cover_upload")}</span>
                 </label>
                 <div className={styles.coverPreview}>
                   {form.coverImageUrl || images[0] ? (
-                    <img src={form.coverImageUrl || images[0]} alt="cover" />
+                    <img src={form.coverImageUrl || images[0]} alt="cover" style={buildCoverObjectPosition(form)} />
                   ) : (
                     <div className={styles.coverPlaceholder}>{t("create_experience_cover_empty")}</div>
                   )}
                 </div>
               </div>
+              <CoverFocusEditor
+                imageUrl={form.coverImageUrl || images[0] || ""}
+                focusX={coverFocus.x}
+                focusY={coverFocus.y}
+                title={t("create_experience_cover_focus_title")}
+                hint={t("create_experience_cover_focus_hint")}
+                resetLabel={t("create_experience_cover_focus_reset")}
+                emptyLabel={t("create_experience_cover_empty")}
+                onChange={setCoverFocus}
+                onReset={resetCoverFocus}
+              />
             </div>
             <div className={styles.full}>
               <label>{t("create_experience_upload_images")}</label>

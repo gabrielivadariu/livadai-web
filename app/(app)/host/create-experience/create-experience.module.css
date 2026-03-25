@@ -299,6 +299,110 @@
   font-size: 13px;
 }
 
+.coverFocusCard {
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid #d7eef3;
+  background: linear-gradient(180deg, rgba(var(--brand-rgb), 0.08), rgba(255, 255, 255, 0.96));
+  display: grid;
+  gap: 12px;
+}
+
+.coverFocusHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.coverFocusTitle {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.coverFocusHint {
+  margin: 4px 0 0;
+  color: #5b6b7f;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.coverFocusReset {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: rgba(15, 188, 208, 0.12);
+  color: var(--primary-dark);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.coverFocusReset:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.coverFocusStage {
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid #d5e8ee;
+  background: #edf7f8;
+  cursor: crosshair;
+}
+
+.coverFocusStage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+.coverFocusOverlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08)),
+    linear-gradient(90deg, transparent calc(50% - 0.5px), rgba(255, 255, 255, 0.75) calc(50% - 0.5px), rgba(255, 255, 255, 0.75) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+    linear-gradient(transparent calc(50% - 0.5px), rgba(255, 255, 255, 0.75) calc(50% - 0.5px), rgba(255, 255, 255, 0.75) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+  pointer-events: none;
+}
+
+.coverFocusMarker {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid #fff;
+  background: rgba(15, 188, 208, 0.92);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
+  pointer-events: none;
+}
+
+.coverFocusMarker::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.coverFocusEmpty {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .imageGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -373,6 +477,14 @@
 
 @media (max-width: 959px) {
   .header {
+    flex-direction: column;
+  }
+
+  .coverRow {
+    grid-template-columns: 1fr;
+  }
+
+  .coverFocusHeader {
     flex-direction: column;
   }
 

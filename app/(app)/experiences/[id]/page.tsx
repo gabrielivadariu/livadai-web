@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiGet, apiPost } from "@/lib/api";
 import { dedupeBookings } from "@/lib/booking-dedupe";
+import { buildCoverObjectPosition } from "@/lib/cover-focus";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
@@ -30,6 +31,8 @@ type Experience = {
   currencyCode?: string;
   rating_avg?: number;
   coverImageUrl?: string;
+  coverFocusX?: number;
+  coverFocusY?: number;
   images?: string[];
   languages?: string[];
   startsAt?: string;
@@ -615,7 +618,7 @@ export default function ExperienceDetailPage() {
                       setTimeout(() => scrollToIndex(activeIndex, lightboxRef), 0);
                     }}
                   >
-                    <img src={img} alt={item.title} />
+                    <img src={img} alt={item.title} style={img === item.coverImageUrl ? buildCoverObjectPosition(item) : undefined} />
                   </button>
                 ))
               ) : (
@@ -939,7 +942,7 @@ export default function ExperienceDetailPage() {
           >
             {mediaImages.map((img) => (
               <div key={img} className={styles.lightboxSlide}>
-                <img src={img} alt={item.title} />
+                <img src={img} alt={item.title} style={img === item.coverImageUrl ? buildCoverObjectPosition(item) : undefined} />
               </div>
             ))}
           </div>

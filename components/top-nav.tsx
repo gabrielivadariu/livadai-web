@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
 import { useT } from "@/lib/i18n";
@@ -12,9 +12,11 @@ type Props = {
 };
 
 const IOS_APP_URL = "https://apps.apple.com/ro/app/livadai/id6758622116?l=ro";
+const ADMIN_ROLES = new Set(["OWNER_ADMIN", "ADMIN", "ADMIN_SUPPORT", "ADMIN_RISK", "ADMIN_FINANCE", "ADMIN_VIEWER"]);
 
 export default function TopNav({ pathname }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useT();
   const { user, logout } = useAuth();
   const [profileName, setProfileName] = useState("");
@@ -23,6 +25,7 @@ export default function TopNav({ pathname }: Props) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const isHost = user?.role === "HOST" || user?.role === "BOTH";
+  const isAdmin = ADMIN_ROLES.has(String(user?.role || "").trim().toUpperCase());
   const navItems = [
     { href: "/experiences", labelKey: "nav_explorers" },
     user
@@ -95,6 +98,17 @@ export default function TopNav({ pathname }: Props) {
     };
   }, [user]);
 
+  const onSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const trimmed = String(formData.get("q") || "").trim();
+    if (!trimmed) {
+      router.push("/experiences");
+      return;
+    }
+    router.push(`/experiences?q=${encodeURIComponent(trimmed)}`);
+  };
+
   return (
     <header className="top-nav">
       <div className="nav-left">
@@ -104,7 +118,7 @@ export default function TopNav({ pathname }: Props) {
         <span className="brand-tag">{t("nav_tagline")}</span>
       </div>
 
-      <div className="nav-search">
+      <form className="nav-search" onSubmit={onSearchSubmit}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
           <path
             d="M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-3.5-3.5"
@@ -113,8 +127,14 @@ export default function TopNav({ pathname }: Props) {
             strokeLinecap="round"
           />
         </svg>
-        <input className="nav-search-input" placeholder={t("nav_search_placeholder")} />
-      </div>
+        <input
+          key={`${pathname || "/"}::${searchParams?.get("q") || ""}`}
+          name="q"
+          className="nav-search-input"
+          placeholder={t("nav_search_placeholder")}
+          defaultValue={pathname === "/experiences" ? searchParams?.get("q") || "" : ""}
+        />
+      </form>
 
       <nav className="nav-links">
         {navItems.map((item) => {
@@ -182,7 +202,7 @@ export default function TopNav({ pathname }: Props) {
             </summary>
             <div className="profile-dropdown">
               <Link href="/menu" onClick={closeProfileMenu}>{t("nav_menu")}</Link>
-              {user?.role === "ADMIN" ? <Link href="/admin" onClick={closeProfileMenu}>Admin</Link> : null}
+              {isAdmin ? <Link href="/admin" onClick={closeProfileMenu}>Admin</Link> : null}
               <Link href="/profile" onClick={closeProfileMenu}>{t("nav_profile")}</Link>
               <Link href="/settings" onClick={closeProfileMenu}>{t("nav_settings")}</Link>
               <button type="button" onClick={onLogout}>

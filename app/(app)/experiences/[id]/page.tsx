@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiGet, apiPost } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 import { dedupeBookings } from "@/lib/booking-dedupe";
 import { buildCoverObjectPosition } from "@/lib/cover-focus";
 import { useAuth } from "@/context/auth-context";
@@ -158,6 +159,20 @@ export default function ExperienceDetailPage() {
       active = false;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!item?._id) return;
+    trackEvent({
+      eventName: "experience_viewed",
+      experienceId: item._id,
+      hostId: item.host?._id,
+      properties: {
+        title: item.title,
+        price: item.price,
+        city: item.city || item.location?.city || "",
+      },
+    });
+  }, [item?._id, item?.city, item?.host?._id, item?.location?.city, item?.price, item?.title]);
 
   useEffect(() => {
     let active = true;
@@ -475,6 +490,16 @@ export default function ExperienceDetailPage() {
     try {
       const targetExperienceId = selectedSlot?._id || item._id;
       const seatCount = item.activityType === "GROUP" ? (pricingMode === "PER_GROUP" ? groupPackageSize : quantity) : 1;
+      trackEvent({
+        eventName: "booking_started",
+        experienceId: targetExperienceId,
+        hostId: item.host?._id,
+        properties: {
+          title: item.title,
+          quantity: seatCount,
+          pricingMode,
+        },
+      });
       const res = await apiPost<{ checkoutUrl?: string; bookingId?: string }>("/payments/create-checkout", {
         experienceId: targetExperienceId,
         quantity: seatCount,
@@ -509,16 +534,24 @@ export default function ExperienceDetailPage() {
     const cityLabel = (item.city || (item.address || "").split(",")[0] || "").trim();
     const shareText = cityLabel ? `${item.title} • ${cityLabel} • LIVADAI` : `${item.title} • LIVADAI`;
     try {
+      const method = navigator.share ? "native" : navigator.clipboard?.writeText ? "clipboard" : "manual";
       if (navigator.share) {
         await navigator.share({ title: item.title, text: shareText, url: shareUrl });
-        return;
-      }
-      if (navigator.clipboard?.writeText) {
+      } else if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
         setShareNotice(t("share_copied"));
       } else {
         window.prompt(t("share_experience"), `${shareText}\n${shareUrl}`);
       }
+      trackEvent({
+        eventName: "experience_shared",
+        experienceId: item._id,
+        hostId: item.host?._id,
+        properties: {
+          method,
+          title: item.title,
+        },
+      });
     } finally {
       if (shareTimeoutRef.current) clearTimeout(shareTimeoutRef.current);
       shareTimeoutRef.current = setTimeout(() => setShareNotice(""), 3000);
@@ -833,6 +866,16 @@ export default function ExperienceDetailPage() {
                 className={`${styles.supportCard} ${!chatRequiresAuth && !chatAllowed ? styles.supportCardMuted : ""}`}
                 type="button"
                 onClick={() => {
+                  trackEvent({
+                    eventName: "cta_clicked",
+                    ctaName: "chat_with_host",
+                    experienceId: item?._id,
+                    hostId: item.host?._id,
+                    properties: {
+                      chatAllowed,
+                      requiresAuth: chatRequiresAuth,
+                    },
+                  });
                   if (chatRequiresAuth) {
                     router.replace(`/login?reason=auth&next=${encodeURIComponent(`/experiences/${item?._id}`)}`);
                     return;

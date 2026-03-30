@@ -1,5 +1,7 @@
 "use client";
 
+import { getAnalyticsHeaders } from "@/lib/analytics-core";
+
 export const getApiOrigin = () => {
   if (typeof window === "undefined") return null;
   return window.location.origin;
@@ -63,6 +65,10 @@ const apiRequest = async <T>(path: string, options: InternalApiOptions = {}) => 
   if (options.json !== undefined && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
+  const analyticsHeaders = getAnalyticsHeaders();
+  Object.entries(analyticsHeaders).forEach(([key, value]) => {
+    if (value && !headers.has(key)) headers.set(key, value);
+  });
   // Transitional fallback: allows one-time migration from legacy localStorage token to cookie session.
   if (authToken && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${authToken}`);

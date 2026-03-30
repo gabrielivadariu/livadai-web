@@ -768,10 +768,6 @@ function AdminUserRow({
 }) {
   const [roleValue, setRoleValue] = useState(item.role || "EXPLORER");
 
-  useEffect(() => {
-    setRoleValue(item.role || "EXPLORER");
-  }, [item.role]);
-
   return (
     <div className={`${styles.card} ${styles.rowCard} ${selected ? styles.rowCardSelected : ""}`}>
       <div className={styles.rowTop}>
@@ -878,10 +874,6 @@ function AdminExperienceRow({
   onToggleSelect?: (id: string, checked: boolean) => void;
 }) {
   const [statusValue, setStatusValue] = useState(String(item.status || ""));
-
-  useEffect(() => {
-    setStatusValue(String(item.status || ""));
-  }, [item.status]);
 
   return (
     <div className={`${styles.card} ${styles.rowCard} ${selected ? styles.rowCardSelected : ""}`}>
@@ -2344,6 +2336,9 @@ export default function AdminPage() {
                 </button>
                 <button type="button" className="button secondary" onClick={() => setActiveSection("payments")}>
                   Payments
+                </button>
+                <button type="button" className="button secondary" onClick={() => router.push("/admin/analytics")}>
+                  Analytics
                 </button>
                 <button type="button" className="button secondary" onClick={() => setActiveSection("audit")}>
                   Audit

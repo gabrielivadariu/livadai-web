@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { apiGet } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 import { buildCoverObjectPosition } from "@/lib/cover-focus";
 import { useLang } from "@/context/lang-context";
 import { useAuth } from "@/context/auth-context";
@@ -43,39 +45,6 @@ type Experience = {
   seriesSlotsCount?: number;
   seriesAvailableSlots?: number;
   seriesNextStartsAt?: string | null;
-};
-
-const formatDuration = (minutes: number | undefined, lang: string) => {
-  const total = Number(minutes);
-  if (!total || Number.isNaN(total)) return "";
-  const isEn = lang === "en";
-  const units = isEn
-    ? { min: "min", hour: "hour", hours: "hours", day: "day", days: "days" }
-    : { min: "min", hour: "oră", hours: "ore", day: "zi", days: "zile" };
-  if (total < 60) return `${total} ${units.min}`;
-  if (total < 1440) {
-    const hours = Math.floor(total / 60);
-    const mins = total % 60;
-    const hoursLabel = hours === 1 ? units.hour : units.hours;
-    return mins ? `${hours} ${hoursLabel} ${mins} ${units.min}` : `${hours} ${hoursLabel}`;
-  }
-  const days = Math.floor(total / 1440);
-  const remaining = total % 1440;
-  const hours = Math.floor(remaining / 60);
-  const daysLabel = days === 1 ? units.day : units.days;
-  const hoursLabel = hours === 1 ? units.hour : units.hours;
-  return hours ? `${days} ${daysLabel} ${hours} ${hoursLabel}` : `${days} ${daysLabel}`;
-};
-
-const formatGroupInfo = (item: Experience, lang: string) => {
-  if (item.activityType !== "GROUP") return "";
-  const total = item.maxParticipants || 0;
-  const available = item.availableSpots ?? item.remainingSpots ?? item.maxParticipants;
-  if (!total || typeof available !== "number") return "";
-  const occupied = Math.max(0, total - available);
-  const label = lang === "en" ? "Group" : "Grup";
-  const people = lang === "en" ? "participants" : "participanți";
-  return `👥 ${label} · ${occupied} / ${total} ${people}`;
 };
 
 const formatSeatsInfo = (item: Experience) => {
@@ -155,12 +124,13 @@ const formatStartTimeLabel = (item: Experience, lang: string) => {
 };
 
 export default function ExperiencesPage() {
+  const searchParams = useSearchParams();
   const { lang } = useLang();
   const t = useT();
   const { user } = useAuth();
   const [items, setItems] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const search = searchParams?.get("q") || "";
   const [showCreated, setShowCreated] = useState(() => {
     if (typeof window === "undefined") return false;
     return Boolean(window.localStorage.getItem(EXPERIENCE_CREATED_KEY));
@@ -231,6 +201,33 @@ export default function ExperiencesPage() {
     const seconds = remainingSeconds % 60;
     return String(seconds).padStart(2, "0");
   }, [remainingSeconds]);
+
+  useEffect(() => {
+    if (loading) return;
+    const term = search.trim();
+    if (!term) return;
+
+    const resultIds = filtered.slice(0, 30).map((item) => item._id);
+    trackEvent({
+      eventName: "search_initiated",
+      searchQuery: term,
+      searchResultsCount: filtered.length,
+      resultIds,
+    });
+    trackEvent({
+      eventName: "search_results_viewed",
+      searchQuery: term,
+      searchResultsCount: filtered.length,
+      resultIds,
+    });
+    if (!filtered.length) {
+      trackEvent({
+        eventName: "search_no_results",
+        searchQuery: term,
+        searchResultsCount: 0,
+      });
+    }
+  }, [filtered, loading, search]);
 
   return (
     <div className={styles.page}>
@@ -324,13 +321,11 @@ export default function ExperiencesPage() {
         <div className="muted">{t("common_loading_experiences")}</div>
       ) : filtered.length ? (
         <div className={styles.grid} id="experiences-list">
-          {filtered.map((item) => {
-            const isFree = !item.price || Number(item.price) <= 0;
+          {filtered.map((item, index) => {
             const priceText = formatPricing(item, lang, t);
             const start = item.seriesNextStartsAt || item.startsAt || item.startDate;
             const dateLabel = start ? new Date(start).toLocaleDateString(lang === "en" ? "en-US" : "ro-RO", { day: "numeric", month: "short" }) : "";
             const timeLabel = formatStartTimeLabel(item, lang);
-            const groupLabel = formatGroupInfo(item, lang);
             const seats = formatSeatsInfo(item);
             const environmentLabel = formatEnvironment(item, t);
             const seriesLabel =
@@ -340,7 +335,24 @@ export default function ExperiencesPage() {
                   : `${item.seriesAvailableSlots} sloturi`
                 : "";
             return (
-              <Link key={item._id} href={`/experiences/${item._id}`} className={styles.card}>
+              <Link
+                key={item._id}
+                href={`/experiences/${item._id}`}
+                className={styles.card}
+                onClick={() =>
+                  trackEvent({
+                    eventName: "experience_result_clicked",
+                    experienceId: item._id,
+                    searchQuery: search.trim() || undefined,
+                    searchResultsCount: filtered.length,
+                    resultIds: filtered.slice(0, 30).map((row) => row._id),
+                    properties: {
+                      position: index + 1,
+                      title: item.title,
+                    },
+                  })
+                }
+              >
                 {item.coverImageUrl ? (
                   <img src={item.coverImageUrl} alt={item.title} className={styles.cover} style={buildCoverObjectPosition(item)} />
                 ) : (

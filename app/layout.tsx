@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import JsonLd from "@/components/seo/json-ld";
 import { buildOrganizationSchema, buildWebSiteSchema } from "@/lib/seo/schema";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/seo/site";
@@ -54,9 +55,25 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const gaMeasurementId = process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID;
+
   return (
     <html lang="ro">
       <body>
+        {gaMeasurementId ? (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`} strategy="afterInteractive" />
+            <Script id="ga4-config" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                window.gtag = gtag;
+                gtag('js', new Date());
+                gtag('config', '${gaMeasurementId}', { send_page_view: false });
+              `}
+            </Script>
+          </>
+        ) : null}
         <JsonLd data={[buildWebSiteSchema(), buildOrganizationSchema()]} />
         <Providers>{children}</Providers>
       </body>

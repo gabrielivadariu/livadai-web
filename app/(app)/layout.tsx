@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import BottomNav from "@/components/bottom-nav";
@@ -13,7 +13,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app-shell">
-      <TopNav pathname={pathname} />
+      <Suspense fallback={null}>
+        <TopNav pathname={pathname} />
+      </Suspense>
       <main className="app-main">{children}</main>
       <SiteFooter />
       <BottomNav pathname={pathname} />

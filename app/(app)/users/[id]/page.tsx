@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
@@ -23,7 +23,7 @@ type Profile = {
   country?: string;
 };
 
-export default function UserPublicProfilePage() {
+function UserPublicProfilePageContent() {
   const { id } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -147,5 +147,13 @@ export default function UserPublicProfilePage() {
         onSubmit={onReportUser}
       />
     </div>
+  );
+}
+
+export default function UserPublicProfilePage() {
+  return (
+    <Suspense fallback={<div className="muted">Loading...</div>}>
+      <UserPublicProfilePageContent />
+    </Suspense>
   );
 }

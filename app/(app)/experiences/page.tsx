@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { apiGet } from "@/lib/api";
@@ -123,7 +123,7 @@ const formatStartTimeLabel = (item: Experience, lang: string) => {
   return normalizeTimeValue(item.startTime);
 };
 
-export default function ExperiencesPage() {
+function ExperiencesPageContent() {
   const searchParams = useSearchParams();
   const { lang } = useLang();
   const t = useT();
@@ -400,5 +400,13 @@ export default function ExperiencesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ExperiencesPage() {
+  return (
+    <Suspense fallback={<div className="muted">Loading...</div>}>
+      <ExperiencesPageContent />
+    </Suspense>
   );
 }

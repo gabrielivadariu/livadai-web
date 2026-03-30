@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiGet, apiPost } from "@/lib/api";
@@ -113,7 +113,7 @@ type AvailabilitySlot = {
   bookable?: boolean;
 };
 
-export default function ExperienceDetailPage() {
+function ExperienceDetailPageContent() {
   const { id } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -533,11 +533,13 @@ export default function ExperienceDetailPage() {
     const shareUrl = `${origin}/experiences/${item._id}`;
     const cityLabel = (item.city || (item.address || "").split(",")[0] || "").trim();
     const shareText = cityLabel ? `${item.title} • ${cityLabel} • LIVADAI` : `${item.title} • LIVADAI`;
+    const canUseNativeShare = typeof navigator.share === "function";
+    const canUseClipboard = typeof navigator.clipboard?.writeText === "function";
     try {
-      const method = navigator.share ? "native" : navigator.clipboard?.writeText ? "clipboard" : "manual";
-      if (navigator.share) {
+      const method = canUseNativeShare ? "native" : canUseClipboard ? "clipboard" : "manual";
+      if (canUseNativeShare) {
         await navigator.share({ title: item.title, text: shareText, url: shareUrl });
-      } else if (navigator.clipboard?.writeText) {
+      } else if (canUseClipboard) {
         await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
         setShareNotice(t("share_copied"));
       } else {
@@ -1018,5 +1020,13 @@ export default function ExperienceDetailPage() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+export default function ExperienceDetailPage() {
+  return (
+    <Suspense fallback={<div className="muted">Loading...</div>}>
+      <ExperienceDetailPageContent />
+    </Suspense>
   );
 }

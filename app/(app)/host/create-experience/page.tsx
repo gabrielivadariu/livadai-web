@@ -80,6 +80,25 @@ type EditableExperienceResponse = Partial<FormState> & {
   longitude?: number | null;
 };
 
+type StripeHostStatus = {
+  stripeAccountId?: string | null;
+  isStripeChargesEnabled?: boolean;
+  isStripePayoutsEnabled?: boolean;
+  isStripeDetailsSubmitted?: boolean;
+  charges_enabled?: boolean;
+  payouts_enabled?: boolean;
+  details_submitted?: boolean;
+};
+
+type StripeGateState = {
+  checking: boolean;
+  checked: boolean;
+  blocked: boolean;
+  title: string;
+  message: string;
+  actionLabel: string;
+};
+
 type FormState = {
   creationMode: "" | "ONE_TIME" | "LONG_TERM";
   title: string;
@@ -260,6 +279,94 @@ function CreateExperienceContent() {
   const [recurrenceExcludedInput, setRecurrenceExcludedInput] = useState("");
   const editId = searchParams?.get("edit");
   const isEdit = Boolean(editId);
+  const [stripeGate, setStripeGate] = useState<StripeGateState>({
+    checking: !isEdit,
+    checked: isEdit,
+    blocked: false,
+    title: "",
+    message: "",
+    actionLabel: "",
+  });
+
+  const buildStripeGateState = (status?: StripeHostStatus | null): StripeGateState => {
+    const stripeAccountId = String(status?.stripeAccountId || "").trim();
+    const chargesEnabled =
+      status?.charges_enabled === undefined ? !!status?.isStripeChargesEnabled : !!status?.charges_enabled;
+    const payoutsEnabled =
+      status?.payouts_enabled === undefined ? !!status?.isStripePayoutsEnabled : !!status?.payouts_enabled;
+    const detailsSubmitted =
+      status?.details_submitted === undefined ? !!status?.isStripeDetailsSubmitted : !!status?.details_submitted;
+
+    if (!stripeAccountId) {
+      return {
+        checking: false,
+        checked: true,
+        blocked: true,
+        title: t("host_wallet_connect_title"),
+        message: t("host_wallet_connect_text"),
+        actionLabel: t("host_wallet_connect"),
+      };
+    }
+
+    if (!detailsSubmitted || !chargesEnabled || !payoutsEnabled) {
+      return {
+        checking: false,
+        checked: true,
+        blocked: true,
+        title: t("host_wallet_activate_title"),
+        message: t("host_wallet_activate_text"),
+        actionLabel: t("host_wallet_continue"),
+      };
+    }
+
+    return {
+      checking: false,
+      checked: true,
+      blocked: false,
+      title: "",
+      message: "",
+      actionLabel: "",
+    };
+  };
+
+  useEffect(() => {
+    if (isEdit) {
+      setStripeGate({
+        checking: false,
+        checked: true,
+        blocked: false,
+        title: "",
+        message: "",
+        actionLabel: "",
+      });
+      return;
+    }
+
+    let active = true;
+    const loadStripeGate = async () => {
+      setStripeGate((current) => ({ ...current, checking: true }));
+      try {
+        const status = await apiGet<StripeHostStatus>("/stripe/debug/host-status");
+        if (!active) return;
+        setStripeGate(buildStripeGateState(status));
+      } catch {
+        if (!active) return;
+        setStripeGate({
+          checking: false,
+          checked: true,
+          blocked: true,
+          title: t("host_wallet_connect_title"),
+          message: t("host_wallet_connect_text"),
+          actionLabel: t("host_wallet_connect"),
+        });
+      }
+    };
+
+    loadStripeGate();
+    return () => {
+      active = false;
+    };
+  }, [isEdit, lang]);
 
   useEffect(() => {
     let active = true;
@@ -732,6 +839,11 @@ function CreateExperienceContent() {
     setError("");
     setSuccess("");
     try {
+      if (!isEdit && stripeGate.blocked) {
+        setError(stripeGate.message);
+        setLoading(false);
+        return;
+      }
       if (scheduleErrorText) {
         setError(scheduleErrorText);
         setLoading(false);
@@ -821,6 +933,14 @@ function CreateExperienceContent() {
 
   const editCoverImage = form.coverImageUrl || images[0] || "";
   const coverFocus = resolveCoverFocus(form);
+  const goToWallet = () => router.push("/host/wallet");
+  const handleNextStep = () => {
+    if (stripeGate.blocked) {
+      setError(stripeGate.message);
+      return;
+    }
+    setStep(step + 1);
+  };
 
   if (isEdit) {
     return (
@@ -985,6 +1105,18 @@ function CreateExperienceContent() {
           ))}
         </div>
       </div>
+
+      {stripeGate.blocked ? (
+        <div className={styles.stripeGateCard}>
+          <div>
+            <div className={styles.stripeGateTitle}>{stripeGate.title}</div>
+            <p className={styles.stripeGateText}>{stripeGate.message}</p>
+          </div>
+          <button className="button" type="button" onClick={goToWallet}>
+            {stripeGate.actionLabel}
+          </button>
+        </div>
+      ) : null}
 
       {loadingExperience ? (
         <div className="muted">{t("common_loading_experiences")}</div>
@@ -1415,11 +1547,11 @@ function CreateExperienceContent() {
             </button>
           ) : null}
           {step < 3 ? (
-            <button className="button" type="button" onClick={() => setStep(step + 1)} disabled={!canProceed}>
+            <button className="button" type="button" onClick={handleNextStep} disabled={!canProceed || stripeGate.checking}>
               {t("create_experience_continue")}
             </button>
           ) : (
-            <button className="button" type="button" onClick={onSubmit} disabled={loading}>
+            <button className="button" type="button" onClick={onSubmit} disabled={loading || stripeGate.checking}>
               {loading ? t("common_publishing") : isEdit ? t("edit_experience_save") : t("create_experience_publish")}
             </button>
           )}

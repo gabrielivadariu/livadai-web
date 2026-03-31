@@ -49,30 +49,31 @@ export default function HostWalletPage() {
     setLoading(true);
     setError("");
     try {
-      const statusRes = await apiGet<StripeStatus>("/stripe/debug/host-status");
+      const statusRes = await apiGet<StripeStatus>("/stripe/debug/host-status", { timeoutMs: 20000 });
       setStatus(statusRes);
       const statusPayoutsEnabled =
         statusRes?.payouts_enabled === undefined ? !!statusRes?.isStripePayoutsEnabled : !!statusRes?.payouts_enabled;
       const statusChargesEnabled =
         statusRes?.charges_enabled === undefined ? !!statusRes?.isStripeChargesEnabled : !!statusRes?.charges_enabled;
       if (statusRes?.stripeAccountId && statusPayoutsEnabled) {
-        const balanceRes = await apiGet<WalletBalance>("/wallet/summary");
+        const balanceRes = await apiGet<WalletBalance>("/wallet/summary", { timeoutMs: 20000 });
         setBalance(balanceRes);
         try {
-          const stripeBalanceRes = await apiGet<WalletBalance>("/stripe/wallet/balance");
+          const stripeBalanceRes = await apiGet<WalletBalance>("/stripe/wallet/balance", { timeoutMs: 20000 });
           setStripeBalance(stripeBalanceRes);
         } catch (stripeErr) {
           setStripeBalance(null);
         }
         if (statusChargesEnabled) {
-          const txRes = await apiGet<Transaction[]>("/stripe/wallet/transactions");
+          const txRes = await apiGet<Transaction[]>("/stripe/wallet/transactions", { timeoutMs: 20000 });
           setTransactions(txRes || []);
         } else {
           setTransactions([]);
         }
       }
     } catch (err) {
-      setError((err as Error).message || t("host_wallet_load_error"));
+      const timeoutCode = (err as Error & { code?: string })?.code;
+      setError(timeoutCode === "REQUEST_TIMEOUT" ? t("host_wallet_timeout_error") : (err as Error).message || t("host_wallet_load_error"));
     } finally {
       setLoading(false);
     }

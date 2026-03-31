@@ -22,8 +22,9 @@ export const clearAuthToken = () => {
   authToken = null;
 };
 
-type ApiOptions = RequestInit & { json?: unknown };
+type ApiOptions = RequestInit & { json?: unknown; timeoutMs?: number };
 type InternalApiOptions = ApiOptions & { _retried?: boolean; _skipAuthRefresh?: boolean };
+type PublicApiOptions = Omit<ApiOptions, "json" | "method">;
 
 let refreshRequest: Promise<boolean> | null = null;
 
@@ -75,7 +76,8 @@ const apiRequest = async <T>(path: string, options: InternalApiOptions = {}) => 
   }
 
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 10000);
+  const timeoutMs = typeof options.timeoutMs === "number" && options.timeoutMs > 0 ? options.timeoutMs : 10000;
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   let res: Response;
   try {
     res = await fetch(`${getApiBase()}${path}`, {
@@ -86,6 +88,11 @@ const apiRequest = async <T>(path: string, options: InternalApiOptions = {}) => 
       credentials: options.credentials || "include",
     });
   } catch (error) {
+    if (controller.signal.aborted) {
+      const timeoutError = new Error("Request timed out");
+      (timeoutError as Error & { code?: string }).code = "REQUEST_TIMEOUT";
+      throw timeoutError;
+    }
     if (process.env.NODE_ENV !== "production") {
       console.debug("[apiRequest]", path, "failed", error);
     }
@@ -114,8 +121,11 @@ const apiRequest = async <T>(path: string, options: InternalApiOptions = {}) => 
   return (await res.json()) as T;
 };
 
-export const apiGet = <T>(path: string) => apiRequest<T>(path);
-export const apiPost = <T>(path: string, json?: unknown) => apiRequest<T>(path, { method: "POST", json });
-export const apiPut = <T>(path: string, json?: unknown) => apiRequest<T>(path, { method: "PUT", json });
-export const apiPatch = <T>(path: string, json?: unknown) => apiRequest<T>(path, { method: "PATCH", json });
-export const apiDelete = <T>(path: string) => apiRequest<T>(path, { method: "DELETE" });
+export const apiGet = <T>(path: string, options?: PublicApiOptions) => apiRequest<T>(path, options);
+export const apiPost = <T>(path: string, json?: unknown, options?: PublicApiOptions) =>
+  apiRequest<T>(path, { ...options, method: "POST", json });
+export const apiPut = <T>(path: string, json?: unknown, options?: PublicApiOptions) =>
+  apiRequest<T>(path, { ...options, method: "PUT", json });
+export const apiPatch = <T>(path: string, json?: unknown, options?: PublicApiOptions) =>
+  apiRequest<T>(path, { ...options, method: "PATCH", json });
+export const apiDelete = <T>(path: string, options?: PublicApiOptions) => apiRequest<T>(path, { ...options, method: "DELETE" });

@@ -2,10 +2,39 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { apiGet } from "@/lib/api";
+import { apiGet, apiPatch } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
 import adminStyles from "../../admin.module.css";
 import styles from "./host-details.module.css";
+
+type HostFeeMode = "STANDARD" | "HOST_PAYS_STRIPE";
+
+type FeeBreakdown = {
+  modeApplied?: HostFeeMode;
+  platformFeeMinor?: number;
+  transferAmountMinor?: number;
+  hostNetAmountMinor?: number;
+  estimatedStripeFeeMinor?: number;
+  errorCode?: string;
+};
+
+type StripeFeeConfig = {
+  configured?: boolean;
+  percentBps?: number;
+  fixedMinor?: number;
+};
+
+type HostFeePolicy = {
+  currentMode?: HostFeeMode;
+  sampleAmountMinor?: number;
+  globalStripeFeeConfig?: StripeFeeConfig;
+  savedStripeFeeConfig?: StripeFeeConfig;
+  preview?: {
+    standard?: FeeBreakdown;
+    hostPaysStripe?: FeeBreakdown;
+    availableModes?: Array<{ value: HostFeeMode; label: string }>;
+  };
+};
 
 type AdminHost = {
   id: string;
@@ -39,6 +68,10 @@ type AdminHost = {
   issues?: string[];
   snapshotAt?: string | null;
   complianceHistory?: AdminHostComplianceHistoryItem[];
+  hostFeeMode?: HostFeeMode;
+  hostStripeFeePercentBps?: number;
+  hostStripeFeeFixedMinor?: number;
+  feePolicy?: HostFeePolicy;
 };
 
 type AdminHostComplianceHistoryItem = {
@@ -125,7 +158,16 @@ const COMPLIANCE_ISSUE_LABELS: Record<string, string> = {
 
 const numberFmt = (value?: number) => new Intl.NumberFormat("ro-RO").format(Number(value || 0));
 const formatMoney = (value?: number, currency?: string) => `${numberFmt(value)} ${String(currency || "RON").toUpperCase()}`;
+const formatMinorMoney = (value?: number, currency = "RON") =>
+  new Intl.NumberFormat("ro-RO", { style: "currency", currency, maximumFractionDigits: 2 }).format((Number(value || 0) || 0) / 100);
 const formatComplianceIssue = (value?: string) => COMPLIANCE_ISSUE_LABELS[String(value || "")] || String(value || "");
+const formatFeeMode = (value?: string) =>
+  String(value || "").trim().toUpperCase() === "HOST_PAYS_STRIPE" ? "0% LIVADAI + host pays Stripe" : "Standard";
+const formatStripeFeeConfig = (config?: StripeFeeConfig | null) => {
+  if (!config?.configured) return "Neconfigurat";
+  const percent = ((Number(config.percentBps || 0) || 0) / 100).toFixed(2);
+  return `${percent}% + ${formatMinorMoney(config.fixedMinor || 0)}`;
+};
 
 const formatDate = (value?: string | null) => {
   if (!value) return "—";
@@ -148,8 +190,11 @@ export default function AdminHostDetailsPage() {
   const [data, setData] = useState<AdminHostDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [savingFeePolicy, setSavingFeePolicy] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
+  const [selectedFeeMode, setSelectedFeeMode] = useState<HostFeeMode>("STANDARD");
+  const [feeReason, setFeeReason] = useState("");
 
   useEffect(() => {
     if (authLoading) return;
@@ -179,6 +224,7 @@ export default function AdminHostDetailsPage() {
       try {
         const data = await apiGet<AdminHostDetailsResponse>(`/admin/hosts/${hostId}${forceSync ? "?sync=1" : ""}`);
         setData(data || null);
+        setSelectedFeeMode((data?.host?.feePolicy?.currentMode || data?.host?.hostFeeMode || "STANDARD") as HostFeeMode);
         if (forceSync) {
           setInfo("Datele Stripe au fost sincronizate.");
         }
@@ -205,6 +251,30 @@ export default function AdminHostDetailsPage() {
   }
 
   const host = data?.host || null;
+  const canManageFeePolicy = normalizeRole(user?.role) === "OWNER_ADMIN";
+  const feePolicy = host?.feePolicy || null;
+  const selectedFeePreview =
+    selectedFeeMode === "HOST_PAYS_STRIPE" ? feePolicy?.preview?.hostPaysStripe || null : feePolicy?.preview?.standard || null;
+
+  const saveFeePolicy = async () => {
+    if (!hostId || !canManageFeePolicy) return;
+    setSavingFeePolicy(true);
+    setError("");
+    setInfo("");
+    try {
+      const res = await apiPatch<{ message?: string }>(`/admin/hosts/${hostId}/fee-policy`, {
+        feeMode: selectedFeeMode,
+        reason: feeReason.trim(),
+      });
+      setInfo(res?.message || "Fee policy updated.");
+      setFeeReason("");
+      await loadDetails(false);
+    } catch (err) {
+      setError((err as Error)?.message || "Nu am putut salva fee policy.");
+    } finally {
+      setSavingFeePolicy(false);
+    }
+  };
 
   return (
     <div className={styles.wrapper}>
@@ -283,6 +353,101 @@ export default function AdminHostDetailsPage() {
             ) : (
               <div className="muted">Fără alerte de compliance.</div>
             )}
+          </section>
+
+          <section className={`${adminStyles.card} ${styles.fullWidth}`}>
+            <div className={adminStyles.sectionTitleRow}>
+              <div>
+                <div className={adminStyles.panelTitle}>Pricing & Fees</div>
+                <div className="muted">Controlezi dacă host-ul rămâne pe standard sau suportă fee-ul Stripe.</div>
+              </div>
+              <span className={`${adminStyles.badge} ${host?.feePolicy?.currentMode === "HOST_PAYS_STRIPE" ? adminStyles.badgeWarn : ""}`}>
+                {formatFeeMode(host?.feePolicy?.currentMode)}
+              </span>
+            </div>
+
+            <div className={adminStyles.detailGrid}>
+              <div><strong>Current mode</strong><span>{formatFeeMode(host?.feePolicy?.currentMode)}</span></div>
+              <div><strong>Saved Stripe fee rule</strong><span>{formatStripeFeeConfig(host?.feePolicy?.savedStripeFeeConfig)}</span></div>
+              <div><strong>Global Stripe fee config</strong><span>{formatStripeFeeConfig(host?.feePolicy?.globalStripeFeeConfig)}</span></div>
+              <div><strong>Preview sample</strong><span>{formatMinorMoney(host?.feePolicy?.sampleAmountMinor || 0)}</span></div>
+            </div>
+
+            {!canManageFeePolicy ? <div className="muted">Doar OWNER_ADMIN poate modifica această setare.</div> : null}
+
+            <div className={styles.feePolicyForm}>
+              <label className={styles.field}>
+                <span>Fee mode</span>
+                <select
+                  className={adminStyles.select}
+                  value={selectedFeeMode}
+                  disabled={!canManageFeePolicy || savingFeePolicy}
+                  onChange={(e) => setSelectedFeeMode(e.target.value as HostFeeMode)}
+                >
+                  <option value="STANDARD">Standard</option>
+                  <option value="HOST_PAYS_STRIPE">0% LIVADAI + host pays Stripe</option>
+                </select>
+              </label>
+
+              <label className={styles.field}>
+                <span>Motiv admin</span>
+                <textarea
+                  className={adminStyles.modalTextarea}
+                  value={feeReason}
+                  disabled={!canManageFeePolicy || savingFeePolicy}
+                  onChange={(e) => setFeeReason(e.target.value)}
+                  placeholder="De ce schimbi această regulă pentru host?"
+                />
+              </label>
+            </div>
+
+            {selectedFeeMode === "HOST_PAYS_STRIPE" && !host?.feePolicy?.globalStripeFeeConfig?.configured ? (
+              <div className={styles.warningBox}>
+                Activează mai întâi în backend configurarea `STRIPE_HOST_PAYS_FEE_PERCENT_BPS` și `STRIPE_HOST_PAYS_FEE_FIXED_MINOR`.
+              </div>
+            ) : null}
+
+            <div className={styles.previewGrid}>
+              <div className={styles.previewCard}>
+                <strong>Host primește</strong>
+                <span>{formatMinorMoney(selectedFeePreview?.hostNetAmountMinor || 0)}</span>
+              </div>
+              <div className={styles.previewCard}>
+                <strong>LIVADAI fee</strong>
+                <span>{formatMinorMoney(selectedFeePreview?.platformFeeMinor || 0)}</span>
+              </div>
+              <div className={styles.previewCard}>
+                <strong>Stripe fee estimat</strong>
+                <span>{formatMinorMoney(selectedFeePreview?.estimatedStripeFeeMinor || 0)}</span>
+              </div>
+            </div>
+
+            <div className={styles.feePolicyActions}>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={savingFeePolicy}
+                onClick={() => {
+                  setSelectedFeeMode((host?.feePolicy?.currentMode || "STANDARD") as HostFeeMode);
+                  setFeeReason("");
+                }}
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                className="button"
+                disabled={
+                  !canManageFeePolicy ||
+                  savingFeePolicy ||
+                  !feeReason.trim() ||
+                  (selectedFeeMode === "HOST_PAYS_STRIPE" && !host?.feePolicy?.globalStripeFeeConfig?.configured)
+                }
+                onClick={() => void saveFeePolicy()}
+              >
+                {savingFeePolicy ? "Salvez..." : "Save fee policy"}
+              </button>
+            </div>
           </section>
 
           <section className={`${adminStyles.card} ${styles.fullWidth}`}>

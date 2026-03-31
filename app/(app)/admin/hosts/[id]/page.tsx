@@ -148,6 +148,7 @@ const COMPLIANCE_ISSUE_LABELS: Record<string, string> = {
   NAME_MISMATCH: "Nume diferit",
   STRIPE_NAME_MISSING: "Nume Stripe lipsă",
   BANK_REFERENCE_MISSING: "Bank ref lipsă",
+  STRIPE_ACCOUNT_INACCESSIBLE: "Cont Stripe inaccesibil",
   STRIPE_DISABLED: "Stripe disabled",
   STRIPE_REQUIREMENTS_DUE: "Requirements due",
   STRIPE_DETAILS_INCOMPLETE: "Details incomplete",

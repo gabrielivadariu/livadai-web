@@ -241,6 +241,7 @@ type AdminExperienceDetails = AdminExperience & {
   description?: string;
   category?: string;
   durationMinutes?: number;
+  scheduleType?: string;
   currencyCode?: string;
   activityType?: string;
   languages?: string[];
@@ -258,6 +259,12 @@ type AdminExperienceDetails = AdminExperience & {
     isStripePayoutsEnabled?: boolean;
     isStripeDetailsSubmitted?: boolean;
   }) | null;
+  seriesControl?: {
+    isSeries?: boolean;
+    mode?: "native" | "legacy" | string;
+    seriesKey?: string;
+    matchedCount?: number;
+  } | null;
 };
 
 type AdminExperienceDetailsResponse = {
@@ -295,6 +302,8 @@ type AdminExperienceSeriesDisableResponse = {
   success?: boolean;
   message?: string;
   groupId?: string;
+  seriesMode?: string;
+  seriesKey?: string;
   total?: number;
   updatedCount?: number;
   alreadyDisabledCount?: number;
@@ -1922,18 +1931,18 @@ export default function AdminPage() {
   );
 
   const deleteExperienceSeriesByAdmin = useCallback(
-    async (experience: Pick<AdminExperience, "id" | "title" | "scheduleGroupId" | "seriesId">) => {
+    async (experience: Pick<AdminExperienceDetails, "id" | "title" | "scheduleGroupId" | "seriesId" | "seriesControl">) => {
       if (!canWriteExperiences) {
         setActionError("Nu ai permisiune pentru modificări pe experiențe.");
         return;
       }
-      const groupId = String(experience.scheduleGroupId || experience.seriesId || "").trim();
-      if (!groupId) {
+      const seriesKey = String(experience.seriesControl?.seriesKey || experience.scheduleGroupId || experience.seriesId || "").trim();
+      if (!seriesKey) {
         setActionError("Experiența selectată nu aparține unei serii.");
         return;
       }
 
-      await runAction(`exp-series:${groupId}:delete`, async () => {
+      await runAction(`exp-series:${seriesKey}:delete`, async () => {
         const decision = await askCriticalConfirmation({
           title: "Ștergere serie întreagă (admin)",
           impact:
@@ -1947,7 +1956,7 @@ export default function AdminPage() {
         if (!decision.confirmed) return;
 
         const response = await apiPost<AdminExperienceDeleteResponse>(
-          `/admin/experiences/group/${encodeURIComponent(groupId)}/delete`,
+          `/admin/experiences/${experience.id}/series/delete`,
           { reason: decision.reason }
         );
 
@@ -1976,18 +1985,18 @@ export default function AdminPage() {
   );
 
   const disableExperienceSeriesByAdmin = useCallback(
-    async (experience: Pick<AdminExperience, "title" | "scheduleGroupId" | "seriesId">) => {
+    async (experience: Pick<AdminExperienceDetails, "id" | "title" | "scheduleGroupId" | "seriesId" | "seriesControl">) => {
       if (!canWriteExperiences) {
         setActionError("Nu ai permisiune pentru modificări pe experiențe.");
         return;
       }
-      const groupId = String(experience.scheduleGroupId || experience.seriesId || "").trim();
-      if (!groupId) {
+      const seriesKey = String(experience.seriesControl?.seriesKey || experience.scheduleGroupId || experience.seriesId || "").trim();
+      if (!seriesKey) {
         setActionError("Experiența selectată nu aparține unei serii.");
         return;
       }
 
-      await runAction(`exp-series:${groupId}:disable`, async () => {
+      await runAction(`exp-series:${seriesKey}:disable`, async () => {
         const decision = await askCriticalConfirmation({
           title: "Dezactivare serie întreagă (admin)",
           impact:
@@ -2001,7 +2010,7 @@ export default function AdminPage() {
         if (!decision.confirmed) return;
 
         const response = await apiPost<AdminExperienceSeriesDisableResponse>(
-          `/admin/experiences/group/${encodeURIComponent(groupId)}/disable`,
+          `/admin/experiences/${experience.id}/series/disable`,
           { reason: decision.reason }
         );
 
@@ -3132,9 +3141,11 @@ export default function AdminPage() {
                 onToggleSelect={toggleExperienceSelection}
                 onDisableSeries={(row) =>
                   disableExperienceSeriesByAdmin({
+                    id: row.id,
                     title: row.title,
                     scheduleGroupId: row.scheduleGroupId,
                     seriesId: row.seriesId,
+                    seriesControl: null,
                   })
                 }
                 onDeleteSeries={(row) => deleteExperienceSeriesByAdmin(row)}
@@ -3237,9 +3248,9 @@ export default function AdminPage() {
                   <div><strong>Titlu</strong><span>{experienceDetails.experience.title || "—"}</span></div>
                   <div><strong>Status</strong><span>{experienceDetails.experience.status || "—"}</span></div>
                   <div><strong>Activ</strong><span>{experienceDetails.experience.isActive ? "Da" : "Nu"}</span></div>
-                  <div><strong>Serie</strong><span>{experienceDetails.experience.isSeries ? "Da" : "Nu"}</span></div>
+                  <div><strong>Serie</strong><span>{experienceDetails.experience.seriesControl?.isSeries ? "Da" : experienceDetails.experience.isSeries ? "Da" : "Nu"}</span></div>
                   <div><strong>Host</strong><span>{experienceDetails.experience.host?.email || experienceDetails.experience.host?.name || "—"}</span></div>
-                  <div><strong>Group ID</strong><span>{experienceDetails.experience.scheduleGroupId || "—"}</span></div>
+                  <div><strong>Group ID</strong><span>{experienceDetails.experience.scheduleGroupId || experienceDetails.experience.seriesControl?.seriesKey || "—"}</span></div>
                   <div><strong>Preț</strong><span>{numberFmt(experienceDetails.experience.price)} {experienceDetails.experience.currencyCode || "RON"}</span></div>
                   <div><strong>Tip</strong><span>{experienceDetails.experience.activityType || "—"}</span></div>
                   <div><strong>Mediu</strong><span>{experienceDetails.experience.environment || "—"}</span></div>
@@ -3253,12 +3264,17 @@ export default function AdminPage() {
                 <div className={styles.detailsSection}>
                   <div className={styles.panelTitle}>Admin actions</div>
                   <div className="muted">
-                    {experienceDetails.experience.isSeries
+                    {experienceDetails.experience.seriesControl?.isSeries || experienceDetails.experience.isSeries
                       ? "Poți șterge slotul curent sau toată seria. Ștergerea seriei elimină doar sloturile fără booking-uri."
                       : Number(experienceDetails.counts?.bookingsTotal || 0) > 0
                         ? "Experiența are booking-uri. Acțiunea de delete o va anula, nu o va șterge fizic."
                         : "Experiența nu are booking-uri. Delete înseamnă ștergere definitivă cu media asociată."}
                   </div>
+                  {experienceDetails.experience.seriesControl?.isSeries && !experienceDetails.experience.scheduleGroupId ? (
+                    <div className="muted">
+                      Serie legacy detectată automat: {numberFmt(experienceDetails.experience.seriesControl?.matchedCount)} sloturi potrivite.
+                    </div>
+                  ) : null}
                   <div className={styles.buttonRow}>
                     <button
                       type="button"
@@ -3274,33 +3290,39 @@ export default function AdminPage() {
                       {pendingKey === `exp:${experienceDetails.experience.id}:delete`
                         ? "Se procesează..."
                         : Number(experienceDetails.counts?.bookingsTotal || 0) > 0
-                          ? experienceDetails.experience.isSeries
+                          ? (experienceDetails.experience.seriesControl?.isSeries || experienceDetails.experience.isSeries)
                             ? "Anulează slotul curent"
                             : "Anulează experiența"
-                          : experienceDetails.experience.isSeries
+                          : (experienceDetails.experience.seriesControl?.isSeries || experienceDetails.experience.isSeries)
                             ? "Șterge slotul curent"
                             : "Șterge experiența"}
                     </button>
-                    {experienceDetails.experience.scheduleGroupId ? (
+                    {experienceDetails.experience.seriesControl?.isSeries ? (
                       <button
                         type="button"
                         className="button secondary"
-                        disabled={!canWriteExperiences || pendingKey === `exp-series:${experienceDetails.experience.scheduleGroupId}:disable`}
+                        disabled={
+                          !canWriteExperiences ||
+                          pendingKey === `exp-series:${experienceDetails.experience.seriesControl?.seriesKey}:disable`
+                        }
                         onClick={() => void disableExperienceSeriesByAdmin(experienceDetails.experience!)}
                       >
-                        {pendingKey === `exp-series:${experienceDetails.experience.scheduleGroupId}:disable`
+                        {pendingKey === `exp-series:${experienceDetails.experience.seriesControl?.seriesKey}:disable`
                           ? "Se dezactivează seria..."
                           : "Dezactivează seria"}
                       </button>
                     ) : null}
-                    {experienceDetails.experience.scheduleGroupId ? (
+                    {experienceDetails.experience.seriesControl?.isSeries ? (
                       <button
                         type="button"
                         className="button secondary"
-                        disabled={!canWriteExperiences || pendingKey === `exp-series:${experienceDetails.experience.scheduleGroupId}:delete`}
+                        disabled={
+                          !canWriteExperiences ||
+                          pendingKey === `exp-series:${experienceDetails.experience.seriesControl?.seriesKey}:delete`
+                        }
                         onClick={() => void deleteExperienceSeriesByAdmin(experienceDetails.experience!)}
                       >
-                        {pendingKey === `exp-series:${experienceDetails.experience.scheduleGroupId}:delete`
+                        {pendingKey === `exp-series:${experienceDetails.experience.seriesControl?.seriesKey}:delete`
                           ? "Se procesează seria..."
                           : "Șterge seria"}
                       </button>

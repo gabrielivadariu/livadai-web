@@ -291,6 +291,17 @@ type AdminExperienceDeleteResponse = {
   skippedExperienceIds?: string[];
 };
 
+type AdminExperienceSeriesDisableResponse = {
+  success?: boolean;
+  message?: string;
+  groupId?: string;
+  total?: number;
+  updatedCount?: number;
+  alreadyDisabledCount?: number;
+  updatedExperienceIds?: string[];
+  alreadyDisabledIds?: string[];
+};
+
 type AdminAuditLogItem = {
   id: string;
   actorId?: string;
@@ -878,6 +889,8 @@ function AdminExperienceRow({
   onToggleActive,
   onSaveStatus,
   onToggleSelect,
+  onDisableSeries,
+  onDeleteSeries,
 }: {
   item: AdminExperience;
   selected?: boolean;
@@ -887,8 +900,11 @@ function AdminExperienceRow({
   onToggleActive: (id: string, nextValue: boolean) => Promise<void>;
   onSaveStatus: (id: string, status: string) => Promise<void>;
   onToggleSelect?: (id: string, checked: boolean) => void;
+  onDisableSeries?: (item: AdminExperience) => Promise<void>;
+  onDeleteSeries?: (item: AdminExperience) => Promise<void>;
 }) {
   const [statusValue, setStatusValue] = useState(String(item.status || ""));
+  const isSeries = !!(item.isSeries || item.scheduleGroupId || item.seriesId);
 
   return (
     <div className={`${styles.card} ${styles.rowCard} ${selected ? styles.rowCardSelected : ""}`}>
@@ -914,6 +930,7 @@ function AdminExperienceRow({
           <span className={`${styles.badge} ${item.isActive ? styles.badgeOk : styles.badgeWarn}`}>
             {item.isActive ? "ACTIVE" : "INACTIVE"}
           </span>
+          {isSeries ? <span className={styles.badge}>SERIE</span> : null}
           {item.environment ? <span className={styles.badge}>{item.environment}</span> : null}
           {item.soldOut ? <span className={styles.badgeWarnPill}>Sold out</span> : null}
         </div>
@@ -961,6 +978,26 @@ function AdminExperienceRow({
           >
             {selected ? "Reîncarcă detalii" : "Detalii"}
           </button>
+          {isSeries ? (
+            <button
+              type="button"
+              className="button secondary"
+              disabled={busy}
+              onClick={() => void onDisableSeries?.(item)}
+            >
+              Dezactivează seria
+            </button>
+          ) : null}
+          {isSeries ? (
+            <button
+              type="button"
+              className="button secondary"
+              disabled={busy}
+              onClick={() => void onDeleteSeries?.(item)}
+            >
+              Șterge seria
+            </button>
+          ) : null}
           <button
             type="button"
             className="button secondary"
@@ -1884,7 +1921,7 @@ export default function AdminPage() {
   );
 
   const deleteExperienceSeriesByAdmin = useCallback(
-    async (experience: AdminExperienceDetails) => {
+    async (experience: Pick<AdminExperience, "id" | "title" | "scheduleGroupId" | "seriesId">) => {
       if (!canWriteExperiences) {
         setActionError("Nu ai permisiune pentru modificări pe experiențe.");
         return;
@@ -1928,6 +1965,50 @@ export default function AdminPage() {
           setExperienceDetailsError("");
           return;
         }
+
+        if (selectedExperienceId) {
+          await loadExperienceDetails(selectedExperienceId);
+        }
+      });
+    },
+    [canWriteExperiences, askCriticalConfirmation, runAction, loadExperiences, experiences?.page, loadDashboard, loadRecentAdminActions, selectedExperienceId, loadExperienceDetails]
+  );
+
+  const disableExperienceSeriesByAdmin = useCallback(
+    async (experience: Pick<AdminExperience, "title" | "scheduleGroupId" | "seriesId">) => {
+      if (!canWriteExperiences) {
+        setActionError("Nu ai permisiune pentru modificări pe experiențe.");
+        return;
+      }
+      const groupId = String(experience.scheduleGroupId || experience.seriesId || "").trim();
+      if (!groupId) {
+        setActionError("Experiența selectată nu aparține unei serii.");
+        return;
+      }
+
+      await runAction(`exp-series:${groupId}:disable`, async () => {
+        const decision = await askCriticalConfirmation({
+          title: "Dezactivare serie întreagă (admin)",
+          impact:
+            "Toate sloturile din serie vor fi scoase din vânzare imediat. Booking-urile existente nu sunt șterse prin această acțiune.",
+          requireReason: true,
+          reasonLabel: "Motiv (obligatoriu)",
+          reasonPlaceholder: "Ex: host fără Stripe valid / serie oprită de echipa LIVADAI",
+          requireTypeText: "DISABLE",
+          confirmButtonLabel: "Confirmă dezactivarea seriei",
+        });
+        if (!decision.confirmed) return;
+
+        const response = await apiPost<AdminExperienceSeriesDisableResponse>(
+          `/admin/experiences/group/${encodeURIComponent(groupId)}/disable`,
+          { reason: decision.reason }
+        );
+
+        setActionInfo(
+          `Serie dezactivată: ${Number(response?.updatedCount || 0)} sloturi actualizate, ${Number(response?.alreadyDisabledCount || 0)} erau deja oprite.`
+        );
+
+        await Promise.all([loadExperiences(experiences?.page || 1), loadDashboard(), loadRecentAdminActions()]);
 
         if (selectedExperienceId) {
           await loadExperienceDetails(selectedExperienceId);
@@ -3041,9 +3122,21 @@ export default function AdminPage() {
                 item={item}
                 selected={selectedExperienceId === item.id}
                 selectedForBulk={selectedExperienceIds.includes(item.id)}
-                busy={!!pendingKey?.startsWith(`exp:${item.id}:`)}
+                busy={
+                  !!pendingKey?.startsWith(`exp:${item.id}:`) ||
+                  !!(item.scheduleGroupId && pendingKey === `exp-series:${item.scheduleGroupId}:delete`) ||
+                  !!(item.scheduleGroupId && pendingKey === `exp-series:${item.scheduleGroupId}:disable`)
+                }
                 onOpenDetails={loadExperienceDetails}
                 onToggleSelect={toggleExperienceSelection}
+                onDisableSeries={(row) =>
+                  disableExperienceSeriesByAdmin({
+                    title: row.title,
+                    scheduleGroupId: row.scheduleGroupId,
+                    seriesId: row.seriesId,
+                  })
+                }
+                onDeleteSeries={(row) => deleteExperienceSeriesByAdmin(row)}
                 onToggleActive={(id, nextValue) => {
                   if (!canWriteExperiences) {
                     setActionError("Nu ai permisiune pentru modificări pe experiențe.");
@@ -3187,6 +3280,18 @@ export default function AdminPage() {
                             ? "Șterge slotul curent"
                             : "Șterge experiența"}
                     </button>
+                    {experienceDetails.experience.scheduleGroupId ? (
+                      <button
+                        type="button"
+                        className="button secondary"
+                        disabled={!canWriteExperiences || pendingKey === `exp-series:${experienceDetails.experience.scheduleGroupId}:disable`}
+                        onClick={() => void disableExperienceSeriesByAdmin(experienceDetails.experience!)}
+                      >
+                        {pendingKey === `exp-series:${experienceDetails.experience.scheduleGroupId}:disable`
+                          ? "Se dezactivează seria..."
+                          : "Dezactivează seria"}
+                      </button>
+                    ) : null}
                     {experienceDetails.experience.scheduleGroupId ? (
                       <button
                         type="button"

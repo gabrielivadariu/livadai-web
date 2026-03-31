@@ -199,6 +199,9 @@ type AdminExperience = {
   title?: string;
   status?: string;
   isActive?: boolean;
+  scheduleGroupId?: string | null;
+  isSeries?: boolean;
+  seriesId?: string | null;
   price?: number;
   environment?: string | null;
   city?: string;
@@ -274,6 +277,18 @@ type AdminExperienceDetailsResponse = {
   recentReports?: AdminReport[];
   recentAudit?: AdminAuditLogItem[];
   timeline?: AdminUserTimelineItem[];
+};
+
+type AdminExperienceDeleteResponse = {
+  success?: boolean;
+  message?: string;
+  status?: "deleted" | "cancelled" | string;
+  experienceId?: string;
+  groupId?: string | null;
+  deletedCount?: number;
+  skippedWithBookings?: number;
+  deletedExperienceIds?: string[];
+  skippedExperienceIds?: string[];
 };
 
 type AdminAuditLogItem = {
@@ -1815,6 +1830,113 @@ export default function AdminPage() {
     [canWriteExperiences, loadExperiences, loadDashboard, loadExperienceDetails, loadRecentAdminActions, experiences?.page, selectedExperienceId]
   );
 
+  const deleteExperienceByAdmin = useCallback(
+    async (experience: AdminExperienceDetails, bookingsTotal = 0) => {
+      if (!canWriteExperiences) {
+        setActionError("Nu ai permisiune pentru modificări pe experiențe.");
+        return;
+      }
+      await runAction(`exp:${experience.id}:delete`, async () => {
+        const hasBookings = Number(bookingsTotal || 0) > 0;
+        const isSeries = !!(experience.isSeries || experience.scheduleGroupId || experience.seriesId);
+        const decision = await askCriticalConfirmation({
+          title: isSeries ? "Ștergere slot serie (admin)" : "Ștergere experiență (admin)",
+          impact: hasBookings
+            ? "Experiența are booking-uri. Nu va fi ștearsă fizic, ci anulată și scoasă din vânzare."
+            : "Experiența nu are booking-uri. Va fi ștearsă definitiv împreună cu media asociată.",
+          requireReason: true,
+          reasonLabel: "Motiv (obligatoriu)",
+          reasonPlaceholder: "Ex: cleanup operațional / conținut retras de echipă",
+          requireTypeText: hasBookings ? "CANCEL" : "DELETE",
+          confirmButtonLabel: hasBookings
+            ? (isSeries ? "Confirmă anularea slotului" : "Confirmă anularea")
+            : (isSeries ? "Confirmă ștergerea slotului" : "Confirmă ștergerea"),
+        });
+        if (!decision.confirmed) return;
+
+        const response = await apiPost<AdminExperienceDeleteResponse>(`/admin/experiences/${experience.id}/delete`, {
+          reason: decision.reason,
+        });
+
+        const deleted = String(response?.status || "").toLowerCase() === "deleted";
+        setActionInfo(
+          deleted
+            ? (isSeries ? "Slotul a fost șters din serie." : "Experiența a fost ștearsă.")
+            : (isSeries ? "Slotul a fost anulat." : "Experiența a fost anulată.")
+        );
+
+        await Promise.all([loadExperiences(experiences?.page || 1), loadDashboard(), loadRecentAdminActions()]);
+
+        if (deleted) {
+          setSelectedExperienceIds((current) => current.filter((itemId) => itemId !== experience.id));
+          setSelectedExperienceId((current) => (current === experience.id ? null : current));
+          setExperienceDetails((current) => (current?.experience?.id === experience.id ? null : current));
+          setExperienceDetailsError("");
+          return;
+        }
+
+        if (selectedExperienceId === experience.id) {
+          await loadExperienceDetails(experience.id);
+        }
+      });
+    },
+    [canWriteExperiences, askCriticalConfirmation, runAction, loadExperiences, experiences?.page, loadDashboard, loadRecentAdminActions, selectedExperienceId, loadExperienceDetails]
+  );
+
+  const deleteExperienceSeriesByAdmin = useCallback(
+    async (experience: AdminExperienceDetails) => {
+      if (!canWriteExperiences) {
+        setActionError("Nu ai permisiune pentru modificări pe experiențe.");
+        return;
+      }
+      const groupId = String(experience.scheduleGroupId || experience.seriesId || "").trim();
+      if (!groupId) {
+        setActionError("Experiența selectată nu aparține unei serii.");
+        return;
+      }
+
+      await runAction(`exp-series:${groupId}:delete`, async () => {
+        const decision = await askCriticalConfirmation({
+          title: "Ștergere serie întreagă (admin)",
+          impact:
+            "Vor fi șterse doar sloturile fără booking-uri. Sloturile cu booking-uri rămân active și nu sunt anulate automat.",
+          requireReason: true,
+          reasonLabel: "Motiv (obligatoriu)",
+          reasonPlaceholder: "Ex: seria a fost retrasă complet de echipa LIVADAI",
+          requireTypeText: "SERIES",
+          confirmButtonLabel: "Confirmă ștergerea seriei",
+        });
+        if (!decision.confirmed) return;
+
+        const response = await apiPost<AdminExperienceDeleteResponse>(
+          `/admin/experiences/group/${encodeURIComponent(groupId)}/delete`,
+          { reason: decision.reason }
+        );
+
+        const deletedCount = Number(response?.deletedCount || 0);
+        const skippedCount = Number(response?.skippedWithBookings || 0);
+        setActionInfo(`Serie procesată: ${deletedCount} sloturi șterse, ${skippedCount} păstrate cu booking-uri.`);
+
+        await Promise.all([loadExperiences(experiences?.page || 1), loadDashboard(), loadRecentAdminActions()]);
+
+        const deletedIds = new Set((response?.deletedExperienceIds || []).map((id) => String(id)));
+        setSelectedExperienceIds((current) => current.filter((itemId) => !deletedIds.has(itemId)));
+
+        if (selectedExperienceId && deletedIds.has(selectedExperienceId)) {
+          setSelectedExperienceId(null);
+          setExperienceDetails(null);
+          setExperienceDetailsError("");
+          return;
+        }
+
+        if (selectedExperienceId) {
+          await loadExperienceDetails(selectedExperienceId);
+        }
+      });
+    },
+    [canWriteExperiences, askCriticalConfirmation, runAction, loadExperiences, experiences?.page, loadDashboard, loadRecentAdminActions, selectedExperienceId, loadExperienceDetails]
+  );
+
   const postBookingAction = useCallback(
     async (id: string, action: "cancel" | "refund", reason: string, info: string) => {
       if (!canWriteBookings) {
@@ -3021,7 +3143,9 @@ export default function AdminPage() {
                   <div><strong>Titlu</strong><span>{experienceDetails.experience.title || "—"}</span></div>
                   <div><strong>Status</strong><span>{experienceDetails.experience.status || "—"}</span></div>
                   <div><strong>Activ</strong><span>{experienceDetails.experience.isActive ? "Da" : "Nu"}</span></div>
+                  <div><strong>Serie</strong><span>{experienceDetails.experience.isSeries ? "Da" : "Nu"}</span></div>
                   <div><strong>Host</strong><span>{experienceDetails.experience.host?.email || experienceDetails.experience.host?.name || "—"}</span></div>
+                  <div><strong>Group ID</strong><span>{experienceDetails.experience.scheduleGroupId || "—"}</span></div>
                   <div><strong>Preț</strong><span>{numberFmt(experienceDetails.experience.price)} {experienceDetails.experience.currencyCode || "RON"}</span></div>
                   <div><strong>Tip</strong><span>{experienceDetails.experience.activityType || "—"}</span></div>
                   <div><strong>Mediu</strong><span>{experienceDetails.experience.environment || "—"}</span></div>
@@ -3030,6 +3154,52 @@ export default function AdminPage() {
                   <div><strong>End</strong><span>{formatDate(experienceDetails.experience.endsAt)}</span></div>
                   <div><strong>Locație</strong><span>{[experienceDetails.experience.city, experienceDetails.experience.country].filter(Boolean).join(", ") || "—"}</span></div>
                   <div><strong>Adresă</strong><span>{experienceDetails.experience.address || "—"}</span></div>
+                </div>
+
+                <div className={styles.detailsSection}>
+                  <div className={styles.panelTitle}>Admin actions</div>
+                  <div className="muted">
+                    {experienceDetails.experience.isSeries
+                      ? "Poți șterge slotul curent sau toată seria. Ștergerea seriei elimină doar sloturile fără booking-uri."
+                      : Number(experienceDetails.counts?.bookingsTotal || 0) > 0
+                        ? "Experiența are booking-uri. Acțiunea de delete o va anula, nu o va șterge fizic."
+                        : "Experiența nu are booking-uri. Delete înseamnă ștergere definitivă cu media asociată."}
+                  </div>
+                  <div className={styles.buttonRow}>
+                    <button
+                      type="button"
+                      className="button secondary"
+                      disabled={!canWriteExperiences || pendingKey === `exp:${experienceDetails.experience.id}:delete`}
+                      onClick={() =>
+                        void deleteExperienceByAdmin(
+                          experienceDetails.experience!,
+                          Number(experienceDetails.counts?.bookingsTotal || 0)
+                        )
+                      }
+                    >
+                      {pendingKey === `exp:${experienceDetails.experience.id}:delete`
+                        ? "Se procesează..."
+                        : Number(experienceDetails.counts?.bookingsTotal || 0) > 0
+                          ? experienceDetails.experience.isSeries
+                            ? "Anulează slotul curent"
+                            : "Anulează experiența"
+                          : experienceDetails.experience.isSeries
+                            ? "Șterge slotul curent"
+                            : "Șterge experiența"}
+                    </button>
+                    {experienceDetails.experience.scheduleGroupId ? (
+                      <button
+                        type="button"
+                        className="button secondary"
+                        disabled={!canWriteExperiences || pendingKey === `exp-series:${experienceDetails.experience.scheduleGroupId}:delete`}
+                        onClick={() => void deleteExperienceSeriesByAdmin(experienceDetails.experience!)}
+                      >
+                        {pendingKey === `exp-series:${experienceDetails.experience.scheduleGroupId}:delete`
+                          ? "Se procesează seria..."
+                          : "Șterge seria"}
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className={styles.detailsSection}>

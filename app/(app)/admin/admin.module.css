@@ -1,9 +1,9 @@
 .adminShell {
-  width: min(1760px, calc(100vw - 40px));
+  width: min(1660px, calc(100vw - 28px));
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 248px minmax(0, 1fr);
-  gap: 20px;
+  grid-template-columns: 224px minmax(0, 1fr);
+  gap: 18px;
 }
 
 .sidebar {
@@ -14,12 +14,12 @@
   border: 1px solid #e5e7eb;
   border-radius: 20px;
   box-shadow: 0 10px 24px rgba(17, 24, 39, 0.06);
-  padding: 14px;
+  padding: 12px;
 }
 
 .sidebarBrand {
   font-weight: 900;
-  font-size: 18px;
+  font-size: 17px;
   color: #0f172a;
 }
 
@@ -30,10 +30,10 @@
 }
 
 .sidebarNav {
-  margin-top: 14px;
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
 }
 
 .sidebarItem {
@@ -41,7 +41,7 @@
   border: 1px solid #e5e7eb;
   background: #fff;
   border-radius: 14px;
-  padding: 10px 12px;
+  padding: 9px 11px;
   text-align: left;
   cursor: pointer;
   display: flex;
@@ -52,11 +52,12 @@
 .sidebarItem span {
   font-weight: 800;
   color: #0f172a;
+  font-size: 14px;
 }
 
 .sidebarItem small {
   color: #64748b;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .sidebarItemActive {
@@ -788,6 +789,16 @@
   align-items: start;
 }
 
+@media (max-width: 1520px) {
+  .statsGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .splitGrid {
+    grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.95fr);
+  }
+}
+
 .detailsCard {
   position: sticky;
   top: 92px;
@@ -955,7 +966,7 @@
 
 @media (max-width: 1180px) {
   .adminShell {
-    width: min(1760px, calc(100vw - 24px));
+    width: min(1660px, calc(100vw - 24px));
     grid-template-columns: 1fr;
   }
 

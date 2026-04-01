@@ -611,6 +611,9 @@ function ExperienceDetailPageContent() {
     return paragraphs;
   })();
   const hostLabel = item.host?.displayName || item.host?.name || t("experience_host_fallback");
+  const heroPreviewWords = storyText.split(" ").filter(Boolean);
+  const heroPreviewText =
+    heroPreviewWords.length > 22 ? `${heroPreviewWords.slice(0, 22).join(" ")}…` : storyText;
 
   const start = activeExperience?.startsAt || activeExperience?.startDate || item.seriesNextStartsAt || item.startsAt || item.startDate;
   const end = activeExperience?.endsAt || activeExperience?.endDate || item.endsAt;
@@ -619,9 +622,11 @@ function ExperienceDetailPageContent() {
   const streetLine = [location.street, location.streetNumber].filter(Boolean).join(" ").trim();
   const cityLine = location.city || item.city;
   const countryLine = location.country || item.country;
+  const locationLabel = [cityLine, countryLine].filter(Boolean).join(", ");
   const addressLines = formattedAddress
     ? [formattedAddress]
     : ([streetLine, cityLine, countryLine].filter(Boolean) as string[]);
+  const languageLabels = (item.languages || []).length ? (item.languages || []).map((lang) => lang.toUpperCase()) : ["RO"];
   const dateFormatter = new Intl.DateTimeFormat(lang === "en" ? "en-US" : "ro-RO", {
     day: "numeric",
     month: "long",
@@ -724,6 +729,59 @@ function ExperienceDetailPageContent() {
                 ))}
               </div>
             ) : null}
+          </div>
+          <div className={styles.mediaRail}>
+            <div className={styles.mediaRailHeader}>
+              <div className={styles.mediaRailCopy}>
+                <div className={styles.mediaRailKicker}>{t("experience_host")}</div>
+                {item.host?._id ? (
+                  <Link href={`/hosts/${item.host._id}`} className={styles.hostChip}>
+                    <span className={styles.hostAvatar}>
+                      {item.host?.profilePhoto || item.host?.avatar ? (
+                        <img
+                          src={item.host.profilePhoto || item.host.avatar}
+                          alt={hostLabel}
+                        />
+                      ) : (
+                        hostLabel.slice(0, 1).toUpperCase()
+                      )}
+                    </span>
+                    <span className={styles.hostName}>{hostLabel}</span>
+                  </Link>
+                ) : (
+                  <div className={styles.hostChip}>
+                    <span className={styles.hostAvatar}>?</span>
+                    <span className={styles.hostName}>{hostLabel}</span>
+                  </div>
+                )}
+              </div>
+              <div className={styles.mediaFactStack}>
+                <span className={styles.mediaFactValue}>
+                  {lang === "en" ? "Hosted with care" : "Găzduit cu grijă"}
+                </span>
+                <span className={styles.mediaFactLabel}>
+                  {locationLabel || t("experience_location")}
+                </span>
+              </div>
+            </div>
+            {heroPreviewText ? <p className={styles.mediaRailText}>{heroPreviewText}</p> : null}
+            <div className={styles.mediaRailMeta}>
+              <div className={styles.mediaMiniCard}>
+                <span className={styles.mediaMiniLabel}>{t("experience_languages")}</span>
+                <div className={styles.mediaMiniBadges}>
+                  {languageLabels.slice(0, 3).map((langCode) => (
+                    <span key={langCode} className={styles.badge}>{langCode}</span>
+                  ))}
+                </div>
+              </div>
+              <div className={styles.mediaMiniCard}>
+                <span className={styles.mediaMiniLabel}>{t("experience_type")}</span>
+                <strong className={styles.mediaMiniValue}>
+                  {item.activityType || "INDIVIDUAL"}
+                  {item.environment ? ` · ${item.environment}` : ""}
+                </strong>
+              </div>
+            </div>
           </div>
         </div>
         <div className={styles.summary}>

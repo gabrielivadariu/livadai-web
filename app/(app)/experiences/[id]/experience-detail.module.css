@@ -14,6 +14,12 @@
   box-shadow: var(--shadow);
 }
 
+.media {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
 .carousel {
   position: relative;
 }
@@ -95,6 +101,103 @@
 
 .dotActive {
   background: #0fbcd0;
+}
+
+.mediaRail {
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 22px;
+  border: 1px solid #e3eef2;
+  background:
+    radial-gradient(circle at top right, rgba(var(--brand-rgb), 0.1), transparent 46%),
+    linear-gradient(180deg, #ffffff 0%, #f7fcfd 100%);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.05);
+}
+
+.mediaRailHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.mediaRailCopy {
+  display: grid;
+  gap: 10px;
+}
+
+.mediaRailKicker {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.mediaFactStack {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  text-align: right;
+}
+
+.mediaFactValue {
+  color: var(--primary-dark);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.mediaFactLabel {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  max-width: 18ch;
+  text-wrap: balance;
+}
+
+.mediaRailText {
+  margin: 0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.72;
+  text-wrap: pretty;
+}
+
+.mediaRailMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mediaMiniCard {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid #e7f1f3;
+}
+
+.mediaMiniLabel {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.mediaMiniBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mediaMiniValue {
+  color: var(--primary-dark);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.4;
 }
 
 .summary h1 {
@@ -680,6 +783,23 @@
 
   .slide img {
     height: 260px;
+  }
+
+  .mediaRailHeader {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .mediaFactStack {
+    text-align: left;
+  }
+
+  .mediaFactLabel {
+    max-width: none;
+  }
+
+  .mediaRailMeta {
+    grid-template-columns: 1fr;
   }
 
   .contentGrid {

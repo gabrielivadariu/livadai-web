@@ -69,8 +69,10 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState("");
   const [step, setStep] = useState<"register" | "verify">("register");
   const [code, setCode] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const isPasswordValid = password.length >= 8;
-  const canSubmit = termsChecked && isPasswordValid && password === confirmPassword;
+  const canSubmit = termsChecked && isPasswordValid && password === confirmPassword && !submitting;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,6 +92,7 @@ export default function RegisterPage() {
       return;
     }
     try {
+      setSubmitting(true);
       const res = await register({
         name,
         email,
@@ -112,8 +115,13 @@ export default function RegisterPage() {
       }
       setSuccess(t("register_check_email"));
     } catch (err) {
-      const message = (err as Error).message || t("register_error");
+      const requestError = err as Error & { code?: string };
+      const message = requestError.code === "REQUEST_TIMEOUT"
+        ? t("register_timeout_error")
+        : requestError.message || t("register_error");
       setError(message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -122,6 +130,7 @@ export default function RegisterPage() {
     setError("");
     setSuccess("");
     try {
+      setVerifying(true);
       const data = await apiPost<{ token?: string }>("/auth/verify-email-code", {
         email: email.trim(),
         code: code.trim(),
@@ -135,6 +144,8 @@ export default function RegisterPage() {
     } catch (err) {
       const message = (err as Error).message || t("register_verify_error");
       setError(message);
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -243,7 +254,7 @@ export default function RegisterPage() {
             ) : null}
             {error ? <div className={styles.error}>{error}</div> : null}
             <button className="button" type="submit" disabled={!canSubmit}>
-              {t("register_button")}
+              {submitting ? t("register_submitting") : t("register_button")}
             </button>
           </form>
         ) : (
@@ -265,8 +276,8 @@ export default function RegisterPage() {
               <div style={{ color: "var(--brand)", marginBottom: 8, textAlign: "center" }}>{success}</div>
             ) : null}
             {error ? <div className={styles.error}>{error}</div> : null}
-            <button className="button" type="submit">
-              {t("register_verify_button")}
+            <button className="button" type="submit" disabled={verifying}>
+              {verifying ? t("register_verifying") : t("register_verify_button")}
             </button>
             <div className={styles.link} style={{ marginTop: 10 }}>
               {t("register_no_code")}{" "}

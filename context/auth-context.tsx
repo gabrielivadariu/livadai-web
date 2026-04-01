@@ -66,7 +66,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const register = useCallback(async (payload: Record<string, unknown>) => {
-    return apiPost<{ message?: string; requiresEmailVerification?: boolean }>("/auth/register", payload);
+    return apiPost<{ message?: string; requiresEmailVerification?: boolean }>("/auth/register", payload, {
+      timeoutMs: 20000,
+    });
   }, []);
 
   const logout = useCallback(async () => {

@@ -336,6 +336,9 @@
 }
 
 .card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   background: var(--card);
   border: 1px solid #edf2f7;
   border-radius: 22px;
@@ -362,8 +365,10 @@
 }
 
 .cardBody {
+  flex: 1;
   padding: 18px;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
@@ -371,6 +376,8 @@
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 12px;
+  align-items: start;
+  flex: 1;
 }
 
 .cardTitle {
@@ -389,6 +396,7 @@
   color: var(--muted);
   font-size: 14px;
   margin-top: 8px;
+  line-height: 1.5;
 }
 
 .priceBadge {
@@ -404,6 +412,7 @@
 .cardMeta {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: auto;
   gap: 10px;
   font-size: 13px;
   color: var(--muted);
@@ -412,7 +421,7 @@
 }
 
 .metaPill {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
@@ -423,6 +432,7 @@
   background: #f8fcff;
   color: #64748b;
   justify-content: flex-start;
+  box-sizing: border-box;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

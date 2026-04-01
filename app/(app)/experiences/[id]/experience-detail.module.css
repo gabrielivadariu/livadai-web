@@ -1,12 +1,12 @@
 .page {
   display: grid;
-  gap: 24px;
+  gap: 20px;
 }
 
 .hero {
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
-  gap: 24px;
+  gap: 22px;
   background: #fff;
   border-radius: 28px;
   border: 1px solid #e6eff2;
@@ -100,7 +100,7 @@
 .summary h1 {
   font-family: "Sora", "Segoe UI", sans-serif;
   font-size: 32px;
-  margin: 8px 0 12px;
+  margin: 8px 0 10px;
 }
 
 .kicker {
@@ -113,7 +113,8 @@
 
 .subtitle {
   color: var(--muted);
-  line-height: 1.6;
+  line-height: 1.62;
+  max-width: 34ch;
 }
 
 .seriesPicker {
@@ -189,8 +190,8 @@
 .metaGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
-  margin: 18px 0;
+  gap: 10px;
+  margin: 16px 0;
 }
 
 .metaGrid span {
@@ -283,7 +284,6 @@
 
 .details {
   display: grid;
-  gap: 20px;
   background: #fff;
   border-radius: 24px;
   border: 1px solid #e6eff2;
@@ -292,7 +292,78 @@
 }
 
 .details h2 {
-  margin: 0 0 6px 0;
+  margin: 0;
+}
+
+.detailsShell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.72fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.storySection {
+  display: grid;
+  gap: 18px;
+  padding: 8px 2px 0 2px;
+}
+
+.storyHeader {
+  display: grid;
+  gap: 10px;
+}
+
+.storyLead {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.78;
+}
+
+.storyBody {
+  display: grid;
+  gap: 14px;
+  max-width: 66ch;
+}
+
+.storyBody p {
+  margin: 0;
+  color: #334155;
+  font-size: 16px;
+  line-height: 1.9;
+  text-wrap: pretty;
+}
+
+.detailsAside {
+  display: grid;
+  gap: 14px;
+}
+
+.infoCard {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid #e4eff2;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 252, 253, 0.98) 100%),
+    radial-gradient(circle at top right, rgba(var(--brand-rgb), 0.08), transparent 48%);
+}
+
+.infoCardHeader {
+  display: grid;
+  gap: 6px;
+}
+
+.infoCardHint {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.reportCard {
+  align-content: start;
 }
 
 .badges {
@@ -336,6 +407,7 @@
   gap: 8px;
   font-size: 14px;
   box-shadow: 0 10px 20px rgba(239, 68, 68, 0.15);
+  width: fit-content;
 }
 
 .reportButton:hover {
@@ -358,6 +430,12 @@
   font-weight: 700;
   text-decoration: none;
   width: fit-content;
+}
+
+.hostCard {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 18px;
 }
 
 .hostAvatar {
@@ -384,6 +462,19 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   max-width: 220px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.hostMeta {
+  display: grid;
+  gap: 2px;
+}
+
+.hostMetaLabel {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .lightbox {
@@ -477,8 +568,8 @@
 }
 
 .supportTray {
-  margin-top: 16px;
-  padding: 16px;
+  margin-top: 14px;
+  padding: 14px;
   border-radius: 22px;
   border: 1px solid #d8edf1;
   background:
@@ -489,7 +580,7 @@
 .supportIntro {
   display: grid;
   gap: 6px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .supportKicker {
@@ -514,13 +605,13 @@
 .supportActions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .supportCard {
   display: grid;
-  gap: 10px;
-  min-height: 122px;
+  gap: 8px;
+  min-height: 104px;
   border: 1px solid #d7eef2;
   border-radius: 18px;
   background: #fff;
@@ -573,13 +664,13 @@
   color: var(--primary-dark);
   font-size: 15px;
   font-weight: 800;
-  line-height: 1.35;
+  line-height: 1.32;
 }
 
 .supportCardText {
   color: var(--muted);
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.5;
 }
 
 @media (max-width: 959px) {
@@ -595,11 +686,16 @@
     grid-template-columns: 1fr;
   }
 
-  .contentGrid {
+  .detailsShell {
     grid-template-columns: 1fr;
   }
 
   .supportActions {
     grid-template-columns: 1fr;
+  }
+
+  .storyBody,
+  .storyLead {
+    max-width: none;
   }
 }

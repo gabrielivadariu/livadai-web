@@ -581,6 +581,37 @@ function ExperienceDetailPageContent() {
     );
   }
 
+  const storyText = (item.description || item.shortDescription || t("experience_details_fallback"))
+    .replace(/\s+/g, " ")
+    .replace(/([,.;!?])(?=\S)/g, "$1 ")
+    .trim();
+  const storyParagraphs = (() => {
+    if (!storyText) return [];
+    const words = storyText.split(" ").filter(Boolean);
+    if (words.length <= 40) return [storyText];
+    const paragraphs: string[] = [];
+    let current: string[] = [];
+    words.forEach((word, index) => {
+      current.push(word);
+      const wordCount = current.length;
+      const isSentenceEnd = /[.!?]["']?$/.test(word);
+      const isSoftBreak = /[,;:]["']?$/.test(word);
+      const isLastWord = index === words.length - 1;
+      if (
+        isLastWord ||
+        (wordCount >= 26 && isSentenceEnd) ||
+        (wordCount >= 34 && isSoftBreak) ||
+        wordCount >= 42
+      ) {
+        paragraphs.push(current.join(" "));
+        current = [];
+      }
+    });
+    if (current.length) paragraphs.push(current.join(" "));
+    return paragraphs;
+  })();
+  const hostLabel = item.host?.displayName || item.host?.name || t("experience_host_fallback");
+
   const start = activeExperience?.startsAt || activeExperience?.startDate || item.seriesNextStartsAt || item.startsAt || item.startDate;
   const end = activeExperience?.endsAt || activeExperience?.endDate || item.endsAt;
   const location = item.location || {};
@@ -908,54 +939,85 @@ function ExperienceDetailPageContent() {
 
       <div className={styles.contentGrid}>
         <div className={styles.details}>
-          <section>
-            <h2>{t("experience_about")}</h2>
-            <p>{item.description || item.shortDescription || t("experience_details_fallback")}</p>
-          </section>
-          <section>
-            <h2>{t("experience_host")}</h2>
-            {item.host?._id ? (
-              <Link href={`/hosts/${item.host._id}`} className={styles.hostChip}>
-                <span className={styles.hostAvatar}>
-                  {item.host?.profilePhoto || item.host?.avatar ? (
-                    <img
-                      src={item.host.profilePhoto || item.host.avatar}
-                      alt={item.host.displayName || item.host.name || "host"}
-                    />
-                  ) : (
-                    (item.host?.displayName || item.host?.name || t("experience_host_fallback"))
-                      .slice(0, 1)
-                      .toUpperCase()
-                  )}
-                </span>
-                <span className={styles.hostName}>
-                  {item.host?.displayName || item.host?.name || t("experience_host_fallback")}
-                </span>
-              </Link>
-            ) : (
-              <div className={styles.hostChip}>
-                <span className={styles.hostAvatar}>?</span>
-                <span>{item.host?.name || t("experience_host_fallback")}</span>
+          <div className={styles.detailsShell}>
+            <section className={styles.storySection}>
+              <div className={styles.storyHeader}>
+                <h2>{t("experience_about")}</h2>
+                {item.shortDescription && item.shortDescription !== item.description ? (
+                  <p className={styles.storyLead}>{item.shortDescription}</p>
+                ) : null}
               </div>
-            )}
-          </section>
-          <section>
-            <h2>{t("experience_languages")}</h2>
-            <div className={styles.badges}>
-              {(item.languages || []).length ? (item.languages || []).map((lang) => (
-                <span key={lang} className={styles.badge}>{lang.toUpperCase()}</span>
-              )) : <span className={styles.badge}>RO</span>}
-            </div>
-          </section>
-        </div>
-      </div>
+              <div className={styles.storyBody}>
+                {storyParagraphs.map((paragraph, index) => (
+                  <p key={`${index}-${paragraph.slice(0, 24)}`}>{paragraph}</p>
+                ))}
+              </div>
+            </section>
 
-      <div className={styles.reportRow}>
-        <button className={styles.reportButton} type="button" onClick={() => setReportOpen(true)}>
-          <span className={styles.reportIcon}>⚠️</span>
-          {t("report_experience")}
-        </button>
-        {reportSuccess ? <div className={styles.reportSuccess}>{reportSuccess}</div> : null}
+            <aside className={styles.detailsAside}>
+              <section className={styles.infoCard}>
+                <div className={styles.infoCardHeader}>
+                  <h2>{t("experience_host")}</h2>
+                  <span className={styles.infoCardHint}>{t("experience_kicker")}</span>
+                </div>
+                {item.host?._id ? (
+                  <Link href={`/hosts/${item.host._id}`} className={`${styles.hostChip} ${styles.hostCard}`}>
+                    <span className={styles.hostAvatar}>
+                      {item.host?.profilePhoto || item.host?.avatar ? (
+                        <img
+                          src={item.host.profilePhoto || item.host.avatar}
+                          alt={hostLabel}
+                        />
+                      ) : (
+                        hostLabel.slice(0, 1).toUpperCase()
+                      )}
+                    </span>
+                    <span className={styles.hostMeta}>
+                      <span className={styles.hostMetaLabel}>{t("experience_host")}</span>
+                      <span className={styles.hostName}>{hostLabel}</span>
+                    </span>
+                  </Link>
+                ) : (
+                  <div className={`${styles.hostChip} ${styles.hostCard}`}>
+                    <span className={styles.hostAvatar}>?</span>
+                    <span className={styles.hostMeta}>
+                      <span className={styles.hostMetaLabel}>{t("experience_host")}</span>
+                      <span className={styles.hostName}>{hostLabel}</span>
+                    </span>
+                  </div>
+                )}
+              </section>
+
+              <section className={styles.infoCard}>
+                <div className={styles.infoCardHeader}>
+                  <h2>{t("experience_languages")}</h2>
+                  <span className={styles.infoCardHint}>
+                    {lang === "en" ? "Spoken during the experience" : "Vorbite în timpul experienței"}
+                  </span>
+                </div>
+                <div className={styles.badges}>
+                  {(item.languages || []).length ? (item.languages || []).map((lang) => (
+                    <span key={lang} className={styles.badge}>{lang.toUpperCase()}</span>
+                  )) : <span className={styles.badge}>RO</span>}
+                </div>
+              </section>
+
+              <section className={`${styles.infoCard} ${styles.reportCard}`}>
+                <div className={styles.infoCardHeader}>
+                  <h2>{t("report_experience")}</h2>
+                  <span className={styles.infoCardHint}>
+                    {lang === "en" ? "Let us know if something feels wrong." : "Spune-ne dacă ceva pare în neregulă."}
+                  </span>
+                </div>
+                <button className={styles.reportButton} type="button" onClick={() => setReportOpen(true)}>
+                  <span className={styles.reportIcon}>⚠️</span>
+                  {t("report_experience")}
+                </button>
+                {reportSuccess ? <div className={styles.reportSuccess}>{reportSuccess}</div> : null}
+              </section>
+            </aside>
+          </div>
+        </div>
       </div>
 
       <ReportModal

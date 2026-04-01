@@ -402,12 +402,13 @@
 }
 
 .cardMeta {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   font-size: 13px;
   color: var(--muted);
   font-weight: 600;
+  align-items: stretch;
 }
 
 .metaPill {
@@ -415,10 +416,16 @@
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
+  width: 100%;
+  min-width: 0;
   border-radius: 999px;
   border: 1px solid #dbe7ef;
   background: #f8fcff;
   color: #64748b;
+  justify-content: flex-start;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .rating {
@@ -458,5 +465,15 @@
 
   .title {
     font-size: 32px;
+  }
+
+  .cardMeta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .cardMeta {
+    grid-template-columns: 1fr;
   }
 }

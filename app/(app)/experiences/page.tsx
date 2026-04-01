@@ -384,12 +384,6 @@ function ExperiencesPageContent() {
             const timeLabel = formatStartTimeLabel(item, lang);
             const seats = formatSeatsInfo(item);
             const environmentLabel = formatEnvironment(item, t);
-            const seriesLabel =
-              item.isSeries && item.seriesAvailableSlots
-                ? lang === "en"
-                  ? `${item.seriesAvailableSlots} slots`
-                  : `${item.seriesAvailableSlots} sloturi`
-                : "";
             return (
               <Link
                 key={item._id}
@@ -433,7 +427,6 @@ function ExperiencesPageContent() {
                     {item.languages?.length ? <span className={styles.metaPill}>🗣 {item.languages.slice(0, 2).join(" · ")}</span> : null}
                     {environmentLabel ? <span className={styles.metaPill}>🍃 {environmentLabel}</span> : null}
                     {seats ? <span className={styles.metaPill}>👥 {seats}</span> : null}
-                    {seriesLabel ? <span className={styles.metaPill}>🗓️ {seriesLabel}</span> : null}
                     {item.rating_avg ? <span className={styles.rating}>⭐ {Number(item.rating_avg).toFixed(1)}</span> : null}
                   </div>
                 </div>

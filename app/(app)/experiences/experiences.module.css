@@ -484,6 +484,15 @@
 
 @media (max-width: 560px) {
   .cardMeta {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .metaPill {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    flex: 0 0 auto;
   }
 }

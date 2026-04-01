@@ -1,6 +1,6 @@
 .adminShell {
-  width: min(1800px, calc(100vw - 24px));
-  margin: 0 12px 0 max(12px, env(safe-area-inset-left));
+  width: min(1820px, calc(100vw - 32px));
+  margin: 0 0 0 calc(50% - 50vw + 16px);
   display: grid;
   grid-template-columns: 196px minmax(0, 1fr);
   gap: 16px;
@@ -976,7 +976,7 @@
 
 @media (max-width: 1180px) {
   .adminShell {
-    width: min(1800px, calc(100vw - 24px));
+    width: min(1820px, calc(100vw - 24px));
     margin: 0 auto;
     grid-template-columns: 1fr;
   }

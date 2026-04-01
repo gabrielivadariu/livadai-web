@@ -47,6 +47,46 @@ type Experience = {
   seriesNextStartsAt?: string | null;
 };
 
+function TimeLifeSilhouette() {
+  return (
+    <div className={styles.timerArt} aria-hidden="true">
+      <svg className={styles.timerArtSvg} viewBox="0 0 280 92" preserveAspectRatio="none">
+        <g className={styles.timerTraveler}>
+          <animateTransform attributeName="transform" type="translate" values="12 60; 214 42" dur="16s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0;0.16;0.16;0.08;0" keyTimes="0;0.08;0.72;0.9;1" dur="16s" repeatCount="indefinite" />
+          <g>
+            <animateTransform attributeName="transform" type="scale" values="0.44;1.16" dur="16s" repeatCount="indefinite" />
+
+            <g className={styles.timerStage}>
+              <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.22;0.36;1" dur="16s" repeatCount="indefinite" />
+              <circle cx="18" cy="10" r="4.1" />
+              <path d="M18 16c-3.8 0-6.6 2.5-7.4 5.8l-1.2 5.3 4.5 2-1.8 15.2h3.8l2.2-9.9h.9l2.2 9.9h3.9l-1.9-15.2 4.7-2-1.3-5.3C24.8 18.5 22 16 18 16Z" />
+            </g>
+
+            <g className={styles.timerStage}>
+              <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.16;0.28;0.44;0.58;1" dur="16s" repeatCount="indefinite" />
+              <circle cx="19" cy="10.2" r="4.3" />
+              <path d="M19 15.8c-4 0-7 2.5-7.8 5.9l-1.5 6.6 4.6 2.1-1.4 16.9h4l2.3-11.3h1.2l2.5 11.3h4l-1.5-16.9 4.7-2.1-1.5-6.6c-.8-3.4-3.8-5.9-7.6-5.9Z" />
+            </g>
+
+            <g className={styles.timerStage}>
+              <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.4;0.52;0.72;0.86;1" dur="16s" repeatCount="indefinite" />
+              <circle cx="20" cy="9.8" r="4.5" />
+              <path d="M20 15.4c-4.2 0-7.6 2.7-8.4 6.4l-1.3 6.4 4.1 1.9 1.1 11.2-2.5 16.7h4.4l3-12.2h1.5L25 58h4.5L27 41.3l1.2-11.2 4.1-1.9-1.4-6.4c-.8-3.7-4-6.4-8-6.4Z" />
+            </g>
+
+            <g className={styles.timerStage} transform="translate(3 0) skewX(-8)">
+              <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.66;0.8;0.9;1" dur="16s" repeatCount="indefinite" />
+              <circle cx="19" cy="10.6" r="4.3" />
+              <path d="M19 16.2c-3.6 0-6.7 2.3-7.6 5.7l-1.4 6 3.9 1.8.8 10.3-2.5 16.2h4.1l2.8-11.4h1.5l3.8 11.4h4.3l-4.4-14.2-.9-10.9 3.6-1.9-1.8-6.7c-.9-3.4-3.9-5.6-7.8-5.3Z" />
+            </g>
+          </g>
+        </g>
+      </svg>
+    </div>
+  );
+}
+
 const formatSeatsInfo = (item: Experience) => {
   const total = item.maxParticipants || 0;
   const available = item.availableSpots ?? item.remainingSpots ?? item.maxParticipants;
@@ -302,6 +342,7 @@ function ExperiencesPageContent() {
         </div>
         <div className={`${styles.heroVisual} ${styles.fadeIn} ${styles.delay1}`}>
           <div className={styles.timerCard}>
+            <TimeLifeSilhouette />
             <div className={styles.timerLabel}>{t("hero_timer_label")}</div>
             <div className={styles.heroTimer}>
               {formattedHours}

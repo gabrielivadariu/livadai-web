@@ -73,6 +73,15 @@ export default function HostProfilePage() {
   const [status, setStatus] = useState("");
   const [reviews, setReviews] = useState<HostReview[]>([]);
   const [hostedExperiences, setHostedExperiences] = useState<HostExperience[]>([]);
+  const profileName = form.displayName || form.name || "Host";
+  const profileLocation = [form.city, form.country].filter(Boolean).join(", ");
+  const avatarInitials = (profileName || "H")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("");
+  const languagesCount = (form.languages || []).length;
 
   useEffect(() => {
     let active = true;
@@ -136,7 +145,7 @@ export default function HostProfilePage() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <div>
+        <div className={styles.headerCopy}>
           <div className={styles.kicker}>{t("host_kicker")}</div>
           <h1>{t("host_profile_title")}</h1>
           <p>{t("host_profile_subtitle")}</p>
@@ -145,7 +154,8 @@ export default function HostProfilePage() {
           <div className={styles.statCard}>
             <div className={styles.statLabel}>{t("host_rating_title")}</div>
             <div className={styles.statValue}>
-              ⭐ {Number(form.rating_avg || 0).toFixed(1)}
+              <span className={styles.statIcon}>★</span>
+              {Number(form.rating_avg || 0).toFixed(1)}
               <span className={styles.statHint}>({form.rating_count || 0})</span>
             </div>
           </div>
@@ -161,73 +171,130 @@ export default function HostProfilePage() {
       </div>
 
       <div className={styles.card}>
-        <div className={styles.grid}>
-          <div>
-            <label>{t("host_profile_name")}</label>
-            <input className="input" value={form.name || ""} onChange={(e) => onChange("name", e.target.value)} />
-          </div>
-          <div>
-            <label>{t("host_profile_display_name")}</label>
-            <input className="input" value={form.displayName || ""} onChange={(e) => onChange("displayName", e.target.value)} />
-          </div>
-          <div>
-            <label>{t("host_profile_city")}</label>
-            <input className="input" value={form.city || ""} onChange={(e) => onChange("city", e.target.value)} />
-          </div>
-          <div>
-            <label>{t("host_profile_country")}</label>
-            <input className="input" value={form.country || ""} onChange={(e) => onChange("country", e.target.value)} />
-          </div>
-          <div>
-            <label>{t("host_profile_phone")}</label>
-            <input className="input" value={form.phone || ""} onChange={(e) => onChange("phone", e.target.value)} />
-          </div>
-          <div>
-            <label>{t("host_profile_age")}</label>
-            <input className="input" type="number" value={form.age || ""} onChange={(e) => onChange("age", Number(e.target.value))} />
-          </div>
-          <div className={styles.full}>
-            <label>{t("host_profile_about")}</label>
-            <textarea
-              className={styles.textarea}
-              value={form.about_me || ""}
-              onChange={(e) => onChange("about_me", e.target.value)}
-            />
-          </div>
-          <div className={styles.full}>
-            <label>{t("host_profile_experience")}</label>
-            <textarea
-              className={styles.textarea}
-              value={form.experience || ""}
-              onChange={(e) => onChange("experience", e.target.value)}
-            />
-          </div>
-          <div className={styles.full}>
-            <label>{t("host_profile_avatar")}</label>
-            <input className="input" value={form.avatar || ""} onChange={(e) => onChange("avatar", e.target.value)} />
+        <div className={styles.profileShell}>
+          <aside className={styles.profilePreview}>
+            <div className={styles.avatarWrap}>
+              {form.avatar ? (
+                <img className={styles.avatarImage} src={form.avatar} alt={profileName} />
+              ) : (
+                <div className={styles.avatarFallback}>{avatarInitials}</div>
+              )}
+            </div>
+            <div className={styles.previewMeta}>
+              <div className={styles.previewRole}>{t("host_kicker")}</div>
+              <div className={styles.previewName}>{profileName}</div>
+              <div className={styles.previewLocation}>{profileLocation || t("host_profile_preview_empty_location")}</div>
+            </div>
+            <div className={styles.previewStats}>
+              <div className={styles.previewStat}>
+                <span>{t("host_profile_languages")}</span>
+                <strong>{languagesCount}</strong>
+              </div>
+              <div className={styles.previewStat}>
+                <span>{t("host_stats_total_events")}</span>
+                <strong>{form.total_events || 0}</strong>
+              </div>
+            </div>
+            <p className={styles.previewHint}>{t("host_profile_preview_hint")}</p>
+          </aside>
+
+          <div className={styles.formSections}>
+            <section className={styles.sectionBlock}>
+              <div className={styles.sectionHead}>
+                <div>
+                  <h2>{t("host_profile_section_identity")}</h2>
+                  <p>{t("host_profile_section_identity_hint")}</p>
+                </div>
+              </div>
+              <div className={styles.grid}>
+                <div className={styles.fieldGroup}>
+                  <label>{t("host_profile_name")}</label>
+                  <input className="input" value={form.name || ""} onChange={(e) => onChange("name", e.target.value)} />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>{t("host_profile_display_name")}</label>
+                  <input className="input" value={form.displayName || ""} onChange={(e) => onChange("displayName", e.target.value)} />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>{t("host_profile_city")}</label>
+                  <input className="input" value={form.city || ""} onChange={(e) => onChange("city", e.target.value)} />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>{t("host_profile_country")}</label>
+                  <input className="input" value={form.country || ""} onChange={(e) => onChange("country", e.target.value)} />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>{t("host_profile_phone")}</label>
+                  <input className="input" value={form.phone || ""} onChange={(e) => onChange("phone", e.target.value)} />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>{t("host_profile_age")}</label>
+                  <input className="input" type="number" value={form.age || ""} onChange={(e) => onChange("age", Number(e.target.value))} />
+                </div>
+                <div className={`${styles.fieldGroup} ${styles.full}`}>
+                  <label>{t("host_profile_avatar")}</label>
+                  <input className="input" value={form.avatar || ""} onChange={(e) => onChange("avatar", e.target.value)} />
+                </div>
+              </div>
+            </section>
+
+            <section className={styles.sectionBlock}>
+              <div className={styles.sectionHead}>
+                <div>
+                  <h2>{t("host_profile_section_story")}</h2>
+                  <p>{t("host_profile_section_story_hint")}</p>
+                </div>
+              </div>
+              <div className={styles.grid}>
+                <div className={`${styles.fieldGroup} ${styles.full}`}>
+                  <label>{t("host_profile_about")}</label>
+                  <textarea
+                    className={styles.textarea}
+                    value={form.about_me || ""}
+                    onChange={(e) => onChange("about_me", e.target.value)}
+                  />
+                </div>
+                <div className={`${styles.fieldGroup} ${styles.full}`}>
+                  <label>{t("host_profile_experience")}</label>
+                  <textarea
+                    className={styles.textarea}
+                    value={form.experience || ""}
+                    onChange={(e) => onChange("experience", e.target.value)}
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section className={styles.sectionBlock}>
+              <div className={styles.sectionHead}>
+                <div>
+                  <h2>{t("host_profile_section_languages")}</h2>
+                  <p>{t("host_profile_section_languages_hint")}</p>
+                </div>
+              </div>
+              <div className={styles.languages}>
+                <div className={styles.langGrid}>
+                  {languageOptions.map((lang) => (
+                    <button
+                      key={lang}
+                      type="button"
+                      className={`${styles.langChip} ${(form.languages || []).includes(lang) ? styles.langActive : ""}`}
+                      onClick={() => toggleLanguage(lang)}
+                    >
+                      {lang}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
           </div>
         </div>
-
-        <div className={styles.languages}>
-          <label>{t("host_profile_languages")}</label>
-          <div className={styles.langGrid}>
-            {languageOptions.map((lang) => (
-              <button
-                key={lang}
-                type="button"
-                className={`${styles.langChip} ${(form.languages || []).includes(lang) ? styles.langActive : ""}`}
-                onClick={() => toggleLanguage(lang)}
-              >
-                {lang}
-              </button>
-            ))}
-          </div>
+        <div className={styles.footerBar}>
+          {status ? <div className={styles.status}>{status}</div> : <div className={styles.statusPlaceholder} />}
+          <button className="button" type="button" onClick={onSave} disabled={saving}>
+            {saving ? t("common_saving") : t("host_profile_save")}
+          </button>
         </div>
-
-        {status ? <div className={styles.status}>{status}</div> : null}
-        <button className="button" type="button" onClick={onSave} disabled={saving}>
-          {saving ? t("common_saving") : t("host_profile_save")}
-        </button>
       </div>
 
       <div className={styles.card}>

@@ -67,6 +67,11 @@ function LoginContent() {
           </button>
         </form>
         <div className={styles.link}>
+          <Link className={styles.linkPrimary} href="/forgot-password">
+            {t("login_forgot_password")}
+          </Link>
+        </div>
+        <div className={styles.link}>
           {t("login_no_account")}{" "}
           <Link className={styles.linkPrimary} href="/register">
             {t("login_register")}

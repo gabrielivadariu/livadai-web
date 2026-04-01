@@ -32,6 +32,7 @@ export default function MenuPage() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
+        <div className={styles.headerKicker}>{t("nav_menu")}</div>
         <h1>{t("menu_title")}</h1>
         <p>{t("menu_subtitle")}</p>
       </div>
@@ -57,141 +58,151 @@ export default function MenuPage() {
 
       <div className={styles.card}>
         <div className={styles.sectionTitle}>{t("menu_explore")}</div>
-        {isHost ? (
-          <Link className={styles.row} href="/how-it-works-host">
-            <span>💼</span>
-            <div>
-              <strong>{t("menu_how_host_title")}</strong>
-              <p>{t("menu_how_host_text")}</p>
-            </div>
-            <span className={styles.chev}>›</span>
-          </Link>
-        ) : (
-          <>
-            <Link className={styles.row} href="/how-it-works">
-              <span>❓</span>
+        <div className={styles.sectionGrid}>
+          {isHost ? (
+            <Link className={styles.row} href="/how-it-works-host">
+              <span className={styles.icon}>💼</span>
               <div>
-                <strong>{t("menu_how_title")}</strong>
-                <p>{t("menu_how_text")}</p>
+                <strong>{t("menu_how_host_title")}</strong>
+                <p>{t("menu_how_host_text")}</p>
               </div>
               <span className={styles.chev}>›</span>
             </Link>
-            <Link className={styles.row} href="/trust-safety">
-              <span>🛡️</span>
-              <div>
-                <strong>{t("menu_trust_title")}</strong>
-                <p>{t("menu_trust_text")}</p>
-              </div>
-              <span className={styles.chev}>›</span>
-            </Link>
-          </>
-        )}
+          ) : (
+            <>
+              <Link className={styles.row} href="/how-it-works">
+                <span className={styles.icon}>❓</span>
+                <div>
+                  <strong>{t("menu_how_title")}</strong>
+                  <p>{t("menu_how_text")}</p>
+                </div>
+                <span className={styles.chev}>›</span>
+              </Link>
+              <Link className={styles.row} href="/trust-safety">
+                <span className={styles.icon}>🛡️</span>
+                <div>
+                  <strong>{t("menu_trust_title")}</strong>
+                  <p>{t("menu_trust_text")}</p>
+                </div>
+                <span className={styles.chev}>›</span>
+              </Link>
+            </>
+          )}
+        </div>
       </div>
 
       {isHost ? (
         <div className={styles.card}>
           <div className={styles.sectionTitle}>{t("menu_host")}</div>
-          <Link className={styles.row} href="/host/profile">
-            <span>👤</span>
-            <div>
-              <strong>{t("menu_host_profile_title")}</strong>
-              <p>{t("menu_host_profile_text")}</p>
-            </div>
-            <span className={styles.chev}>›</span>
-          </Link>
-          <Link className={styles.row} href="/host/hosted-experiences">
-            <span>🗂️</span>
-            <div>
-              <strong>{t("menu_host_experiences_title")}</strong>
-              <p>{t("menu_host_experiences_text")}</p>
-            </div>
-            <span className={styles.chev}>›</span>
-          </Link>
-          <Link className={styles.row} href="/host/bookings">
-            <span>🧾</span>
-            <div>
-              <strong>{t("menu_host_bookings_title")}</strong>
-              <p>{t("menu_host_bookings_text")}</p>
-            </div>
-            <span className={styles.chev}>›</span>
-          </Link>
-          <Link className={styles.row} href="/host/wallet">
-            <span>💳</span>
-            <div>
-              <strong>{t("menu_host_wallet_title")}</strong>
-              <p>{t("menu_host_wallet_text")}</p>
-            </div>
-            <span className={styles.chev}>›</span>
-          </Link>
-          <Link className={styles.row} href="/host/guest-participations">
-            <span>🧑‍🤝‍🧑</span>
-            <div>
-              <strong>{t("menu_host_guest_title")}</strong>
-              <p>{t("menu_host_guest_text")}</p>
-            </div>
-            <span className={styles.chev}>›</span>
-          </Link>
-          <Link className={`${styles.row} ${styles.rowHighlight}`} href="/host/create-experience">
-            <span>➕</span>
-            <div>
-              <strong>{t("menu_host_create_title")}</strong>
-              <p>{t("menu_host_create_text")}</p>
-            </div>
-            <span className={styles.chev}>›</span>
-          </Link>
+          <div className={styles.sectionGrid}>
+            <Link className={styles.row} href="/host/profile">
+              <span className={styles.icon}>👤</span>
+              <div>
+                <strong>{t("menu_host_profile_title")}</strong>
+                <p>{t("menu_host_profile_text")}</p>
+              </div>
+              <span className={styles.chev}>›</span>
+            </Link>
+            <Link className={styles.row} href="/host/hosted-experiences">
+              <span className={styles.icon}>🗂️</span>
+              <div>
+                <strong>{t("menu_host_experiences_title")}</strong>
+                <p>{t("menu_host_experiences_text")}</p>
+              </div>
+              <span className={styles.chev}>›</span>
+            </Link>
+            <Link className={styles.row} href="/host/bookings">
+              <span className={styles.icon}>🧾</span>
+              <div>
+                <strong>{t("menu_host_bookings_title")}</strong>
+                <p>{t("menu_host_bookings_text")}</p>
+              </div>
+              <span className={styles.chev}>›</span>
+            </Link>
+            <Link className={styles.row} href="/host/wallet">
+              <span className={styles.icon}>💳</span>
+              <div>
+                <strong>{t("menu_host_wallet_title")}</strong>
+                <p>{t("menu_host_wallet_text")}</p>
+              </div>
+              <span className={styles.chev}>›</span>
+            </Link>
+            <Link className={styles.row} href="/host/guest-participations">
+              <span className={styles.icon}>🧑‍🤝‍🧑</span>
+              <div>
+                <strong>{t("menu_host_guest_title")}</strong>
+                <p>{t("menu_host_guest_text")}</p>
+              </div>
+              <span className={styles.chev}>›</span>
+            </Link>
+            <Link className={`${styles.row} ${styles.rowHighlight}`} href="/host/create-experience">
+              <span className={styles.icon}>➕</span>
+              <div>
+                <strong>{t("menu_host_create_title")}</strong>
+                <p>{t("menu_host_create_text")}</p>
+              </div>
+              <span className={styles.chev}>›</span>
+            </Link>
+          </div>
         </div>
       ) : null}
 
       <div className={styles.card}>
         <div className={styles.sectionTitle}>Ajutor host</div>
-        <Link className={styles.row} href="/stripe-instructions">
-          <span>🧭</span>
-          <div>
-            <strong>Instrucțiuni Stripe</strong>
-            <p>Ghid exact pentru conectarea Stripe ca host</p>
-          </div>
-          <span className={styles.chev}>›</span>
-        </Link>
+        <div className={styles.sectionGrid}>
+          <Link className={styles.row} href="/stripe-instructions">
+            <span className={styles.icon}>🧭</span>
+            <div>
+              <strong>Instrucțiuni Stripe</strong>
+              <p>Ghid exact pentru conectarea Stripe ca host</p>
+            </div>
+            <span className={styles.chev}>›</span>
+          </Link>
+        </div>
       </div>
 
       <div className={styles.card}>
         <div className={styles.sectionTitle}>{t("menu_legal")}</div>
-        <Link className={styles.row} href="/about">
-          <span>ℹ️</span>
-          <div>
-            <strong>{t("menu_about_title")}</strong>
-            <p>{t("menu_about_text")}</p>
-          </div>
-          <span className={styles.chev}>›</span>
-        </Link>
-        <Link className={styles.row} href="/privacy">
-          <span>🔒</span>
-          <div>
-            <strong>{t("menu_privacy_title")}</strong>
-            <p>{t("menu_privacy_text")}</p>
-          </div>
-          <span className={styles.chev}>›</span>
-        </Link>
-        <Link className={styles.row} href="/terms">
-          <span>📄</span>
-          <div>
-            <strong>{t("menu_terms_title")}</strong>
-            <p>{t("menu_terms_text")}</p>
-          </div>
-          <span className={styles.chev}>›</span>
-        </Link>
+        <div className={styles.sectionGrid}>
+          <Link className={styles.row} href="/about">
+            <span className={styles.icon}>ℹ️</span>
+            <div>
+              <strong>{t("menu_about_title")}</strong>
+              <p>{t("menu_about_text")}</p>
+            </div>
+            <span className={styles.chev}>›</span>
+          </Link>
+          <Link className={styles.row} href="/privacy">
+            <span className={styles.icon}>🔒</span>
+            <div>
+              <strong>{t("menu_privacy_title")}</strong>
+              <p>{t("menu_privacy_text")}</p>
+            </div>
+            <span className={styles.chev}>›</span>
+          </Link>
+          <Link className={styles.row} href="/terms">
+            <span className={styles.icon}>📄</span>
+            <div>
+              <strong>{t("menu_terms_title")}</strong>
+              <p>{t("menu_terms_text")}</p>
+            </div>
+            <span className={styles.chev}>›</span>
+          </Link>
+        </div>
       </div>
 
       <div className={styles.card}>
         <div className={styles.sectionTitle}>{t("menu_contact")}</div>
-        <Link className={styles.row} href="/contact">
-          <span>💬</span>
-          <div>
-            <strong>{t("menu_contact_title")}</strong>
-            <p>{t("menu_contact_text")}</p>
-          </div>
-          <span className={styles.chev}>›</span>
-        </Link>
+        <div className={styles.sectionGrid}>
+          <Link className={styles.row} href="/contact">
+            <span className={styles.icon}>💬</span>
+            <div>
+              <strong>{t("menu_contact_title")}</strong>
+              <p>{t("menu_contact_text")}</p>
+            </div>
+            <span className={styles.chev}>›</span>
+          </Link>
+        </div>
       </div>
 
       <button className={styles.logout} type="button" onClick={logout}>

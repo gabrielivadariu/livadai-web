@@ -10,7 +10,7 @@ export default function StripeSuccessPage() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      router.replace("/host/wallet");
+      router.replace("/host/wallet?stripe_return=1");
     }, 1200);
     return () => clearTimeout(timer);
   }, [router]);
@@ -20,7 +20,7 @@ export default function StripeSuccessPage() {
       <div className="card" style={{ maxWidth: 520, margin: "80px auto" }}>
         <h2 style={{ marginTop: 0 }}>{t("stripe_success_title")}</h2>
         <p className="muted">{t("stripe_success_text")}</p>
-        <button className="button" type="button" onClick={() => router.replace("/host/wallet")}>
+        <button className="button" type="button" onClick={() => router.replace("/host/wallet?stripe_return=1")}>
           {t("stripe_success_back")}
         </button>
       </div>

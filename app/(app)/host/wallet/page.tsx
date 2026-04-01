@@ -31,6 +31,19 @@ type Transaction = {
   createdAt?: string;
 };
 
+const delay = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+const isRetriableWalletError = (err: unknown) => {
+  const timeoutCode = (err as Error & { code?: string })?.code;
+  const message = String((err as Error)?.message || "").toLowerCase();
+  return (
+    timeoutCode === "REQUEST_TIMEOUT" ||
+    message.includes("fetch failed") ||
+    message.includes("failed to fetch") ||
+    message.includes("network")
+  );
+};
+
 export default function HostWalletPage() {
   const { lang } = useLang();
   const t = useT();
@@ -45,42 +58,71 @@ export default function HostWalletPage() {
   const chargesEnabled =
     status?.charges_enabled === undefined ? !!status?.isStripeChargesEnabled : !!status?.charges_enabled;
 
-  const loadWallet = async () => {
+  const getWalletErrorMessage = (err: unknown) => {
+    const timeoutCode = (err as Error & { code?: string })?.code;
+    if (timeoutCode === "REQUEST_TIMEOUT") return t("host_wallet_timeout_error");
+    if (isRetriableWalletError(err)) return t("host_wallet_network_error");
+    return (err as Error).message || t("host_wallet_load_error");
+  };
+
+  const loadWallet = async ({ fromStripeReturn = false } = {}) => {
     setLoading(true);
     setError("");
-    try {
-      const statusRes = await apiGet<StripeStatus>("/stripe/debug/host-status", { timeoutMs: 20000 });
-      setStatus(statusRes);
-      const statusPayoutsEnabled =
-        statusRes?.payouts_enabled === undefined ? !!statusRes?.isStripePayoutsEnabled : !!statusRes?.payouts_enabled;
-      const statusChargesEnabled =
-        statusRes?.charges_enabled === undefined ? !!statusRes?.isStripeChargesEnabled : !!statusRes?.charges_enabled;
-      if (statusRes?.stripeAccountId && statusPayoutsEnabled) {
-        const balanceRes = await apiGet<WalletBalance>("/wallet/summary", { timeoutMs: 20000 });
-        setBalance(balanceRes);
-        try {
-          const stripeBalanceRes = await apiGet<WalletBalance>("/stripe/wallet/balance", { timeoutMs: 20000 });
-          setStripeBalance(stripeBalanceRes);
-        } catch (stripeErr) {
-          setStripeBalance(null);
+    const maxAttempts = fromStripeReturn ? 3 : 2;
+    let lastError: unknown = null;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        const statusRes = await apiGet<StripeStatus>("/stripe/debug/host-status", { timeoutMs: 20000 });
+        const statusPayoutsEnabled =
+          statusRes?.payouts_enabled === undefined ? !!statusRes?.isStripePayoutsEnabled : !!statusRes?.payouts_enabled;
+        const statusChargesEnabled =
+          statusRes?.charges_enabled === undefined ? !!statusRes?.isStripeChargesEnabled : !!statusRes?.charges_enabled;
+
+        let nextBalance: WalletBalance | null = null;
+        let nextStripeBalance: WalletBalance | null = null;
+        let nextTransactions: Transaction[] = [];
+
+        if (statusRes?.stripeAccountId && statusPayoutsEnabled) {
+          nextBalance = await apiGet<WalletBalance>("/wallet/summary", { timeoutMs: 20000 });
+          try {
+            nextStripeBalance = await apiGet<WalletBalance>("/stripe/wallet/balance", { timeoutMs: 20000 });
+          } catch (_stripeErr) {
+            nextStripeBalance = null;
+          }
+          if (statusChargesEnabled) {
+            nextTransactions = (await apiGet<Transaction[]>("/stripe/wallet/transactions", { timeoutMs: 20000 })) || [];
+          }
         }
-        if (statusChargesEnabled) {
-          const txRes = await apiGet<Transaction[]>("/stripe/wallet/transactions", { timeoutMs: 20000 });
-          setTransactions(txRes || []);
+
+        setStatus(statusRes);
+        setBalance(nextBalance);
+        setStripeBalance(nextStripeBalance);
+        setTransactions(nextTransactions);
+        if (fromStripeReturn && typeof window !== "undefined") {
+          window.history.replaceState({}, "", "/host/wallet");
+        }
+        setLoading(false);
+        return;
+      } catch (err) {
+        lastError = err;
+        if (attempt < maxAttempts - 1 && isRetriableWalletError(err)) {
+          await delay(1200 * (attempt + 1));
+          continue;
         } else {
-          setTransactions([]);
+          break;
         }
       }
-    } catch (err) {
-      const timeoutCode = (err as Error & { code?: string })?.code;
-      setError(timeoutCode === "REQUEST_TIMEOUT" ? t("host_wallet_timeout_error") : (err as Error).message || t("host_wallet_load_error"));
-    } finally {
-      setLoading(false);
     }
+
+    setError(getWalletErrorMessage(lastError));
+    setLoading(false);
   };
 
   useEffect(() => {
-    loadWallet();
+    const fromStripeReturn =
+      typeof window !== "undefined" && new URLSearchParams(window.location.search).get("stripe_return") === "1";
+    loadWallet({ fromStripeReturn });
   }, []);
 
   const onConnectStripe = async () => {
@@ -184,7 +226,7 @@ export default function HostWalletPage() {
               <button className="button" type="button" onClick={onOpenDashboard} disabled={stripeAvailableValue <= 0}>
                 {t("host_wallet_collect")}
               </button>
-              <button className="button secondary" type="button" onClick={loadWallet}>
+              <button className="button secondary" type="button" onClick={() => loadWallet()}>
                 {t("host_wallet_refresh")}
               </button>
             </div>
@@ -229,7 +271,7 @@ export default function HostWalletPage() {
             <button className="button" type="button" onClick={onCompleteOnboarding}>
               {t("host_wallet_continue")}
             </button>
-            <button className="button secondary" type="button" onClick={loadWallet}>
+            <button className="button secondary" type="button" onClick={() => loadWallet()}>
               {t("host_wallet_refresh")}
             </button>
           </div>

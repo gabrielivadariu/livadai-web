@@ -81,6 +81,41 @@
   filter: blur(0.2px);
 }
 
+.heroJourneyArt {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: 6%;
+  width: auto;
+  height: 90px;
+  z-index: 1;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.heroJourneyTraveler {
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.18));
+}
+
+.heroJourneyScale {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.heroJourneyStage {
+  fill-rule: evenodd;
+}
+
+.heroJourneyLight {
+  fill: url(#heroJourneySpark);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroJourneyArt {
+    display: none;
+  }
+}
+
 .heroText {
   position: relative;
   z-index: 2;
@@ -158,46 +193,6 @@
   box-shadow: 0 12px 24px rgba(var(--brand-rgb), 0.18);
   border: 1px solid rgba(5, 49, 58, 0.08);
   min-width: 240px;
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.timerCard > *:not(.timerArt) {
-  position: relative;
-  z-index: 1;
-}
-
-.timerArt {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.timerArtSvg {
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 6px;
-  width: calc(100% - 20px);
-  height: 64px;
-  color: rgba(var(--brand-rgb), 0.62);
-  overflow: visible;
-}
-
-.timerTraveler {
-  transform-origin: 0 0;
-}
-
-.timerStage {
-  fill: currentColor;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .timerArt {
-    display: none;
-  }
 }
 
 .timerLabel {
@@ -335,8 +330,8 @@
     display: none;
   }
 
-  .timerArtSvg {
-    height: 54px;
+  .heroJourneyArt {
+    display: none;
   }
 }
 

@@ -47,43 +47,91 @@ type Experience = {
   seriesNextStartsAt?: string | null;
 };
 
-function TimeLifeSilhouette() {
+const HERO_LIFE_PATH = "M40 138c60 10 120 10 180 4 80-8 160-10 240-4 52 4 98 4 160-6";
+
+function HeroLifeJourneyArt() {
   return (
-    <div className={styles.timerArt} aria-hidden="true">
-      <svg className={styles.timerArtSvg} viewBox="0 0 280 92" preserveAspectRatio="none">
-        <g className={styles.timerTraveler}>
-          <animateTransform attributeName="transform" type="translate" values="12 60; 214 42" dur="16s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="0;0.16;0.16;0.08;0" keyTimes="0;0.08;0.72;0.9;1" dur="16s" repeatCount="indefinite" />
-          <g>
-            <animateTransform attributeName="transform" type="scale" values="0.44;1.16" dur="16s" repeatCount="indefinite" />
+    <svg className={styles.heroJourneyArt} viewBox="0 0 640 180" aria-hidden="true">
+      <defs>
+        <linearGradient id="heroJourneyTone" x1="36" y1="0" x2="610" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#11bfd1" stopOpacity="0.92" />
+          <stop offset="48%" stopColor="#37cada" stopOpacity="0.72" />
+          <stop offset="78%" stopColor="#dffcff" stopOpacity="0.94" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="1" />
+        </linearGradient>
+        <radialGradient id="heroJourneySpark" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+          <stop offset="48%" stopColor="#dcfbff" stopOpacity="0.88" />
+          <stop offset="100%" stopColor="#dcfbff" stopOpacity="0" />
+        </radialGradient>
+        <filter id="heroJourneyGlow" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="2.2" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
 
-            <g className={styles.timerStage}>
-              <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.22;0.36;1" dur="16s" repeatCount="indefinite" />
-              <circle cx="18" cy="10" r="4.1" />
-              <path d="M18 16c-3.8 0-6.6 2.5-7.4 5.8l-1.2 5.3 4.5 2-1.8 15.2h3.8l2.2-9.9h.9l2.2 9.9h3.9l-1.9-15.2 4.7-2-1.3-5.3C24.8 18.5 22 16 18 16Z" />
+      <g className={styles.heroJourneyTraveler}>
+        <animate attributeName="opacity" values="0;0.46;0.54;0.5;0.18;0" keyTimes="0;0.06;0.38;0.78;0.94;1" dur="15s" repeatCount="indefinite" />
+        <animateMotion dur="15s" repeatCount="indefinite" path={HERO_LIFE_PATH} rotate="auto" />
+        <g className={styles.heroJourneyScale}>
+          <animateTransform attributeName="transform" additive="sum" type="translate" values="-10 -36; -12 -44; -16 -52; -22 -56" keyTimes="0;0.28;0.66;1" dur="15s" repeatCount="indefinite" />
+          <animateTransform attributeName="transform" additive="sum" type="scale" values="0.62;0.78;0.98;1.12" keyTimes="0;0.28;0.66;1" dur="15s" repeatCount="indefinite" />
+
+          <g fill="url(#heroJourneyTone)" stroke="url(#heroJourneyTone)" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round">
+            <g className={styles.heroJourneyStage}>
+              <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.2;0.32;1" dur="15s" repeatCount="indefinite" />
+              <circle cx="0" cy="-25.5" r="4.8" />
+              <path d="M-3.4-20.8c1.2-2.2 3.1-3.3 4.2-3.3 1.3 0 3.2 1.1 4.4 3.3l1.3 6.4-3.4 2.8 1.4 8.8H1l-1.2-5.9h-1.2l-1.4 5.9h-3.5l1.4-8.8-3.2-2.8 1.1-6.4Z" />
+              <path d="M-1.8-17.8l-6 7.2" />
+              <path d="M2.2-17.8l5.6 6.8" />
+              <path d="M-1.8-2.8l-3.9 10.4" />
+              <path d="M1.8-2.8l4.6 10.8" />
             </g>
 
-            <g className={styles.timerStage}>
-              <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.16;0.28;0.44;0.58;1" dur="16s" repeatCount="indefinite" />
-              <circle cx="19" cy="10.2" r="4.3" />
-              <path d="M19 15.8c-4 0-7 2.5-7.8 5.9l-1.5 6.6 4.6 2.1-1.4 16.9h4l2.3-11.3h1.2l2.5 11.3h4l-1.5-16.9 4.7-2.1-1.5-6.6c-.8-3.4-3.8-5.9-7.6-5.9Z" />
+            <g className={styles.heroJourneyStage}>
+              <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.16;0.28;0.44;0.56;1" dur="15s" repeatCount="indefinite" />
+              <circle cx="0" cy="-27.6" r="4.9" />
+              <path d="M4.3-31.6c2.8 0 4.8 2.2 5 4.6-1.3 0-2.6-.5-3.8-1.6" />
+              <path d="M-2.9-22.6c1.2-2.5 3.3-3.8 5-3.8 1.8 0 4 1.3 5.2 3.8l1.4 7-2.6 1.8-.5 10.5H2.6l-1.4-7.8h-1.3l-1.8 7.8h-4.1l-.3-11.1-2.3-1.2 1.4-6.9Z" />
+              <path d="M-1.4-19.8l-6.4 6.4" />
+              <path d="M4.2-18.8l5.8 7" />
+              <path d="M-0.8-3.4l-3.2 10.8" />
+              <path d="M2.6-3.2l5 10.2" />
             </g>
 
-            <g className={styles.timerStage}>
-              <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.4;0.52;0.72;0.86;1" dur="16s" repeatCount="indefinite" />
-              <circle cx="20" cy="9.8" r="4.5" />
-              <path d="M20 15.4c-4.2 0-7.6 2.7-8.4 6.4l-1.3 6.4 4.1 1.9 1.1 11.2-2.5 16.7h4.4l3-12.2h1.5L25 58h4.5L27 41.3l1.2-11.2 4.1-1.9-1.4-6.4c-.8-3.7-4-6.4-8-6.4Z" />
+            <g className={styles.heroJourneyStage}>
+              <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.42;0.56;0.76;0.88;1" dur="15s" repeatCount="indefinite" />
+              <circle cx="0" cy="-29.2" r="5" />
+              <path d="M-4.4-23.2c1.2-2.7 3.7-4.2 5.8-4.2 2.1 0 4.7 1.4 6 4.1l1.2 6-2.7 1.8-.6 12.4 1.4 10.8H2.5L.9 1.2H-.8l-2.3 8.4h-4.4l1.7-12.7-.4-11.2-2.8-1.7 1.2-7.2Z" />
+              <path d="M-2.6-21.2l-7 8.2" />
+              <path d="M4.7-21.2l6.2 8.1" />
+              <path d="M-0.2-3.4l-4.2 11.6" />
+              <path d="M2.4-3.4l5.8 9.9" />
             </g>
 
-            <g className={styles.timerStage} transform="translate(3 0) skewX(-8)">
-              <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.66;0.8;0.9;1" dur="16s" repeatCount="indefinite" />
-              <circle cx="19" cy="10.6" r="4.3" />
-              <path d="M19 16.2c-3.6 0-6.7 2.3-7.6 5.7l-1.4 6 3.9 1.8.8 10.3-2.5 16.2h4.1l2.8-11.4h1.5l3.8 11.4h4.3l-4.4-14.2-.9-10.9 3.6-1.9-1.8-6.7c-.9-3.4-3.9-5.6-7.8-5.3Z" />
+            <g className={styles.heroJourneyStage} transform="translate(4 0)">
+              <animate attributeName="opacity" values="0;0;0;1;1;0" keyTimes="0;0.64;0.76;0.88;0.94;1" dur="15s" repeatCount="indefinite" />
+              <circle cx="0" cy="-28.2" r="4.8" />
+              <path d="M-2.8-21.8c1.2-2.3 2.9-3.7 4.7-3.7 1.8 0 4.2 1.2 5.3 4.1l1.4 6.4-3 1.6-.6 12.5-1.6 8.8h-4L.7.6h-1.9l-2.5 8.1h-4.2l2.2-11.3-.2-9.6-2.4-2 1.7-7.6Z" />
+              <path d="M0.8-20.6c3.9 1.1 6.9 4.1 8 8.2" />
+              <path d="M-1.2-0.8l-3.4 8.8" />
+              <path d="M2.6-0.6l2.5 8.2" />
+              <path d="M8.2-10.6l6.1 18.8" />
             </g>
           </g>
+
+          <g filter="url(#heroJourneyGlow)">
+            <circle className={styles.heroJourneyLight} cx="2" cy="-12" r="0">
+              <animate attributeName="r" values="0;0;0;1.6;3.8;2.4;0" keyTimes="0;0.84;0.9;0.94;0.97;0.99;1" dur="15s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0;0;0;0.72;1;0.68;0" keyTimes="0;0.84;0.9;0.94;0.97;0.99;1" dur="15s" repeatCount="indefinite" />
+            </circle>
+          </g>
         </g>
-      </svg>
-    </div>
+      </g>
+    </svg>
   );
 }
 
@@ -285,42 +333,10 @@ function ExperiencesPageContent() {
       <section className={styles.hero}>
         <svg className={styles.heroIllustration} viewBox="0 0 640 180" aria-hidden="true">
           <g fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M40 138c60 10 120 10 180 4 80-8 160-10 240-4 52 4 98 4 160-6" />
-
-            <circle cx="80" cy="98" r="7" />
-            <path d="M74 110l14 10" />
-            <path d="M70 118l-10 22" />
-            <path d="M90 118l14 22" />
-            <path d="M86 100l18-8 8 16" />
-
-            <circle cx="180" cy="104" r="7" />
-            <path d="M172 114l16 10" />
-            <path d="M168 126l-10 18" />
-            <path d="M192 126l10 18" />
-            <path d="M170 122l28-6" />
-            <path d="M162 134c18 6 38 6 56 0" />
-
-            <circle cx="290" cy="100" r="7" />
-            <path d="M282 112l16 10" />
-            <path d="M276 124l-10 18" />
-            <path d="M302 124l12 18" />
-            <path d="M290 114l8 22" />
-            <path d="M300 114l10 22" />
-
-            <circle cx="400" cy="98" r="7" />
-            <path d="M392 110l16 10" />
-            <path d="M386 122l-10 18" />
-            <path d="M414 122l12 18" />
-            <path d="M388 114c10-10 24-10 34 0" />
-
-            <circle cx="520" cy="92" r="7" />
-            <path d="M512 104l16 10" />
-            <path d="M506 116l-10 18" />
-            <path d="M534 116l12 18" />
-            <path d="M520 104l-8 18" />
-            <path d="M528 104l10 18" />
+            <path d={HERO_LIFE_PATH} />
           </g>
         </svg>
+        <HeroLifeJourneyArt />
         <div className={styles.heroText}>
           <h1 className={`${styles.heroTitle} ${styles.fadeIn}`}>{t("hero_title")}</h1>
           <p className={`${styles.heroSubtitle} ${styles.fadeIn} ${styles.delay1}`}>
@@ -342,7 +358,6 @@ function ExperiencesPageContent() {
         </div>
         <div className={`${styles.heroVisual} ${styles.fadeIn} ${styles.delay1}`}>
           <div className={styles.timerCard}>
-            <TimeLifeSilhouette />
             <div className={styles.timerLabel}>{t("hero_timer_label")}</div>
             <div className={styles.heroTimer}>
               {formattedHours}

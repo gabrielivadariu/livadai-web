@@ -934,6 +934,27 @@ function CreateExperienceContent() {
   const editCoverImage = form.coverImageUrl || images[0] || "";
   const coverFocus = resolveCoverFocus(form);
   const goToWallet = () => router.push("/host/wallet");
+  const creationModeLabel =
+    form.creationMode === "ONE_TIME"
+      ? t("create_experience_mode_single")
+      : form.creationMode === "LONG_TERM"
+      ? t("create_experience_mode_long_term")
+      : t("create_experience_summary_empty");
+  const activityLabel =
+    form.activityType === "INDIVIDUAL"
+      ? t("activity_individual")
+      : form.activityType === "GROUP"
+      ? t("activity_group")
+      : t("create_experience_summary_empty");
+  const environmentLabel =
+    form.environment === "OUTDOOR"
+      ? t("environment_outdoor")
+      : form.environment === "INDOOR"
+      ? t("environment_indoor")
+      : form.environment === "BOTH"
+      ? t("environment_both")
+      : t("create_experience_summary_empty");
+  const languagesSummary = form.languages.length ? String(form.languages.length) : t("create_experience_summary_empty");
   const handleNextStep = () => {
     if (stripeGate.blocked) {
       setError(stripeGate.message);
@@ -1122,116 +1143,180 @@ function CreateExperienceContent() {
         <div className="muted">{t("common_loading_experiences")}</div>
       ) : step === 1 ? (
         <div className={styles.card}>
-          <h2>{t("create_experience_step_1")}</h2>
-          <div className={styles.grid}>
-            <div>
-              <label>{t("create_experience_label_title")}</label>
-              <input className="input" value={form.title} onChange={(e) => onChange("title", e.target.value)} />
-            </div>
-            <div>
-              <label>{t("create_experience_label_short")}</label>
-              <input className="input" value={form.shortDescription} onChange={(e) => onChange("shortDescription", e.target.value)} />
-            </div>
-            <div className={styles.full}>
-              <label>{t("create_experience_label_long")}</label>
-              <textarea
-                className={styles.textarea}
-                value={form.longDescription}
-                onChange={(e) => onChange("longDescription", e.target.value)}
-              />
-            </div>
-          </div>
-
-          {!isEdit ? (
-            <div className={styles.optionsRow}>
-              <div>
-                <label>{t("create_experience_mode_label")}</label>
-                <div className={styles.chips}>
-                  <button
-                    type="button"
-                    className={`${styles.chip} ${form.creationMode === "ONE_TIME" ? styles.chipActive : ""}`}
-                    onClick={() => onChange("creationMode", "ONE_TIME")}
-                  >
-                    {t("create_experience_mode_single")}
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.chip} ${form.creationMode === "LONG_TERM" ? styles.chipActive : ""}`}
-                    onClick={() => onChange("creationMode", "LONG_TERM")}
-                  >
-                    {t("create_experience_mode_long_term")}
-                  </button>
+          <div className={styles.stepLayout}>
+            <div className={styles.stepMain}>
+              <div className={styles.stepIntro}>
+                <div>
+                  <h2>{t("create_experience_step_1")}</h2>
+                  <p>{t("create_experience_step_1_intro")}</p>
                 </div>
-                <p className={styles.modeHint}>
-                  {!hasCreationMode
-                    ? t("create_experience_mode_select_hint")
-                    : form.creationMode === "ONE_TIME"
-                    ? t("create_experience_mode_single_hint")
-                    : t("create_experience_mode_long_term_hint")}
-                </p>
               </div>
-            </div>
-          ) : null}
 
-          <div className={styles.optionsRow}>
-            <div>
-              <label>{t("create_experience_activity")}</label>
-              <div className={styles.chips}>
-                {activityOptions.map((o) => (
-                  <button
-                    type="button"
-                    key={o.key}
-                    className={`${styles.chip} ${form.activityType === o.key ? styles.chipActive : ""}`}
-                    onClick={() => onChange("activityType", o.key)}
-                  >
-                    {t(o.labelKey)}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {form.activityType === "GROUP" ? (
-              <div>
-                <label>{t("create_experience_group_max")}</label>
-                <input
-                  className="input"
-                  type="number"
-                  min={1}
-                  value={String(form.maxParticipants).replace(/^0+(?=\d)/, "")}
-                  onChange={(e) => onChange("maxParticipants", normalizePositiveInteger(e.target.value))}
-                />
-              </div>
-            ) : null}
-            <div>
-              <label>{t("create_experience_environment")}</label>
-              <div className={styles.chips}>
-                {environmentOptions.map((o) => (
-                    <button
-                      type="button"
-                      key={o.key}
-                      className={`${styles.chip} ${form.environment === o.key ? styles.chipActive : ""}`}
-                      onClick={() => onChange("environment", o.key as FormState["environment"])}
-                    >
-                      {t(o.labelKey)}
-                    </button>
-                ))}
-              </div>
-            </div>
-          </div>
+              <section className={styles.stepSection}>
+                <div className={styles.sectionHeading}>
+                  <div>
+                    <h3>{t("create_experience_story_title")}</h3>
+                    <p>{t("create_experience_story_hint")}</p>
+                  </div>
+                </div>
+                <div className={styles.grid}>
+                  <div className={styles.fieldGroup}>
+                    <label>{t("create_experience_label_title")}</label>
+                    <input className="input" value={form.title} onChange={(e) => onChange("title", e.target.value)} />
+                  </div>
+                  <div className={styles.fieldGroup}>
+                    <label>{t("create_experience_label_short")}</label>
+                    <input className="input" value={form.shortDescription} onChange={(e) => onChange("shortDescription", e.target.value)} />
+                  </div>
+                  <div className={`${styles.fieldGroup} ${styles.full}`}>
+                    <label>{t("create_experience_label_long")}</label>
+                    <textarea
+                      className={styles.textarea}
+                      value={form.longDescription}
+                      onChange={(e) => onChange("longDescription", e.target.value)}
+                    />
+                  </div>
+                </div>
+              </section>
 
-          <div className={styles.languages}>
-            <label>{t("create_experience_languages")}</label>
-            <div className={styles.langGrid}>
-              {languages.map((lang) => (
-                <button
-                  key={lang.code}
-                  type="button"
-                  className={`${styles.langChip} ${form.languages.includes(lang.code) ? styles.chipActive : ""}`}
-                  onClick={() => toggleLanguage(lang.code)}
-                >
-                  {lang.label}
-                </button>
-              ))}
+              {!isEdit ? (
+                <section className={styles.stepSection}>
+                  <div className={styles.sectionHeading}>
+                    <div>
+                      <h3>{t("create_experience_format_title")}</h3>
+                      <p>{t("create_experience_format_hint")}</p>
+                    </div>
+                  </div>
+                  <div className={styles.optionsRow}>
+                    <div className={styles.optionCard}>
+                      <label>{t("create_experience_mode_label")}</label>
+                      <div className={styles.chips}>
+                        <button
+                          type="button"
+                          className={`${styles.chip} ${form.creationMode === "ONE_TIME" ? styles.chipActive : ""}`}
+                          onClick={() => onChange("creationMode", "ONE_TIME")}
+                        >
+                          {t("create_experience_mode_single")}
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.chip} ${form.creationMode === "LONG_TERM" ? styles.chipActive : ""}`}
+                          onClick={() => onChange("creationMode", "LONG_TERM")}
+                        >
+                          {t("create_experience_mode_long_term")}
+                        </button>
+                      </div>
+                      <p className={styles.modeHint}>
+                        {!hasCreationMode
+                          ? t("create_experience_mode_select_hint")
+                          : form.creationMode === "ONE_TIME"
+                          ? t("create_experience_mode_single_hint")
+                          : t("create_experience_mode_long_term_hint")}
+                      </p>
+                    </div>
+                  </div>
+                </section>
+              ) : null}
+
+              <section className={styles.stepSection}>
+                <div className={styles.sectionHeading}>
+                  <div>
+                    <h3>{t("create_experience_hosting_title")}</h3>
+                    <p>{t("create_experience_hosting_hint")}</p>
+                  </div>
+                </div>
+                <div className={styles.optionsRow}>
+                  <div className={styles.optionCard}>
+                    <label>{t("create_experience_activity")}</label>
+                    <div className={styles.chips}>
+                      {activityOptions.map((o) => (
+                        <button
+                          type="button"
+                          key={o.key}
+                          className={`${styles.chip} ${form.activityType === o.key ? styles.chipActive : ""}`}
+                          onClick={() => onChange("activityType", o.key)}
+                        >
+                          {t(o.labelKey)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {form.activityType === "GROUP" ? (
+                    <div className={`${styles.optionCard} ${styles.compactFieldCard}`}>
+                      <label>{t("create_experience_group_max")}</label>
+                      <input
+                        className="input"
+                        type="number"
+                        min={1}
+                        value={String(form.maxParticipants).replace(/^0+(?=\d)/, "")}
+                        onChange={(e) => onChange("maxParticipants", normalizePositiveInteger(e.target.value))}
+                      />
+                    </div>
+                  ) : null}
+                  <div className={styles.optionCard}>
+                    <label>{t("create_experience_environment")}</label>
+                    <div className={styles.chips}>
+                      {environmentOptions.map((o) => (
+                        <button
+                          type="button"
+                          key={o.key}
+                          className={`${styles.chip} ${form.environment === o.key ? styles.chipActive : ""}`}
+                          onClick={() => onChange("environment", o.key as FormState["environment"])}
+                        >
+                          {t(o.labelKey)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.languagesCard}>
+                  <div className={styles.languagesHead}>
+                    <label>{t("create_experience_languages")}</label>
+                    <span>{form.languages.length}</span>
+                  </div>
+                  <div className={styles.langGrid}>
+                    {languages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        type="button"
+                        className={`${styles.langChip} ${form.languages.includes(lang.code) ? styles.chipActive : ""}`}
+                        onClick={() => toggleLanguage(lang.code)}
+                      >
+                        {lang.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </section>
             </div>
+
+            <aside className={styles.stepAside}>
+              <div className={styles.summaryCard}>
+                <div className={styles.summaryTitle}>{t("create_experience_summary_title")}</div>
+                <p className={styles.summaryHint}>{t("create_experience_summary_hint")}</p>
+                <div className={styles.summaryList}>
+                  {!isEdit ? (
+                    <div className={styles.summaryRow}>
+                      <span>{t("create_experience_mode_label")}</span>
+                      <strong>{creationModeLabel}</strong>
+                    </div>
+                  ) : null}
+                  <div className={styles.summaryRow}>
+                    <span>{t("create_experience_activity")}</span>
+                    <strong>{activityLabel}</strong>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <span>{t("create_experience_environment")}</span>
+                    <strong>{environmentLabel}</strong>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <span>{t("create_experience_languages")}</span>
+                    <strong>{languagesSummary}</strong>
+                  </div>
+                </div>
+              </div>
+            </aside>
           </div>
         </div>
       ) : null}

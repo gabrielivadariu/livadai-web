@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { apiGet, apiPut } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
@@ -70,9 +70,11 @@ export default function HostProfilePage() {
   const [form, setForm] = useState<HostProfile>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState("");
   const [reviews, setReviews] = useState<HostReview[]>([]);
   const [hostedExperiences, setHostedExperiences] = useState<HostExperience[]>([]);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const profileName = form.displayName || form.name || "Host";
   const profileLocation = [form.city, form.country].filter(Boolean).join(", ");
   const avatarInitials = (profileName || "H")
@@ -114,6 +116,31 @@ export default function HostProfilePage() {
       const exists = list.includes(lang);
       return { ...f, languages: exists ? list.filter((l) => l !== lang) : [...list, lang] };
     });
+  };
+
+  const uploadAvatar = async (file: File) => {
+    setUploading(true);
+    setStatus("");
+    try {
+      const res = await fetch("/api/media/upload", {
+        method: "POST",
+        body: (() => {
+          const data = new FormData();
+          data.append("file", file);
+          return data;
+        })(),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      const url = data?.url || data?.secure_url;
+      if (!url) throw new Error("Upload failed");
+      setForm((prev) => ({ ...prev, avatar: url }));
+    } catch (err) {
+      setStatus((err as Error).message || t("host_profile_save_error"));
+    } finally {
+      setUploading(false);
+    }
   };
 
   const onSave = async () => {
@@ -179,7 +206,26 @@ export default function HostProfilePage() {
               ) : (
                 <div className={styles.avatarFallback}>{avatarInitials}</div>
               )}
+              <button
+                type="button"
+                className={styles.avatarAction}
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? t("profile_avatar_uploading") : t("profile_avatar_upload")}
+              </button>
             </div>
+            <input
+              ref={avatarInputRef}
+              className={styles.hiddenFileInput}
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void uploadAvatar(file);
+                e.currentTarget.value = "";
+              }}
+            />
             <div className={styles.previewMeta}>
               <div className={styles.previewRole}>{t("host_kicker")}</div>
               <div className={styles.previewName}>{profileName}</div>
@@ -233,7 +279,22 @@ export default function HostProfilePage() {
                 </div>
                 <div className={`${styles.fieldGroup} ${styles.full}`}>
                   <label>{t("host_profile_avatar")}</label>
-                  <input className="input" value={form.avatar || ""} onChange={(e) => onChange("avatar", e.target.value)} />
+                  <div className={styles.avatarField}>
+                    <button
+                      type="button"
+                      className="button secondary"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={uploading}
+                    >
+                      {uploading ? t("profile_avatar_uploading") : t("profile_avatar_upload")}
+                    </button>
+                    <input
+                      className="input"
+                      value={form.avatar || ""}
+                      onChange={(e) => onChange("avatar", e.target.value)}
+                      placeholder={t("profile_avatar_placeholder")}
+                    />
+                  </div>
                 </div>
               </div>
             </section>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiGet } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
+import { useLang } from "@/context/lang-context";
 import styles from "./analytics.module.css";
 
 const ADMIN_ROLES = new Set(["OWNER_ADMIN", "ADMIN", "ADMIN_SUPPORT", "ADMIN_RISK", "ADMIN_FINANCE", "ADMIN_VIEWER"]);
@@ -259,12 +260,15 @@ const maxBy = (values: number[]) => Math.max(...values, 1);
 export default function AdminAnalyticsPage() {
   const router = useRouter();
   const { user, token, loading: authLoading } = useAuth();
+  const { lang } = useLang();
   const [range, setRange] = useState<DateRangeKey>("last7d");
   const [from, setFrom] = useState(() => new Date().toISOString().slice(0, 10));
   const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
   const [data, setData] = useState<AnalyticsDashboard | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const isEn = lang === "en";
+  const tx = useCallback((ro: string, en: string) => (isEn ? en : ro), [isEn]);
 
   const isAdmin = isAdminRole(user?.role);
 
@@ -293,11 +297,11 @@ export default function AdminAnalyticsPage() {
       const next = await apiGet<AnalyticsDashboard>(`/admin/analytics/dashboard?${params.toString()}`);
       setData(next || null);
     } catch (err) {
-      setError((err as Error).message || "Failed to load analytics.");
+      setError((err as Error).message || tx("Nu am putut încărca analytics.", "Failed to load analytics."));
     } finally {
       setLoading(false);
     }
-  }, [from, isAdmin, range, to, token]);
+  }, [from, isAdmin, range, to, token, tx]);
 
   useEffect(() => {
     void loadDashboard();
@@ -382,26 +386,43 @@ export default function AdminAnalyticsPage() {
         }))
       )
     );
+  const funnelLabel = useCallback(
+    (row: FunnelRow) => {
+      if (isEn) return row.label;
+      const labels: Record<string, string> = {
+        homepage_visit: "Vizită homepage",
+        search_initiated: "Căutare pornită",
+        search_results_viewed: "Rezultate căutare văzute",
+        experience_page_viewed: "Pagină experiență văzută",
+        booking_started: "Booking început",
+        checkout_started: "Checkout început",
+        payment_completed: "Plată finalizată",
+        booking_confirmed: "Booking confirmat",
+      };
+      return labels[row.key] || row.label;
+    },
+    [isEn]
+  );
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
           <div className={styles.eyebrow}>LIVADAI Admin</div>
-          <h1 className={styles.title}>Analytics & business insights</h1>
+          <h1 className={styles.title}>{tx("Analytics și insight-uri de business", "Analytics & business insights")}</h1>
           <p className={styles.subtitle}>
-            Business-first visibility across traffic, search, funnel, experiences and hosts.
+            {tx("Vizibilitate orientată pe business pentru trafic, căutări, funnel, experiențe și gazde.", "Business-first visibility across traffic, search, funnel, experiences and hosts.")}
           </p>
           {data?.generatedAt ? (
-            <div className={styles.generatedAt}>Generated at {new Date(data.generatedAt).toLocaleString("en-GB")}</div>
+            <div className={styles.generatedAt}>{tx("Generat la", "Generated at")} {new Date(data.generatedAt).toLocaleString(isEn ? "en-GB" : "ro-RO")}</div>
           ) : null}
         </div>
         <div className={styles.headerActions}>
           <Link href="/admin" className="button secondary">
-            Back to admin
+            {tx("Înapoi la admin", "Back to admin")}
           </Link>
           <button type="button" className="button" onClick={() => void loadDashboard()} disabled={loading}>
-            Refresh
+            {tx("Reîmprospătează", "Refresh")}
           </button>
         </div>
       </div>
@@ -409,11 +430,11 @@ export default function AdminAnalyticsPage() {
       <section className={styles.filters}>
         <div className={styles.filterPills}>
           {[
-            { key: "today", label: "Today" },
-            { key: "yesterday", label: "Yesterday" },
-            { key: "last7d", label: "Last 7 days" },
-            { key: "last30d", label: "Last 30 days" },
-            { key: "custom", label: "Custom" },
+            { key: "today", label: tx("Astăzi", "Today") },
+            { key: "yesterday", label: tx("Ieri", "Yesterday") },
+            { key: "last7d", label: tx("Ultimele 7 zile", "Last 7 days") },
+            { key: "last30d", label: tx("Ultimele 30 zile", "Last 30 days") },
+            { key: "custom", label: tx("Personalizat", "Custom") },
           ].map((item) => (
             <button
               key={item.key}
@@ -428,11 +449,11 @@ export default function AdminAnalyticsPage() {
         {range === "custom" ? (
           <div className={styles.customRange}>
             <label className={styles.inputGroup}>
-              <span>From</span>
+              <span>{tx("De la", "From")}</span>
               <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
             </label>
             <label className={styles.inputGroup}>
-              <span>To</span>
+              <span>{tx("Până la", "To")}</span>
               <input type="date" value={to} onChange={(event) => setTo(event.target.value)} />
             </label>
           </div>
@@ -441,52 +462,52 @@ export default function AdminAnalyticsPage() {
       </section>
 
       {error ? <div className={styles.errorBanner}>{error}</div> : null}
-      {loading ? <div className={styles.loadingCard}>Loading analytics...</div> : null}
+      {loading ? <div className={styles.loadingCard}>{tx("Se încarcă analytics...", "Loading analytics...")}</div> : null}
 
       <section className={styles.metricGrid}>
-        <MetricCard label="Visitors today" value={numberFmt.format(Number(data?.overview?.visitorsToday || 0))} />
-        <MetricCard label="Visitors 7d" value={numberFmt.format(Number(data?.overview?.visitorsLast7Days || 0))} />
-        <MetricCard label="Visitors 30d" value={numberFmt.format(Number(data?.overview?.visitorsLast30Days || 0))} />
-        <MetricCard label="Unique visitors" value={numberFmt.format(Number(data?.overview?.uniqueVisitors || 0))} />
-        <MetricCard label="Sessions" value={numberFmt.format(Number(data?.overview?.totalSessions || 0))} />
-        <MetricCard label="Avg. session" value={formatDuration(data?.overview?.averageSessionDurationMs)} />
-        <MetricCard label="Bounce rate" value={formatPercent(data?.overview?.bounceRate)} />
-        <MetricCard label="Exit rate" value={formatPercent(data?.overview?.exitRate)} />
-        <MetricCard label="Page views" value={numberFmt.format(Number(data?.overview?.pageViews || 0))} />
+        <MetricCard label={tx("Vizitatori astăzi", "Visitors today")} value={numberFmt.format(Number(data?.overview?.visitorsToday || 0))} />
+        <MetricCard label={tx("Vizitatori 7z", "Visitors 7d")} value={numberFmt.format(Number(data?.overview?.visitorsLast7Days || 0))} />
+        <MetricCard label={tx("Vizitatori 30z", "Visitors 30d")} value={numberFmt.format(Number(data?.overview?.visitorsLast30Days || 0))} />
+        <MetricCard label={tx("Vizitatori unici", "Unique visitors")} value={numberFmt.format(Number(data?.overview?.uniqueVisitors || 0))} />
+        <MetricCard label={tx("Sesiuni", "Sessions")} value={numberFmt.format(Number(data?.overview?.totalSessions || 0))} />
+        <MetricCard label={tx("Durată medie sesiune", "Avg. session")} value={formatDuration(data?.overview?.averageSessionDurationMs)} />
+        <MetricCard label={tx("Rată bounce", "Bounce rate")} value={formatPercent(data?.overview?.bounceRate)} />
+        <MetricCard label={tx("Rată exit", "Exit rate")} value={formatPercent(data?.overview?.exitRate)} />
+        <MetricCard label={tx("Vizualizări pagină", "Page views")} value={numberFmt.format(Number(data?.overview?.pageViews || 0))} />
         <MetricCard
-          label="New vs returning"
+          label={tx("Noi vs reveniți", "New vs returning")}
           value={`${numberFmt.format(Number(data?.overview?.newUsers || 0))} / ${numberFmt.format(Number(data?.overview?.returningUsers || 0))}`}
-          hint="new / returning"
+          hint={tx("noi / reveniți", "new / returning")}
         />
-        <MetricCard label="Users registered" value={numberFmt.format(Number(data?.overview?.usersRegistered || 0))} />
-        <MetricCard label="Hosts registered" value={numberFmt.format(Number(data?.overview?.hostsRegistered || 0))} />
-        <MetricCard label="Experiences published" value={numberFmt.format(Number(data?.overview?.experiencesPublished || 0))} />
-        <MetricCard label="Bookings created" value={numberFmt.format(Number(data?.overview?.bookingsCreated || 0))} />
-        <MetricCard label="Paid bookings" value={numberFmt.format(Number(data?.overview?.paidBookings || 0))} />
-        <MetricCard label="Completed bookings" value={numberFmt.format(Number(data?.overview?.completedBookings || 0))} />
-        <MetricCard label="Cancelled bookings" value={numberFmt.format(Number(data?.overview?.cancelledBookings || 0))} />
+        <MetricCard label={tx("Utilizatori înregistrați", "Users registered")} value={numberFmt.format(Number(data?.overview?.usersRegistered || 0))} />
+        <MetricCard label={tx("Gazde înregistrate", "Hosts registered")} value={numberFmt.format(Number(data?.overview?.hostsRegistered || 0))} />
+        <MetricCard label={tx("Experiențe publicate", "Experiences published")} value={numberFmt.format(Number(data?.overview?.experiencesPublished || 0))} />
+        <MetricCard label={tx("Booking-uri create", "Bookings created")} value={numberFmt.format(Number(data?.overview?.bookingsCreated || 0))} />
+        <MetricCard label={tx("Booking-uri plătite", "Paid bookings")} value={numberFmt.format(Number(data?.overview?.paidBookings || 0))} />
+        <MetricCard label={tx("Booking-uri finalizate", "Completed bookings")} value={numberFmt.format(Number(data?.overview?.completedBookings || 0))} />
+        <MetricCard label={tx("Booking-uri anulate", "Cancelled bookings")} value={numberFmt.format(Number(data?.overview?.cancelledBookings || 0))} />
         <MetricCard label="GMV" value={toMinorCurrency(data?.overview?.gmvMinor)} />
-        <MetricCard label="Platform fee est." value={toMinorCurrency(data?.overview?.platformFeeRevenueEstimateMinor)} />
+        <MetricCard label={tx("Estimare fee platformă", "Platform fee est.")} value={toMinorCurrency(data?.overview?.platformFeeRevenueEstimateMinor)} />
       </section>
 
       <div className={styles.sectionGrid}>
         <section className={styles.card}>
           <div className={styles.sectionHeader}>
             <div>
-              <h2>Traffic sources</h2>
-              <p>Source / medium / campaign and landing page quality.</p>
+              <h2>{tx("Surse de trafic", "Traffic sources")}</h2>
+              <p>{tx("Source / medium / campaign și calitatea paginilor de intrare.", "Source / medium / campaign and landing page quality.")}</p>
             </div>
             <button type="button" className="button secondary" onClick={exportTraffic}>
-              Export CSV
+              {tx("Export CSV", "Export CSV")}
             </button>
           </div>
           <div className={styles.barList}>
             {(data?.traffic?.sources || []).map((row) => (
               <div key={`${row.source}-${row.medium}-${row.campaign}`} className={styles.barRow}>
                 <div className={styles.barMeta}>
-                  <strong>{row.source || "direct"}</strong>
+                  <strong>{row.source || tx("direct", "direct")}</strong>
                   <span>
-                    {row.medium || "none"} · {row.campaign || "(not set)"} · {row.channelGroup || "direct"}
+                    {row.medium || tx("fără", "none")} · {row.campaign || tx("(nesetat)", "(not set)")} · {row.channelGroup || tx("direct", "direct")}
                   </span>
                 </div>
                 <div className={styles.barTrack}>
@@ -501,7 +522,7 @@ export default function AdminAnalyticsPage() {
           </div>
           <div className={styles.miniGrid}>
             <div className={styles.subCard}>
-              <h3>Top landing pages</h3>
+              <h3>{tx("Top landing pages", "Top landing pages")}</h3>
               {(data?.traffic?.topLandingPages || []).map((row) => (
                 <div key={row.path} className={styles.inlineStat}>
                   <span>{row.path}</span>
@@ -510,7 +531,7 @@ export default function AdminAnalyticsPage() {
               ))}
             </div>
             <div className={styles.subCard}>
-              <h3>Devices</h3>
+              <h3>{tx("Dispozitive", "Devices")}</h3>
               {(data?.traffic?.devices || []).map((row) => (
                 <div key={row.deviceType} className={styles.inlineStat}>
                   <span>{row.deviceType}</span>
@@ -519,7 +540,7 @@ export default function AdminAnalyticsPage() {
               ))}
             </div>
             <div className={styles.subCard}>
-              <h3>Browsers</h3>
+              <h3>{tx("Browsere", "Browsers")}</h3>
               {(data?.traffic?.browsers || []).map((row) => (
                 <div key={row.browser} className={styles.inlineStat}>
                   <span>{row.browser}</span>
@@ -528,11 +549,11 @@ export default function AdminAnalyticsPage() {
               ))}
             </div>
             <div className={styles.subCard}>
-              <h3>Locations</h3>
+              <h3>{tx("Locații", "Locations")}</h3>
               {(data?.traffic?.locations || []).map((row) => (
                 <div key={`${row.country}-${row.city}`} className={styles.inlineStat}>
                   <span>
-                    {row.country || "Unknown"} / {row.city || "Unknown"}
+                    {row.country || tx("Necunoscut", "Unknown")} / {row.city || tx("Necunoscut", "Unknown")}
                   </span>
                   <strong>{numberFmt.format(Number(row.sessions || 0))}</strong>
                 </div>
@@ -544,19 +565,19 @@ export default function AdminAnalyticsPage() {
         <section className={styles.card}>
           <div className={styles.sectionHeader}>
             <div>
-              <h2>Search insights</h2>
-              <p>What people search for and how search converts.</p>
+              <h2>{tx("Insight-uri din căutare", "Search insights")}</h2>
+              <p>{tx("Ce caută oamenii și cum convertește căutarea.", "What people search for and how search converts.")}</p>
             </div>
             <button type="button" className="button secondary" onClick={exportSearch}>
-              Export CSV
+              {tx("Export CSV", "Export CSV")}
             </button>
           </div>
           <div className={styles.barList}>
             {(data?.searchInsights?.topKeywords || []).map((row) => (
               <div key={row.keyword} className={styles.barRow}>
                 <div className={styles.barMeta}>
-                  <strong>{row.keyword || "Unknown query"}</strong>
-                  <span>searches</span>
+                  <strong>{row.keyword || tx("Căutare necunoscută", "Unknown query")}</strong>
+                  <span>{tx("căutări", "searches")}</span>
                 </div>
                 <div className={styles.barTrack}>
                   <span
@@ -570,52 +591,52 @@ export default function AdminAnalyticsPage() {
           </div>
           <div className={styles.miniGrid}>
             <div className={styles.subCard}>
-              <h3>No-result searches</h3>
+              <h3>{tx("Căutări fără rezultate", "No-result searches")}</h3>
               {(data?.searchInsights?.noResults || []).map((row) => (
                 <div key={row.keyword} className={styles.inlineStat}>
-                  <span>{row.keyword || "Unknown"}</span>
+                  <span>{row.keyword || tx("Necunoscut", "Unknown")}</span>
                   <strong>{numberFmt.format(Number(row.count || 0))}</strong>
                 </div>
               ))}
             </div>
             <div className={styles.subCard}>
-              <h3>Top filters</h3>
+              <h3>{tx("Top filtre", "Top filters")}</h3>
               {(data?.searchInsights?.topFilters || []).map((row) => (
                 <div key={row.filter} className={styles.inlineStat}>
-                  <span>{row.filter || "Unknown"}</span>
+                  <span>{row.filter || tx("Necunoscut", "Unknown")}</span>
                   <strong>{numberFmt.format(Number(row.count || 0))}</strong>
                 </div>
               ))}
             </div>
             <div className={styles.subCard}>
-              <h3>Top locations</h3>
+              <h3>{tx("Top locații", "Top locations")}</h3>
               {(data?.searchInsights?.topLocations || []).map((row) => (
                 <div key={row.location} className={styles.inlineStat}>
-                  <span>{row.location || "Unknown"}</span>
+                  <span>{row.location || tx("Necunoscut", "Unknown")}</span>
                   <strong>{numberFmt.format(Number(row.count || 0))}</strong>
                 </div>
               ))}
             </div>
             <div className={styles.subCard}>
-              <h3>Search conversion</h3>
+              <h3>{tx("Conversie din căutare", "Search conversion")}</h3>
               <div className={styles.inlineStat}>
-                <span>Search sessions</span>
+                <span>{tx("Sesiuni de căutare", "Search sessions")}</span>
                 <strong>{numberFmt.format(Number(data?.searchInsights?.conversion?.searchSessions || 0))}</strong>
               </div>
               <div className={styles.inlineStat}>
-                <span>To results</span>
+                <span>{tx("Spre rezultate", "To results")}</span>
                 <strong>{formatPercent(data?.searchInsights?.conversion?.searchToResultsRate)}</strong>
               </div>
               <div className={styles.inlineStat}>
-                <span>To experience</span>
+                <span>{tx("Spre experiență", "To experience")}</span>
                 <strong>{formatPercent(data?.searchInsights?.conversion?.searchToExperienceRate)}</strong>
               </div>
               <div className={styles.inlineStat}>
-                <span>To booking</span>
+                <span>{tx("Spre booking", "To booking")}</span>
                 <strong>{formatPercent(data?.searchInsights?.conversion?.searchToBookingRate)}</strong>
               </div>
               <div className={styles.inlineStat}>
-                <span>To payment</span>
+                <span>{tx("Spre plată", "To payment")}</span>
                 <strong>{formatPercent(data?.searchInsights?.conversion?.searchToPaymentRate)}</strong>
               </div>
             </div>
@@ -626,21 +647,21 @@ export default function AdminAnalyticsPage() {
       <section className={styles.card}>
         <div className={styles.sectionHeader}>
           <div>
-            <h2>Funnel tracking</h2>
-            <p>Full path from homepage to booking confirmation.</p>
+            <h2>{tx("Urmărire funnel", "Funnel tracking")}</h2>
+            <p>{tx("Traseul complet de la homepage până la booking confirmat.", "Full path from homepage to booking confirmation.")}</p>
           </div>
         </div>
         <div className={styles.funnelGrid}>
           {(data?.funnel || []).map((row) => (
             <div key={row.key} className={styles.funnelStep}>
-              <div className={styles.funnelLabel}>{row.label}</div>
+              <div className={styles.funnelLabel}>{funnelLabel(row)}</div>
               <div className={styles.funnelTrack}>
                 <span className={styles.funnelFill} style={{ width: `${(row.sessions / funnelMax) * 100}%` }} />
               </div>
               <div className={styles.funnelMeta}>
                 <strong>{numberFmt.format(Number(row.sessions || 0))}</strong>
                 <span>{formatPercent(row.conversionRate)}</span>
-                <span>drop-off {numberFmt.format(Number(row.dropOff || 0))}</span>
+                <span>{tx("drop-off", "drop-off")} {numberFmt.format(Number(row.dropOff || 0))}</span>
               </div>
             </div>
           ))}
@@ -651,25 +672,25 @@ export default function AdminAnalyticsPage() {
         <section className={styles.card}>
           <div className={styles.sectionHeader}>
             <div>
-              <h2>Experience performance</h2>
-              <p>Find what deserves more promotion and what is leaking revenue.</p>
+              <h2>{tx("Performanța experiențelor", "Experience performance")}</h2>
+              <p>{tx("Vezi ce merită promovat mai mult și ce pierde bani.", "Find what deserves more promotion and what is leaking revenue.")}</p>
             </div>
             <button type="button" className="button secondary" onClick={exportExperiences}>
-              Export CSV
+              {tx("Export CSV", "Export CSV")}
             </button>
           </div>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Experience</th>
-                  <th>Views</th>
-                  <th>Bookings</th>
+                  <th>{tx("Experiență", "Experience")}</th>
+                  <th>{tx("Vizualizări", "Views")}</th>
+                  <th>{tx("Booking-uri", "Bookings")}</th>
                   <th>CTR</th>
                   <th>CVR</th>
-                  <th>Revenue</th>
-                  <th>Completion</th>
-                  <th>Cancel</th>
+                  <th>{tx("Venit", "Revenue")}</th>
+                  <th>{tx("Finalizare", "Completion")}</th>
+                  <th>{tx("Anulare", "Cancel")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -678,7 +699,7 @@ export default function AdminAnalyticsPage() {
                     <td>
                       <div className={styles.tableTitle}>{row.title}</div>
                       <div className={styles.tableMeta}>
-                        {row.hostName || "Unknown host"}{row.city ? ` · ${row.city}` : ""}
+                        {row.hostName || tx("Gazdă necunoscută", "Unknown host")}{row.city ? ` · ${row.city}` : ""}
                       </div>
                       <div className={styles.inlineBar}>
                         <span
@@ -704,24 +725,24 @@ export default function AdminAnalyticsPage() {
         <section className={styles.card}>
           <div className={styles.sectionHeader}>
             <div>
-              <h2>Host performance</h2>
-              <p>See which hosts convert, retain bookings and generate revenue.</p>
+              <h2>{tx("Performanța gazdelor", "Host performance")}</h2>
+              <p>{tx("Vezi ce gazde convertesc, păstrează booking-uri și generează venit.", "See which hosts convert, retain bookings and generate revenue.")}</p>
             </div>
             <button type="button" className="button secondary" onClick={exportHosts}>
-              Export CSV
+              {tx("Export CSV", "Export CSV")}
             </button>
           </div>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Host</th>
-                  <th>Experiences</th>
-                  <th>Views</th>
-                  <th>Bookings</th>
+                  <th>{tx("Gazdă", "Host")}</th>
+                  <th>{tx("Experiențe", "Experiences")}</th>
+                  <th>{tx("Vizualizări", "Views")}</th>
+                  <th>{tx("Booking-uri", "Bookings")}</th>
                   <th>CVR</th>
-                  <th>Revenue</th>
-                  <th>Cancel</th>
+                  <th>{tx("Venit", "Revenue")}</th>
+                  <th>{tx("Anulare", "Cancel")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -730,7 +751,7 @@ export default function AdminAnalyticsPage() {
                     <td>
                       <div className={styles.tableTitle}>{row.hostName}</div>
                       <div className={styles.tableMeta}>
-                        {(row.topPerformingExperiences || []).map((exp) => exp.title).join(" · ") || "No top experiences yet"}
+                        {(row.topPerformingExperiences || []).map((exp) => exp.title).join(" · ") || tx("Nu există încă experiențe de top", "No top experiences yet")}
                       </div>
                       <div className={styles.inlineBar}>
                         <span
@@ -756,13 +777,13 @@ export default function AdminAnalyticsPage() {
       <section className={styles.card}>
         <div className={styles.sectionHeader}>
           <div>
-            <h2>User behavior</h2>
-            <p>Most visited pages, exit points, important CTA clicks and navigation paths.</p>
+            <h2>{tx("Comportament utilizatori", "User behavior")}</h2>
+            <p>{tx("Cele mai vizitate pagini, puncte de ieșire, clickuri pe CTA-uri și trasee de navigare.", "Most visited pages, exit points, important CTA clicks and navigation paths.")}</p>
           </div>
         </div>
         <div className={styles.behaviorGrid}>
           <div className={styles.subCard}>
-            <h3>Most visited pages</h3>
+            <h3>{tx("Cele mai vizitate pagini", "Most visited pages")}</h3>
             {(data?.behavior?.topPages || []).map((row) => (
               <div key={row.path} className={styles.inlineStat}>
                 <span>{row.path}</span>
@@ -771,7 +792,7 @@ export default function AdminAnalyticsPage() {
             ))}
           </div>
           <div className={styles.subCard}>
-            <h3>Exit points</h3>
+            <h3>{tx("Puncte de ieșire", "Exit points")}</h3>
             {(data?.behavior?.exitPoints || []).map((row) => (
               <div key={row.path} className={styles.inlineStat}>
                 <span>{row.path}</span>
@@ -780,7 +801,7 @@ export default function AdminAnalyticsPage() {
             ))}
           </div>
           <div className={styles.subCard}>
-            <h3>CTA clicks</h3>
+            <h3>{tx("Clickuri pe CTA", "CTA clicks")}</h3>
             {(data?.behavior?.ctaClicks || []).map((row) => (
               <div key={row.ctaName} className={styles.inlineStat}>
                 <span>{row.ctaName}</span>
@@ -789,7 +810,7 @@ export default function AdminAnalyticsPage() {
             ))}
           </div>
           <div className={styles.subCard}>
-            <h3>Navigation paths</h3>
+            <h3>{tx("Trasee de navigare", "Navigation paths")}</h3>
             {(data?.behavior?.navigationPaths || []).map((row) => (
               <div key={`${row.fromPath}-${row.toPath}`} className={styles.inlineStat}>
                 <span>
@@ -800,7 +821,7 @@ export default function AdminAnalyticsPage() {
             ))}
           </div>
           <div className={styles.subCard}>
-            <h3>Scroll depth</h3>
+            <h3>{tx("Adâncime scroll", "Scroll depth")}</h3>
             {(data?.behavior?.scrollDepth || []).map((row) => (
               <div key={row.path} className={styles.inlineStat}>
                 <span>{row.path}</span>
@@ -809,7 +830,7 @@ export default function AdminAnalyticsPage() {
             ))}
           </div>
           <div className={styles.subCard}>
-            <h3>Time on page</h3>
+            <h3>{tx("Timp în pagină", "Time on page")}</h3>
             {(data?.behavior?.timeOnPage || []).map((row) => (
               <div key={row.path} className={styles.inlineStat}>
                 <span>{row.path}</span>

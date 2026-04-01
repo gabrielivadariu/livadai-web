@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import { useRouter } from "next/navigation";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
+import { useLang } from "@/context/lang-context";
 import styles from "./admin.module.css";
 
 type AdminDashboard = {
@@ -690,13 +691,13 @@ const COMPLIANCE_ISSUE_LABELS: Record<string, string> = {
   NO_COMPLIANCE_SNAPSHOT: "Fără snapshot",
   NAME_MISMATCH: "Nume diferit",
   STRIPE_NAME_MISSING: "Nume Stripe lipsă",
-  BANK_REFERENCE_MISSING: "Bank ref lipsă",
+  BANK_REFERENCE_MISSING: "Referință bancară lipsă",
   STRIPE_ACCOUNT_INACCESSIBLE: "Cont Stripe inaccesibil",
-  STRIPE_DISABLED: "Stripe disabled",
-  STRIPE_REQUIREMENTS_DUE: "Requirements due",
-  STRIPE_DETAILS_INCOMPLETE: "Details incomplete",
-  STRIPE_CHARGES_DISABLED: "Charges disabled",
-  STRIPE_PAYOUTS_DISABLED: "Payouts disabled",
+  STRIPE_DISABLED: "Stripe dezactivat",
+  STRIPE_REQUIREMENTS_DUE: "Cerințe restante",
+  STRIPE_DETAILS_INCOMPLETE: "Detalii incomplete",
+  STRIPE_CHARGES_DISABLED: "Încasări dezactivate",
+  STRIPE_PAYOUTS_DISABLED: "Payout-uri dezactivate",
   STRIPE_LEGAL_NAME_MISSING: "Nume legal Stripe lipsă",
 };
 
@@ -1350,6 +1351,9 @@ function AdminAuditRow({
 export default function AdminPage() {
   const router = useRouter();
   const { user, token, loading: authLoading } = useAuth();
+  const { lang } = useLang();
+  const isEn = lang === "en";
+  const tx = useCallback((ro: string, en: string) => (isEn ? en : ro), [isEn]);
 
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null);
   const [dashboardLoading, setDashboardLoading] = useState(true);
@@ -2394,16 +2398,16 @@ export default function AdminPage() {
 
   const dashboardCards = useMemo(
     () => [
-      { label: "Utilizatori total", value: dashboard?.users?.total, hint: `+${numberFmt(dashboard?.users?.newLast7d)} în ultimele 7 zile` },
-      { label: "Clienți (Explorer/Both)", value: dashboard?.users?.explorerCapable, hint: `Explorers only: ${numberFmt(dashboard?.users?.explorersOnly)}` },
-      { label: "Host (Host/Both)", value: dashboard?.users?.hostCapable, hint: `Host only: ${numberFmt(dashboard?.users?.hostsOnly)}` },
-      { label: "Experiențe total", value: dashboard?.experiences?.total, hint: `+${numberFmt(dashboard?.experiences?.newLast7d)} în ultimele 7 zile` },
-      { label: "Experiențe active", value: dashboard?.experiences?.active, hint: `Public viitoare: ${numberFmt(dashboard?.experiences?.upcomingPublic)}` },
-      { label: "Rezervări active", value: dashboard?.bookings?.active, hint: `Total rezervări: ${numberFmt(dashboard?.bookings?.total)}` },
-      { label: "Refund failed", value: dashboard?.bookings?.refundFailed, hint: "Necesită verificare" },
-      { label: "Rapoarte deschise", value: dashboard?.reports?.open, hint: `Open/Handled: ${numberFmt(dashboard?.reports?.openOrHandled)}` },
+      { label: tx("Utilizatori total", "Total users"), value: dashboard?.users?.total, hint: `+${numberFmt(dashboard?.users?.newLast7d)} ${tx("în ultimele 7 zile", "in the last 7 days")}` },
+      { label: tx("Clienți (Explorer/Both)", "Clients (Explorer/Both)"), value: dashboard?.users?.explorerCapable, hint: `${tx("Doar exploratori", "Explorers only")}: ${numberFmt(dashboard?.users?.explorersOnly)}` },
+      { label: tx("Gazde (Host/Both)", "Hosts (Host/Both)"), value: dashboard?.users?.hostCapable, hint: `${tx("Doar gazde", "Hosts only")}: ${numberFmt(dashboard?.users?.hostsOnly)}` },
+      { label: tx("Experiențe totale", "Total experiences"), value: dashboard?.experiences?.total, hint: `+${numberFmt(dashboard?.experiences?.newLast7d)} ${tx("în ultimele 7 zile", "in the last 7 days")}` },
+      { label: tx("Experiențe active", "Active experiences"), value: dashboard?.experiences?.active, hint: `${tx("Public viitoare", "Future public")}: ${numberFmt(dashboard?.experiences?.upcomingPublic)}` },
+      { label: tx("Rezervări active", "Active bookings"), value: dashboard?.bookings?.active, hint: `${tx("Total rezervări", "Total bookings")}: ${numberFmt(dashboard?.bookings?.total)}` },
+      { label: tx("Refund eșuat", "Refund failed"), value: dashboard?.bookings?.refundFailed, hint: tx("Necesită verificare", "Needs review") },
+      { label: tx("Rapoarte deschise", "Open reports"), value: dashboard?.reports?.open, hint: `Open/Handled: ${numberFmt(dashboard?.reports?.openOrHandled)}` },
     ],
-    [dashboard]
+    [dashboard, tx]
   );
 
   const selectedReport = useMemo(
@@ -2474,23 +2478,23 @@ export default function AdminPage() {
     label: string;
     hint?: string;
   }> = [
-    { key: "overview", label: "Overview", hint: "Control room" },
-    { key: "users", label: "Users Overview", hint: "Full visibility" },
-    { key: "hosts", label: "Hosts Registry", hint: "Identity & accountability" },
-    { key: "experiences", label: "Experiences", hint: "Quality & safety" },
-    { key: "bookings", label: "Bookings", hint: "Ops & refunds" },
-    { key: "reports", label: "Reports / Moderation", hint: "Inbox & safety" },
-    { key: "payments", label: "Payments & Refunds", hint: "Health & issues" },
-    { key: "audit", label: "Audit Log", hint: "Trace admin actions" },
-    { key: "messages", label: "Messages", hint: "Conversations" },
-    ...(isOwnerAdmin ? ([{ key: "system", label: "System", hint: "Health & config" }] as const) : []),
+    { key: "overview", label: tx("Prezentare generală", "Overview"), hint: tx("Cameră de control", "Control room") },
+    { key: "users", label: tx("Utilizatori", "Users overview"), hint: tx("Vizibilitate completă", "Full visibility") },
+    { key: "hosts", label: tx("Registru gazde", "Hosts registry"), hint: tx("Identitate și responsabilitate", "Identity & accountability") },
+    { key: "experiences", label: tx("Experiențe", "Experiences"), hint: tx("Calitate și siguranță", "Quality & safety") },
+    { key: "bookings", label: tx("Booking-uri", "Bookings"), hint: tx("Operațiuni și refund-uri", "Ops & refunds") },
+    { key: "reports", label: tx("Rapoarte / Moderare", "Reports / Moderation"), hint: tx("Inbox și siguranță", "Inbox & safety") },
+    { key: "payments", label: tx("Plăți și refund-uri", "Payments & Refunds"), hint: tx("Sănătate și probleme", "Health & issues") },
+    { key: "audit", label: tx("Audit log", "Audit log"), hint: tx("Urmează acțiunile admin", "Trace admin actions") },
+    { key: "messages", label: tx("Mesaje", "Messages"), hint: tx("Conversații", "Conversations") },
+    ...(isOwnerAdmin ? ([{ key: "system", label: tx("Sistem", "System"), hint: tx("Health și config", "Health & config") }] as const) : []),
   ];
 
   return (
     <div className={styles.adminShell}>
       <aside className={styles.sidebar}>
         <div className={styles.sidebarBrand}>LIVADAI Admin</div>
-        <div className={styles.sidebarSub}>Internal control panel</div>
+        <div className={styles.sidebarSub}>{tx("Panou intern de control", "Internal control panel")}</div>
         <nav className={styles.sidebarNav}>
           {sidebarItems.map((item) => (
             <button
@@ -2509,59 +2513,59 @@ export default function AdminPage() {
       <div className={styles.page}>
         <div className={styles.topbar}>
           <form className={styles.topbarSearch} onSubmit={onGlobalSearchSubmit}>
-            <input
-              className="input"
-              placeholder="Search global (email / experience / user id)"
-              value={globalSearch}
-              onChange={(e) => setGlobalSearch(e.target.value)}
-            />
-            <button type="submit" className="button secondary">
-              Search
-            </button>
-          </form>
+              <input
+                className="input"
+                placeholder={tx("Caută global (email / experiență / id user)", "Search global (email / experience / user id)")}
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
+              />
+              <button type="submit" className="button secondary">
+              {tx("Caută", "Search")}
+              </button>
+            </form>
 
           <div className={styles.topbarPanels}>
             <div className={`${styles.card} ${styles.quickActions}`}>
-              <div className={styles.panelTitle}>Quick actions</div>
+              <div className={styles.panelTitle}>{tx("Acțiuni rapide", "Quick actions")}</div>
               <div className={styles.badgeRow}>
-                <span className={styles.badge}>Role: {adminPermissions?.role || normalizeRole(user?.role)}</span>
-                <span className={`${styles.badge} ${canWriteUsers ? styles.badgeOk : styles.badgeWarn}`}>Users write</span>
-                <span className={`${styles.badge} ${canWriteExperiences ? styles.badgeOk : styles.badgeWarn}`}>Experiences write</span>
-                <span className={`${styles.badge} ${canWriteBookings ? styles.badgeOk : styles.badgeWarn}`}>Bookings write</span>
-                <span className={`${styles.badge} ${canWriteReports ? styles.badgeOk : styles.badgeWarn}`}>Reports write</span>
-                {isOwnerAdmin ? <span className={`${styles.badge} ${styles.badgeOk}`}>Owner power</span> : null}
+                <span className={styles.badge}>{tx("Rol", "Role")}: {adminPermissions?.role || normalizeRole(user?.role)}</span>
+                <span className={`${styles.badge} ${canWriteUsers ? styles.badgeOk : styles.badgeWarn}`}>{tx("Scriere utilizatori", "Users write")}</span>
+                <span className={`${styles.badge} ${canWriteExperiences ? styles.badgeOk : styles.badgeWarn}`}>{tx("Scriere experiențe", "Experiences write")}</span>
+                <span className={`${styles.badge} ${canWriteBookings ? styles.badgeOk : styles.badgeWarn}`}>{tx("Scriere booking-uri", "Bookings write")}</span>
+                <span className={`${styles.badge} ${canWriteReports ? styles.badgeOk : styles.badgeWarn}`}>{tx("Scriere rapoarte", "Reports write")}</span>
+                {isOwnerAdmin ? <span className={`${styles.badge} ${styles.badgeOk}`}>{tx("Putere owner", "Owner power")}</span> : null}
               </div>
               <div className={styles.quickActionsRow}>
                 <button type="button" className="button secondary" onClick={() => setActiveSection("users")}>
-                  Users Overview
+                  {tx("Utilizatori", "Users overview")}
                 </button>
                 <button type="button" className="button secondary" onClick={() => setActiveSection("hosts")}>
-                  Hosts Registry
+                  {tx("Registru gazde", "Hosts registry")}
                 </button>
                 <button type="button" className="button secondary" onClick={() => setActiveSection("experiences")}>
-                  Experiences
+                  {tx("Experiențe", "Experiences")}
                 </button>
                 <button type="button" className="button secondary" onClick={() => setActiveSection("bookings")}>
-                  Bookings
+                  {tx("Booking-uri", "Bookings")}
                 </button>
                 <button type="button" className="button secondary" onClick={() => setActiveSection("reports")}>
-                  Reports
+                  {tx("Rapoarte", "Reports")}
                 </button>
                 <button type="button" className="button secondary" onClick={() => setActiveSection("payments")}>
-                  Payments
+                  {tx("Plăți", "Payments")}
                 </button>
                 <button type="button" className="button secondary" onClick={() => router.push("/admin/analytics")}>
-                  Analytics
+                  {tx("Analitice", "Analytics")}
                 </button>
                 <button type="button" className="button secondary" onClick={() => setActiveSection("audit")}>
-                  Audit
+                  {tx("Audit", "Audit")}
                 </button>
                 <button type="button" className="button secondary" onClick={() => setActiveSection("messages")}>
-                  Messages
+                  {tx("Mesaje", "Messages")}
                 </button>
                 {isOwnerAdmin ? (
                   <button type="button" className="button secondary" onClick={() => setActiveSection("system")}>
-                    System
+                    {tx("Sistem", "System")}
                   </button>
                 ) : null}
                 <button
@@ -2570,13 +2574,13 @@ export default function AdminPage() {
                   onClick={() => void refreshAll()}
                   disabled={dashboardLoading || usersLoading || experiencesLoading || bookingsLoading || reportsLoading || paymentsLoading || auditLoading || messagesLoading || systemLoading || recentLoading}
                 >
-                  Refresh all
+                  {tx("Reîmprospătează tot", "Refresh all")}
                 </button>
               </div>
             </div>
 
             <div className={`${styles.card} ${styles.recentCard}`}>
-              <div className={styles.panelTitle}>Recent admin actions</div>
+              <div className={styles.panelTitle}>{tx("Acțiuni admin recente", "Recent admin actions")}</div>
               <div className={styles.recentList}>
                 {recentLoading ? <div className="muted">Se încarcă...</div> : null}
                 {!recentLoading && recentAdminActions.length === 0 ? (
@@ -2599,7 +2603,7 @@ export default function AdminPage() {
 
         <div className={styles.header}>
           <div>
-            <h1 className={styles.title}>Admin Control</h1>
+            <h1 className={styles.title}>{tx("Control admin", "Admin control")}</h1>
             <p className={styles.subtitle}>
               Dashboard intern LIVADAI pentru moderare, suport, operațiuni și plăți.
             </p>
@@ -2615,7 +2619,7 @@ export default function AdminPage() {
         {activeSection === "overview" ? (
           <section>
             <div className={styles.sectionTitleRow}>
-              <h2 className={styles.sectionTitle}>Overview</h2>
+            <h2 className={styles.sectionTitle}>{tx("Prezentare generală", "Overview")}</h2>
               {dashboardLoading ? <span className="muted">Se încarcă...</span> : null}
             </div>
             {dashboardError ? <div className={`${styles.card} ${styles.errorCard}`}>{dashboardError}</div> : null}
@@ -2626,22 +2630,22 @@ export default function AdminPage() {
             </div>
             <div className={styles.overviewGrid}>
               <div className={`${styles.card} ${styles.inboxCard}`}>
-                <div className={styles.panelTitle}>Needs attention (MVP)</div>
+                <div className={styles.panelTitle}>{tx("Necesită atenție (MVP)", "Needs attention (MVP)")}</div>
                 <ul className={styles.inboxList}>
-                  <li>Refund failed: {numberFmt(dashboard?.bookings?.refundFailed)}</li>
-                  <li>Reports open: {numberFmt(dashboard?.reports?.open)}</li>
-                  <li>Experiențe inactive: {numberFmt(dashboard?.experiences?.inactive)}</li>
-                  <li>Users blocked: {numberFmt(dashboard?.users?.blocked)}</li>
-                  <li>Users banned: {numberFmt(dashboard?.users?.banned)}</li>
+                  <li>{tx("Refund eșuat", "Refund failed")}: {numberFmt(dashboard?.bookings?.refundFailed)}</li>
+                  <li>{tx("Rapoarte deschise", "Reports open")}: {numberFmt(dashboard?.reports?.open)}</li>
+                  <li>{tx("Experiențe inactive", "Inactive experiences")}: {numberFmt(dashboard?.experiences?.inactive)}</li>
+                  <li>{tx("Utilizatori blocați", "Users blocked")}: {numberFmt(dashboard?.users?.blocked)}</li>
+                  <li>{tx("Utilizatori banați", "Users banned")}: {numberFmt(dashboard?.users?.banned)}</li>
                 </ul>
               </div>
               <div className={`${styles.card} ${styles.inboxCard}`}>
-                <div className={styles.panelTitle}>Roadmap tabs</div>
+                <div className={styles.panelTitle}>{tx("Taburi roadmap", "Roadmap tabs")}</div>
                 <ul className={styles.inboxList}>
-                  <li>Bookings tab (admin cancel/refund workflows)</li>
-                  <li>Reports inbox (assign/investigate/handled)</li>
-                  <li>Payments & Refunds health view</li>
-                  <li>Audit logs full table + filters</li>
+                  <li>{tx("Tab booking-uri (cancel/refund din admin)", "Bookings tab (admin cancel/refund workflows)")}</li>
+                  <li>{tx("Inbox rapoarte (assign/investigate/handled)", "Reports inbox (assign/investigate/handled)")}</li>
+                  <li>{tx("Health view pentru plăți și refund-uri", "Payments & Refunds health view")}</li>
+                  <li>{tx("Audit log complet + filtre", "Audit logs full table + filters")}</li>
                 </ul>
               </div>
             </div>
@@ -2650,24 +2654,24 @@ export default function AdminPage() {
 
         {activeSection === "users" ? <section className={styles.sectionBlock}>
           <div className={styles.sectionTitleRow}>
-            <h2 className={styles.sectionTitle}>Users Overview</h2>
+            <h2 className={styles.sectionTitle}>{tx("Utilizatori", "Users overview")}</h2>
             <span className="muted">
               {users ? `${numberFmt(users.total)} rezultate` : "—"}
             </span>
           </div>
 
           <div className={styles.statsGrid}>
-            <StatCard label="Total Users" value={users?.summary?.totalUsers} />
-            <StatCard label="Total Hosts" value={users?.summary?.totalHosts} />
-            <StatCard label="Total Explorers" value={users?.summary?.totalExplorers} />
-            <StatCard label="Hosts cu Stripe incomplete" value={users?.summary?.hostsStripeIncomplete} />
+            <StatCard label={tx("Utilizatori total", "Total users")} value={users?.summary?.totalUsers} />
+            <StatCard label={tx("Gazde total", "Total hosts")} value={users?.summary?.totalHosts} />
+            <StatCard label={tx("Exploratori total", "Total explorers")} value={users?.summary?.totalExplorers} />
+            <StatCard label={tx("Gazde cu Stripe incomplet", "Hosts with incomplete Stripe")} value={users?.summary?.hostsStripeIncomplete} />
           </div>
 
           <form className={`${styles.card} ${styles.filtersCard}`} onSubmit={onUsersSubmit}>
             <div className={styles.filtersGrid}>
               <input
                 className="input"
-                placeholder="Search by email"
+                placeholder={tx("Caută după email", "Search by email")}
                 value={userQuery}
                 onChange={(e) => setUserQuery(e.target.value)}
               />
@@ -2682,8 +2686,8 @@ export default function AdminPage() {
               <select className={styles.select} value={userStatusFilter} onChange={(e) => setUserStatusFilter(e.target.value)}>
                 <option value="all">Toate statusurile</option>
                 <option value="active">Active</option>
-                <option value="blocked">Blocked</option>
-                <option value="banned">Banned</option>
+                <option value="blocked">{tx("Blocați", "Blocked")}</option>
+                <option value="banned">{tx("Banați", "Banned")}</option>
               </select>
             </div>
             <div className={styles.filtersActions}>
@@ -2693,10 +2697,10 @@ export default function AdminPage() {
                 disabled={csvExportingKey === "users"}
                 onClick={() => void exportUsersCsv()}
               >
-                {csvExportingKey === "users" ? "Export..." : "Export CSV"}
+                {csvExportingKey === "users" ? tx("Export...", "Export...") : tx("Export CSV", "Export CSV")}
               </button>
               <button className="button secondary" type="button" onClick={() => { setUserQuery(""); setUserRoleFilter("all"); setUserStatusFilter("all"); void loadUsers(1); }}>
-                Reset
+                {tx("Reset", "Reset")}
               </button>
               <button className="button" type="submit" disabled={usersLoading}>
                 {usersLoading ? "Se caută..." : "Caută"}
@@ -2735,7 +2739,7 @@ export default function AdminPage() {
                           <td>
                             <div className={styles.tableActions}>
                               <a className={styles.tableLink} href={`/users/${item.id}`} target="_blank" rel="noreferrer">
-                                View profile
+                                {tx("Vezi profilul", "View profile")}
                               </a>
                               <button
                                 type="button"
@@ -2743,7 +2747,7 @@ export default function AdminPage() {
                                 disabled={userDetailsLoading}
                                 onClick={() => void loadUserDetails(item.id)}
                               >
-                                Details
+                                {tx("Detalii", "Details")}
                               </button>
                             </div>
                           </td>
@@ -2798,46 +2802,46 @@ export default function AdminPage() {
                     <div><strong>Email</strong><span>{userDetails.user.email || "—"}</span></div>
                     <div><strong>Rol</strong><span>{userDetails.user.role || "—"}</span></div>
                     <div><strong>Creat</strong><span>{formatDate(userDetails.user.createdAt)}</span></div>
-                    <div><strong>Last auth</strong><span>{formatDate(userDetails.user.lastAuthAt || null)}</span></div>
-                    <div><strong>Token version</strong><span>{numberFmt(userDetails.user.tokenVersion)}</span></div>
+                    <div><strong>{tx("Ultima autentificare", "Last auth")}</strong><span>{formatDate(userDetails.user.lastAuthAt || null)}</span></div>
+                    <div><strong>{tx("Versiune token", "Token version")}</strong><span>{numberFmt(userDetails.user.tokenVersion)}</span></div>
                     <div><strong>Oraș / Țară</strong><span>{[userDetails.user.city, userDetails.user.country].filter(Boolean).join(", ") || "—"}</span></div>
                     <div><strong>Telefon</strong><span>{[userDetails.user.phoneCountryCode, userDetails.user.phone].filter(Boolean).join(" ") || "—"}</span></div>
                   </div>
 
                   <div className={styles.detailsSection}>
-                    <div className={styles.panelTitle}>Status & Stripe</div>
+                    <div className={styles.panelTitle}>{tx("Status și Stripe", "Status & Stripe")}</div>
                     <div className={styles.badgeRow}>
                       <span className={`${styles.badge} ${userDetails.user.emailVerified ? styles.badgeOk : styles.badgeWarn}`}>Email {userDetails.user.emailVerified ? "OK" : "NO"}</span>
-                      <span className={`${styles.badge} ${userDetails.user.phoneVerified ? styles.badgeOk : styles.badgeWarn}`}>Phone {userDetails.user.phoneVerified ? "OK" : "NO"}</span>
-                      <span className={`${styles.badge} ${userDetails.user.isBlocked ? styles.badgeWarn : styles.badgeOk}`}>{userDetails.user.isBlocked ? "BLOCKED" : "ACTIVE"}</span>
-                      {userDetails.user.isBanned ? <span className={`${styles.badge} ${styles.badgeDanger}`}>BANNED</span> : null}
-                      <span className={`${styles.badge} ${userDetails.user.stripe?.connected ? styles.badgeOk : styles.badgeWarn}`}>Stripe account</span>
-                      <span className={`${styles.badge} ${userDetails.user.stripe?.chargesEnabled ? styles.badgeOk : styles.badgeWarn}`}>Charges</span>
-                      <span className={`${styles.badge} ${userDetails.user.stripe?.payoutsEnabled ? styles.badgeOk : styles.badgeWarn}`}>Payouts</span>
-                      <span className={`${styles.badge} ${userDetails.user.stripe?.detailsSubmitted ? styles.badgeOk : styles.badgeWarn}`}>Details</span>
+                      <span className={`${styles.badge} ${userDetails.user.phoneVerified ? styles.badgeOk : styles.badgeWarn}`}>{tx("Telefon", "Phone")} {userDetails.user.phoneVerified ? "OK" : "NO"}</span>
+                      <span className={`${styles.badge} ${userDetails.user.isBlocked ? styles.badgeWarn : styles.badgeOk}`}>{userDetails.user.isBlocked ? tx("BLOCAT", "BLOCKED") : tx("ACTIV", "ACTIVE")}</span>
+                      {userDetails.user.isBanned ? <span className={`${styles.badge} ${styles.badgeDanger}`}>{tx("BANAT", "BANNED")}</span> : null}
+                      <span className={`${styles.badge} ${userDetails.user.stripe?.connected ? styles.badgeOk : styles.badgeWarn}`}>{tx("Cont Stripe", "Stripe account")}</span>
+                      <span className={`${styles.badge} ${userDetails.user.stripe?.chargesEnabled ? styles.badgeOk : styles.badgeWarn}`}>{tx("Încasări", "Charges")}</span>
+                      <span className={`${styles.badge} ${userDetails.user.stripe?.payoutsEnabled ? styles.badgeOk : styles.badgeWarn}`}>{tx("Payout-uri", "Payouts")}</span>
+                      <span className={`${styles.badge} ${userDetails.user.stripe?.detailsSubmitted ? styles.badgeOk : styles.badgeWarn}`}>{tx("Detalii", "Details")}</span>
                     </div>
                     {userDetails.user.stripe?.accountId ? (
-                      <div className="muted">Stripe account: {userDetails.user.stripe.accountId}</div>
+                      <div className="muted">{tx("Cont Stripe", "Stripe account")}: {userDetails.user.stripe.accountId}</div>
                     ) : null}
                   </div>
 
                   <div className={styles.detailsSection}>
-                    <div className={styles.panelTitle}>Counts</div>
+                    <div className={styles.panelTitle}>{tx("Numărători", "Counts")}</div>
                     <div className={styles.detailGrid}>
-                      <div><strong>Bookings total</strong><span>{numberFmt(userDetails.counts?.bookingsTotal)}</span></div>
-                      <div><strong>As explorer</strong><span>{numberFmt(userDetails.counts?.bookingsAsExplorer)}</span></div>
-                      <div><strong>As host</strong><span>{numberFmt(userDetails.counts?.bookingsAsHost)}</span></div>
-                      <div><strong>Experiences hosted</strong><span>{numberFmt(userDetails.counts?.experiencesHosted)}</span></div>
-                      <div><strong>Reports created</strong><span>{numberFmt(userDetails.counts?.reportsCreated)}</span></div>
-                      <div><strong>Reports against user</strong><span>{numberFmt(userDetails.counts?.reportsAgainstUser)}</span></div>
-                      <div><strong>Messages sent</strong><span>{numberFmt(userDetails.counts?.messagesSent)}</span></div>
-                      <div><strong>Trusted participant</strong><span>{userDetails.user.isTrustedParticipant ? "Da" : "Nu"}</span></div>
+                      <div><strong>{tx("Booking-uri totale", "Bookings total")}</strong><span>{numberFmt(userDetails.counts?.bookingsTotal)}</span></div>
+                      <div><strong>{tx("Ca explorer", "As explorer")}</strong><span>{numberFmt(userDetails.counts?.bookingsAsExplorer)}</span></div>
+                      <div><strong>{tx("Ca gazdă", "As host")}</strong><span>{numberFmt(userDetails.counts?.bookingsAsHost)}</span></div>
+                      <div><strong>{tx("Experiențe găzduite", "Experiences hosted")}</strong><span>{numberFmt(userDetails.counts?.experiencesHosted)}</span></div>
+                      <div><strong>{tx("Rapoarte create", "Reports created")}</strong><span>{numberFmt(userDetails.counts?.reportsCreated)}</span></div>
+                      <div><strong>{tx("Rapoarte împotriva userului", "Reports against user")}</strong><span>{numberFmt(userDetails.counts?.reportsAgainstUser)}</span></div>
+                      <div><strong>{tx("Mesaje trimise", "Messages sent")}</strong><span>{numberFmt(userDetails.counts?.messagesSent)}</span></div>
+                      <div><strong>{tx("Participant de încredere", "Trusted participant")}</strong><span>{userDetails.user.isTrustedParticipant ? "Da" : "Nu"}</span></div>
                     </div>
                   </div>
 
                   {(userDetails.user.languages?.length || 0) > 0 || userDetails.user.shortBio || userDetails.user.aboutMe ? (
                     <div className={styles.detailsSection}>
-                      <div className={styles.panelTitle}>Profile notes</div>
+                      <div className={styles.panelTitle}>{tx("Note profil", "Profile notes")}</div>
                       {(userDetails.user.languages?.length || 0) > 0 ? (
                         <div className={styles.badgeRow}>
                           {(userDetails.user.languages || []).map((lang) => (
@@ -2851,7 +2855,7 @@ export default function AdminPage() {
                   ) : null}
 
                   <div className={styles.detailsSection}>
-                    <div className={styles.panelTitle}>Timeline (latest)</div>
+                    <div className={styles.panelTitle}>{tx("Cronologie (ultimele)", "Timeline (latest)")}</div>
                     {(userDetails.timeline || []).length === 0 ? (
                       <div className="muted">Fără evenimente recente.</div>
                     ) : (
@@ -2868,10 +2872,10 @@ export default function AdminPage() {
                   </div>
 
                   <div className={styles.detailsSection}>
-                    <div className={styles.panelTitle}>Recent entities</div>
+                    <div className={styles.panelTitle}>{tx("Entități recente", "Recent entities")}</div>
                     <div className={styles.stackSm}>
                       <div className={styles.miniItem}>
-                        <div><strong>Bookings</strong></div>
+                        <div><strong>{tx("Booking-uri", "Bookings")}</strong></div>
                         {(userDetails.recentBookings || []).length === 0 ? (
                           <div className="muted">Fără booking-uri recente.</div>
                         ) : (
@@ -2886,7 +2890,7 @@ export default function AdminPage() {
                       </div>
 
                       <div className={styles.miniItem}>
-                        <div><strong>Experiences</strong></div>
+                        <div><strong>{tx("Experiențe", "Experiences")}</strong></div>
                         {(userDetails.recentExperiences || []).length === 0 ? (
                           <div className="muted">Fără experiențe recente.</div>
                         ) : (
@@ -2901,9 +2905,9 @@ export default function AdminPage() {
                       </div>
 
                       <div className={styles.miniItem}>
-                        <div><strong>Reports</strong></div>
+                        <div><strong>{tx("Rapoarte", "Reports")}</strong></div>
                         {(userDetails.recentReports || []).length === 0 ? (
-                          <div className="muted">Fără reports recente.</div>
+                          <div className="muted">{tx("Fără rapoarte recente.", "No recent reports.")}</div>
                         ) : (
                           <div className={styles.stackSm}>
                             {(userDetails.recentReports || []).slice(0, 4).map((r) => (
@@ -2924,37 +2928,37 @@ export default function AdminPage() {
 
       {activeSection === "hosts" ? <section className={styles.sectionBlock}>
         <div className={styles.sectionTitleRow}>
-          <h2 className={styles.sectionTitle}>Hosts Registry</h2>
+          <h2 className={styles.sectionTitle}>{tx("Registru gazde", "Hosts registry")}</h2>
           <span className="muted">
             {hosts ? `${numberFmt(hosts.total)} rezultate` : "—"}
           </span>
         </div>
 
         <div className={styles.statsGrid}>
-          <StatCard label="Total hosts" value={hosts?.summary?.totalHosts} />
-          <StatCard label="Blocked hosts" value={hosts?.summary?.blockedHosts} />
-          <StatCard label="Stripe connected" value={hosts?.summary?.stripeConnectedHosts} />
-          <StatCard label="Compliance alerts (page)" value={hosts?.summary?.complianceAttentionInPage} />
+          <StatCard label={tx("Gazde totale", "Total hosts")} value={hosts?.summary?.totalHosts} />
+          <StatCard label={tx("Gazde blocate", "Blocked hosts")} value={hosts?.summary?.blockedHosts} />
+          <StatCard label={tx("Stripe conectat", "Stripe connected")} value={hosts?.summary?.stripeConnectedHosts} />
+          <StatCard label={tx("Alerte conformitate (pagină)", "Compliance alerts (page)")} value={hosts?.summary?.complianceAttentionInPage} />
         </div>
 
         <form className={`${styles.card} ${styles.filtersCard}`} onSubmit={onHostsSubmit}>
           <div className={styles.filtersGrid}>
             <input
               className="input"
-              placeholder="Search host (email / name)"
+              placeholder={tx("Caută gazdă (email / nume)", "Search host (email / name)")}
               value={hostQuery}
               onChange={(e) => setHostQuery(e.target.value)}
             />
             <select className={styles.select} value={hostStatusFilter} onChange={(e) => setHostStatusFilter(e.target.value)}>
               <option value="all">Toate statusurile</option>
               <option value="active">Active</option>
-              <option value="blocked">Blocked</option>
-              <option value="banned">Banned</option>
+              <option value="blocked">{tx("Blocate", "Blocked")}</option>
+              <option value="banned">{tx("Banate", "Banned")}</option>
             </select>
           </div>
           <div className={styles.filtersActions}>
             <button className="button secondary" type="button" onClick={() => { setHostQuery(""); setHostStatusFilter("all"); void loadHosts(1); }}>
-              Reset
+              {tx("Reset", "Reset")}
             </button>
             <button className="button" type="submit" disabled={hostsLoading}>
               {hostsLoading ? "Se caută..." : "Caută"}
@@ -2969,13 +2973,13 @@ export default function AdminPage() {
               <table className={styles.dataTable}>
                 <thead>
                   <tr>
-                    <th>Host</th>
+                    <th>{tx("Gazdă", "Host")}</th>
                     <th>Telefon</th>
                     <th>Stripe</th>
                     <th>Nume Stripe</th>
-                    <th>Bank ref</th>
-                    <th>Alerts</th>
-                    <th>Actions</th>
+                    <th>{tx("Referință bancară", "Bank ref")}</th>
+                    <th>{tx("Alerte", "Alerts")}</th>
+                    <th>{tx("Acțiuni", "Actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2989,9 +2993,9 @@ export default function AdminPage() {
                       <td>{[host.phoneCountryCode, host.phone].filter(Boolean).join(" ") || "—"}</td>
                       <td>
                         <div className={styles.badgeRow}>
-                          <span className={`${styles.badge} ${host.stripeAccountId ? styles.badgeOk : styles.badgeWarn}`}>Account</span>
-                          <span className={`${styles.badge} ${host.isStripeChargesEnabled ? styles.badgeOk : styles.badgeWarn}`}>Charges</span>
-                          <span className={`${styles.badge} ${host.isStripePayoutsEnabled ? styles.badgeOk : styles.badgeWarn}`}>Payouts</span>
+                          <span className={`${styles.badge} ${host.stripeAccountId ? styles.badgeOk : styles.badgeWarn}`}>{tx("Cont", "Account")}</span>
+                          <span className={`${styles.badge} ${host.isStripeChargesEnabled ? styles.badgeOk : styles.badgeWarn}`}>{tx("Încasări", "Charges")}</span>
+                          <span className={`${styles.badge} ${host.isStripePayoutsEnabled ? styles.badgeOk : styles.badgeWarn}`}>{tx("Payout-uri", "Payouts")}</span>
                         </div>
                       </td>
                       <td>{host.stripeLegalName || host.stripeDisplayName || "—"}</td>
@@ -3004,7 +3008,7 @@ export default function AdminPage() {
                             className="button secondary"
                             onClick={() => router.push(`/admin/hosts/${host.id}`)}
                           >
-                            Details
+                            {tx("Detalii", "Details")}
                           </button>
                         </div>
                       </td>
@@ -3823,43 +3827,43 @@ export default function AdminPage() {
       {activeSection === "payments" ? (
         <section className={styles.sectionBlock}>
           <div className={styles.sectionTitleRow}>
-            <h2 className={styles.sectionTitle}>Payments & Refunds</h2>
+            <h2 className={styles.sectionTitle}>{tx("Plăți și refund-uri", "Payments & Refunds")}</h2>
             <span className="muted">
               {paymentsHealth?.generatedAt ? `Actualizat: ${formatDate(paymentsHealth.generatedAt)}` : "—"}
             </span>
           </div>
 
           {paymentsError ? <div className={`${styles.card} ${styles.errorCard}`}>{paymentsError}</div> : null}
-          {paymentsLoading ? <div className={`${styles.card} ${styles.emptyCard}`}>Se încarcă health checks...</div> : null}
+          {paymentsLoading ? <div className={`${styles.card} ${styles.emptyCard}`}>{tx("Se încarcă verificările de health...", "Loading health checks...")}</div> : null}
 
           <div className={styles.statsGrid}>
             <StatCard
-              label="Refund failed"
+              label={tx("Refund eșuat", "Refund failed")}
               value={paymentsHealth?.summary?.refundFailedBookings}
               hint={`+${numberFmt(paymentsHealth?.summary?.refundFailedLast7d)} în 7 zile`}
             />
             <StatCard
-              label="Disputes"
+              label={tx("Dispute", "Disputes")}
               value={paymentsHealth?.summary?.disputedPayments}
               hint="Plăți în dispută Stripe"
             />
             <StatCard
-              label="Stripe incomplete hosts"
+              label={tx("Gazde cu Stripe incomplet", "Stripe incomplete hosts")}
               value={paymentsHealth?.summary?.stripeOnboardingIncompleteHosts}
               hint={`Fără cont: ${numberFmt(paymentsHealth?.summary?.stripeMissingAccountHosts)}`}
             />
             <StatCard
-              label="Payout attention"
+              label={tx("Atenție payout-uri", "Payout attention")}
               value={paymentsHealth?.summary?.payoutAttentionBookings}
-              hint={`Eligible bookings: ${numberFmt(paymentsHealth?.summary?.payoutEligibleBookings)}`}
+              hint={`${tx("Booking-uri eligibile", "Eligible bookings")}: ${numberFmt(paymentsHealth?.summary?.payoutEligibleBookings)}`}
             />
             <StatCard
-              label="Compliance attention"
+              label={tx("Atenție conformitate", "Compliance attention")}
               value={paymentsHealth?.summary?.hostComplianceAttentionHosts}
               hint={`Mismatch nume: ${numberFmt(paymentsHealth?.summary?.hostComplianceNameMismatches)}`}
             />
             <StatCard
-              label="Compliance gaps"
+              label={tx("Lipsuri conformitate", "Compliance gaps")}
               value={paymentsHealth?.summary?.hostComplianceMissingBankReference}
               hint={`No snapshot: ${numberFmt(paymentsHealth?.summary?.hostComplianceNoSnapshot)}`}
             />
@@ -3867,7 +3871,7 @@ export default function AdminPage() {
 
           <div className={styles.overviewGrid}>
             <div className={`${styles.card} ${styles.inboxCard}`}>
-              <div className={styles.panelTitle}>Refund failed (top 20)</div>
+              <div className={styles.panelTitle}>{tx("Refund eșuat (top 20)", "Refund failed (top 20)")}</div>
               {(paymentsHealth?.refundFailedBookings || []).length === 0 ? (
                 <div className="muted">Nu există booking-uri cu REFUND_FAILED.</div>
               ) : (
@@ -3903,7 +3907,7 @@ export default function AdminPage() {
             </div>
 
             <div className={`${styles.card} ${styles.inboxCard}`}>
-              <div className={styles.panelTitle}>Stripe onboarding incomplete (hosts)</div>
+              <div className={styles.panelTitle}>{tx("Onboarding Stripe incomplet (gazde)", "Stripe onboarding incomplete (hosts)")}</div>
               {(paymentsHealth?.stripeOnboardingIncompleteHosts || []).length === 0 ? (
                 <div className="muted">Toți host-ii verificați par OK în Stripe.</div>
               ) : (
@@ -3939,7 +3943,7 @@ export default function AdminPage() {
             </div>
 
             <div className={`${styles.card} ${styles.inboxCard}`}>
-              <div className={styles.panelTitle}>Host compliance (identity + bank ref)</div>
+              <div className={styles.panelTitle}>{tx("Conformitate gazdă (identitate + bank ref)", "Host compliance (identity + bank ref)")}</div>
               {(paymentsHealth?.hostComplianceAttentionHosts || []).length === 0 ? (
                 <div className="muted">Nu există alerte de compliance pentru host-ii conectați la Stripe.</div>
               ) : (
@@ -3981,7 +3985,7 @@ export default function AdminPage() {
 
           <div className={styles.splitGrid}>
             <div className={`${styles.card} ${styles.detailsCardStatic}`}>
-              <div className={styles.panelTitle}>Payout attention (eligible but blocked)</div>
+              <div className={styles.panelTitle}>{tx("Atenție payout-uri (eligibile dar blocate)", "Payout attention (eligible but blocked)")}</div>
               {(paymentsHealth?.payoutAttentionBookings || []).length === 0 ? (
                 <div className="muted">Nu există payout-uri eligibile blocate.</div>
               ) : (
@@ -4028,7 +4032,7 @@ export default function AdminPage() {
             </div>
 
             <div className={`${styles.card} ${styles.detailsCardStatic}`}>
-              <div className={styles.panelTitle}>Stripe disputes (latest)</div>
+              <div className={styles.panelTitle}>{tx("Dispute Stripe (ultimele)", "Stripe disputes (latest)")}</div>
               {(paymentsHealth?.disputedPayments || []).length === 0 ? (
                 <div className="muted">Nu există plăți în dispută.</div>
               ) : (
@@ -4071,7 +4075,7 @@ export default function AdminPage() {
       {activeSection === "audit" ? (
         <section className={styles.sectionBlock}>
           <div className={styles.sectionTitleRow}>
-            <h2 className={styles.sectionTitle}>Audit Log</h2>
+            <h2 className={styles.sectionTitle}>{tx("Audit log", "Audit log")}</h2>
             <span className="muted">{auditLogs ? `${numberFmt(auditLogs.total)} acțiuni` : "—"}</span>
           </div>
 
@@ -4129,7 +4133,7 @@ export default function AdminPage() {
                   void loadAuditLogs(1);
                 }}
               >
-                Reset
+                {tx("Reset", "Reset")}
               </button>
               <button className="button" type="submit" disabled={auditLoading}>
                 {auditLoading ? "Se caută..." : "Caută"}
@@ -4178,7 +4182,7 @@ export default function AdminPage() {
 
             <div className={`${styles.card} ${styles.detailsCard}`}>
               <div className={styles.sectionTitleRow}>
-                <h3 className={styles.detailsTitle}>Audit details</h3>
+                <h3 className={styles.detailsTitle}>{tx("Detalii audit", "Audit details")}</h3>
                 {selectedAudit ? <span className="muted">#{selectedAudit.id.slice(-8)}</span> : null}
               </div>
 
@@ -4186,16 +4190,16 @@ export default function AdminPage() {
               {selectedAudit ? (
                 <>
                   <div className={styles.detailGrid}>
-                    <div><strong>Action</strong><span>{selectedAudit.actionType || "—"}</span></div>
-                    <div><strong>Actor</strong><span>{selectedAudit.actorEmail || "—"}</span></div>
-                    <div><strong>Target Type</strong><span>{selectedAudit.targetType || "—"}</span></div>
-                    <div><strong>Target ID</strong><span>{selectedAudit.targetId || "—"}</span></div>
+                    <div><strong>{tx("Acțiune", "Action")}</strong><span>{selectedAudit.actionType || "—"}</span></div>
+                    <div><strong>{tx("Actor", "Actor")}</strong><span>{selectedAudit.actorEmail || "—"}</span></div>
+                    <div><strong>{tx("Tip țintă", "Target type")}</strong><span>{selectedAudit.targetType || "—"}</span></div>
+                    <div><strong>{tx("ID țintă", "Target ID")}</strong><span>{selectedAudit.targetId || "—"}</span></div>
                     <div><strong>IP</strong><span>{selectedAudit.ip || "—"}</span></div>
-                    <div><strong>At</strong><span>{formatDate(selectedAudit.createdAt)}</span></div>
+                    <div><strong>{tx("La", "At")}</strong><span>{formatDate(selectedAudit.createdAt)}</span></div>
                   </div>
 
                   <div className={styles.detailsSection}>
-                    <div className={styles.panelTitle}>Reason</div>
+                    <div className={styles.panelTitle}>{tx("Motiv", "Reason")}</div>
                     <div className={styles.miniItem}>
                       <div className="muted">{selectedAudit.reason || "Fără motiv"}</div>
                     </div>
@@ -4212,7 +4216,7 @@ export default function AdminPage() {
                   </div>
 
                   <div className={styles.detailsSection}>
-                    <div className={styles.panelTitle}>Quick links</div>
+                    <div className={styles.panelTitle}>{tx("Linkuri rapide", "Quick links")}</div>
                     <div className={styles.buttonRow}>
                       {selectedAudit.targetType === "booking" && selectedAudit.targetId ? (
                         <button
@@ -4224,7 +4228,7 @@ export default function AdminPage() {
                             void loadBookings(1);
                           }}
                         >
-                          Open in Bookings
+                          {tx("Deschide în booking-uri", "Open in Bookings")}
                         </button>
                       ) : null}
                       {selectedAudit.targetType === "experience" && selectedAudit.targetId ? (
@@ -4237,7 +4241,7 @@ export default function AdminPage() {
                             void loadExperiences(1);
                           }}
                         >
-                          Open in Experiences
+                          {tx("Deschide în experiențe", "Open in Experiences")}
                         </button>
                       ) : null}
                       {selectedAudit.targetType === "user" && selectedAudit.targetId ? (
@@ -4250,7 +4254,7 @@ export default function AdminPage() {
                             void loadUsers(1);
                           }}
                         >
-                          Open in Users
+                          {tx("Deschide în utilizatori", "Open in Users")}
                         </button>
                       ) : null}
                     </div>
@@ -4265,7 +4269,7 @@ export default function AdminPage() {
       {activeSection === "messages" ? (
         <section className={styles.sectionBlock}>
           <div className={styles.sectionTitleRow}>
-            <h2 className={styles.sectionTitle}>Messages / Conversations</h2>
+            <h2 className={styles.sectionTitle}>{tx("Mesaje / Conversații", "Messages / Conversations")}</h2>
             <span className="muted">{messagesData ? `${numberFmt(messagesData.total)} conversații` : "—"}</span>
           </div>
 
@@ -4294,7 +4298,7 @@ export default function AdminPage() {
                   void loadMessages(1);
                 }}
               >
-                Reset
+                {tx("Reset", "Reset")}
               </button>
               <button className="button" type="submit" disabled={messagesLoading}>
                 {messagesLoading ? "Se caută..." : "Caută"}
@@ -4343,7 +4347,7 @@ export default function AdminPage() {
 
             <div className={`${styles.card} ${styles.detailsCard}`}>
               <div className={styles.sectionTitleRow}>
-                <h3 className={styles.detailsTitle}>Conversation details</h3>
+                <h3 className={styles.detailsTitle}>{tx("Detalii conversație", "Conversation details")}</h3>
                 {selectedMessageBookingId ? <span className="muted">#{selectedMessageBookingId.slice(-8)}</span> : null}
               </div>
 
@@ -4354,20 +4358,20 @@ export default function AdminPage() {
               {selectedMessageBookingId && !messageThreadLoading && !messageThreadError && messageThread ? (
                 <>
                   <div className={styles.detailGrid}>
-                    <div><strong>Booking</strong><span>{messageThread.booking?.id || selectedMessageBookingId}</span></div>
+                    <div><strong>{tx("Booking", "Booking")}</strong><span>{messageThread.booking?.id || selectedMessageBookingId}</span></div>
                     <div><strong>Status</strong><span>{messageThread.booking?.status || "—"}</span></div>
                     <div><strong>Host</strong><span>{messageThread.booking?.host?.email || messageThread.booking?.host?.name || "—"}</span></div>
-                    <div><strong>Explorer</strong><span>{messageThread.booking?.explorer?.email || messageThread.booking?.explorer?.name || "—"}</span></div>
+                    <div><strong>{tx("Explorer", "Explorer")}</strong><span>{messageThread.booking?.explorer?.email || messageThread.booking?.explorer?.name || "—"}</span></div>
                     <div><strong>Experiență</strong><span>{messageThread.booking?.experience?.title || "—"}</span></div>
                     <div><strong>Locație</strong><span>{[messageThread.booking?.experience?.city, messageThread.booking?.experience?.country].filter(Boolean).join(", ") || "—"}</span></div>
                     <div><strong>Mesaje</strong><span>{numberFmt(messageThread.summary?.messagesCount)}</span></div>
-                    <div><strong>Reports</strong><span>{numberFmt(messageThread.summary?.reportsOpen)} open / {numberFmt(messageThread.summary?.reportsTotal)} total</span></div>
+                    <div><strong>{tx("Rapoarte", "Reports")}</strong><span>{numberFmt(messageThread.summary?.reportsOpen)} open / {numberFmt(messageThread.summary?.reportsTotal)} total</span></div>
                     <div><strong>Primul mesaj</strong><span>{formatDate(messageThread.summary?.firstMessageAt || null)}</span></div>
                     <div><strong>Ultimul mesaj</strong><span>{formatDate(messageThread.summary?.lastMessageAt || null)}</span></div>
                   </div>
 
                   <div className={styles.detailsSection}>
-                    <div className={styles.panelTitle}>Quick links</div>
+                    <div className={styles.panelTitle}>{tx("Linkuri rapide", "Quick links")}</div>
                     <div className={styles.buttonRow}>
                       {messageThread.booking?.experience?.id ? (
                         <a className={styles.linkButton} href={`/experiences/${messageThread.booking.experience.id}`} target="_blank" rel="noreferrer">
@@ -4433,7 +4437,7 @@ export default function AdminPage() {
                   </div>
 
                   <div className={styles.detailsSection}>
-                    <div className={styles.panelTitle}>Reports (latest)</div>
+                    <div className={styles.panelTitle}>{tx("Rapoarte (ultimele)", "Reports (latest)")}</div>
                     {!Array.isArray(messageThread.reports) || messageThread.reports.length === 0 ? (
                       <div className="muted">Fără reports legate de acest booking.</div>
                     ) : (
@@ -4453,7 +4457,7 @@ export default function AdminPage() {
                   </div>
 
                   <div className={styles.detailsSection}>
-                    <div className={styles.panelTitle}>Payments (latest)</div>
+                    <div className={styles.panelTitle}>{tx("Plăți (ultimele)", "Payments (latest)")}</div>
                     {!Array.isArray(messageThread.payments) || messageThread.payments.length === 0 ? (
                       <div className="muted">Fără plăți atașate booking-ului.</div>
                     ) : (
@@ -4481,22 +4485,22 @@ export default function AdminPage() {
       {activeSection === "system" ? (
         <section className={styles.sectionBlock}>
           <div className={styles.sectionTitleRow}>
-            <h2 className={styles.sectionTitle}>System</h2>
+            <h2 className={styles.sectionTitle}>{tx("Sistem", "System")}</h2>
             <span className="muted">
               {systemHealth?.generatedAt ? `Actualizat: ${formatDate(systemHealth.generatedAt)}` : "—"}
             </span>
           </div>
 
           {systemError ? <div className={`${styles.card} ${styles.errorCard}`}>{systemError}</div> : null}
-          {systemLoading ? <div className={`${styles.card} ${styles.emptyCard}`}>Se încarcă System health...</div> : null}
+          {systemLoading ? <div className={`${styles.card} ${styles.emptyCard}`}>{tx("Se încarcă health-ul sistemului...", "Loading system health...")}</div> : null}
 
           <div className={styles.statsGrid}>
-            <StatCard label="Reports OPEN" value={systemHealth?.opsAttention?.openReports} hint="Moderation inbox" />
-            <StatCard label="Reports INVESTIG." value={systemHealth?.opsAttention?.investigatingReports} hint="În lucru" />
-            <StatCard label="Refund failed" value={systemHealth?.opsAttention?.refundFailedBookings} hint="Necesită intervenție" />
-            <StatCard label="Disputes" value={systemHealth?.opsAttention?.disputedPayments} hint="Stripe / charge disputes" />
-            <StatCard label="Plăți INITIATED stale" value={systemHealth?.opsAttention?.staleInitiatedPayments} hint="> 30 minute" />
-            <StatCard label="Admin actions 24h" value={systemHealth?.opsAttention?.adminActionsLast24h} hint="Audit activity" />
+            <StatCard label={tx("Rapoarte OPEN", "Reports OPEN")} value={systemHealth?.opsAttention?.openReports} hint={tx("Inbox moderare", "Moderation inbox")} />
+            <StatCard label={tx("Rapoarte INVESTIG.", "Reports INVESTIG.")} value={systemHealth?.opsAttention?.investigatingReports} hint={tx("În lucru", "In progress")} />
+            <StatCard label={tx("Refund eșuat", "Refund failed")} value={systemHealth?.opsAttention?.refundFailedBookings} hint={tx("Necesită intervenție", "Needs intervention")} />
+            <StatCard label={tx("Dispute", "Disputes")} value={systemHealth?.opsAttention?.disputedPayments} hint="Stripe / charge disputes" />
+            <StatCard label={tx("Plăți INITIATED stale", "Stale INITIATED payments")} value={systemHealth?.opsAttention?.staleInitiatedPayments} hint="> 30 minute" />
+            <StatCard label={tx("Acțiuni admin 24h", "Admin actions 24h")} value={systemHealth?.opsAttention?.adminActionsLast24h} hint={tx("Activitate audit", "Audit activity")} />
           </div>
 
           <div className={styles.overviewGrid}>

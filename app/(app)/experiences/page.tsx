@@ -257,39 +257,6 @@ function ExperiencesPageContent() {
     });
   }, [items, search]);
 
-  const totalSeconds = useMemo(() => Math.floor(80 * 365 * 24 * 60 * 60), []);
-  const [remainingSeconds, setRemainingSeconds] = useState(totalSeconds);
-  const [timerStarted, setTimerStarted] = useState(false);
-
-  useEffect(() => {
-    const startTimer = window.setTimeout(() => setTimerStarted(true), 1000);
-    return () => window.clearTimeout(startTimer);
-  }, []);
-
-  useEffect(() => {
-    if (!timerStarted) return;
-    const tick = window.setInterval(() => {
-      setRemainingSeconds((prev) => Math.max(prev - 1, 0));
-    }, 1000);
-    return () => window.clearInterval(tick);
-  }, [timerStarted]);
-
-  const formattedHours = useMemo(() => {
-    const locale = lang === "en" ? "en-US" : "ro-RO";
-    const hours = Math.floor(remainingSeconds / 3600);
-    return new Intl.NumberFormat(locale).format(hours);
-  }, [lang, remainingSeconds]);
-
-  const formattedMinutes = useMemo(() => {
-    const minutes = Math.floor((remainingSeconds % 3600) / 60);
-    return String(minutes).padStart(2, "0");
-  }, [remainingSeconds]);
-
-  const formattedSeconds = useMemo(() => {
-    const seconds = remainingSeconds % 60;
-    return String(seconds).padStart(2, "0");
-  }, [remainingSeconds]);
-
   useEffect(() => {
     if (loading) return;
     const term = search.trim();
@@ -317,6 +284,12 @@ function ExperiencesPageContent() {
     }
   }, [filtered, loading, search]);
 
+  const heroSupportPoints = [
+    t("hero_support_point_1"),
+    t("hero_support_point_2"),
+    t("hero_support_point_3"),
+  ];
+
   return (
     <div className={styles.page}>
       {showCreated ? (
@@ -338,36 +311,43 @@ function ExperiencesPageContent() {
         </svg>
         <HeroLifeJourneyArt />
         <div className={styles.heroText}>
+          <div className={`${styles.heroBadge} ${styles.fadeIn}`}>{t("hero_badge")}</div>
           <h1 className={`${styles.heroTitle} ${styles.fadeIn}`}>{t("hero_title")}</h1>
           <p className={`${styles.heroSubtitle} ${styles.fadeIn} ${styles.delay1}`}>
             {t("hero_subtitle_line1")}
             <br />
             {t("hero_subtitle_line2")}
           </p>
-          <button
-            className={`button ${styles.heroCta} ${styles.fadeIn} ${styles.delay2}`}
-            type="button"
-            onClick={() => {
-              const list = document.getElementById("experiences-list");
-              if (list) list.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
-          >
-            {t("hero_cta_primary")}
-          </button>
+          <div className={`${styles.heroActions} ${styles.fadeIn} ${styles.delay2}`}>
+            <button
+              className={`button ${styles.heroCta}`}
+              type="button"
+              onClick={() => {
+                const list = document.getElementById("experiences-list");
+                if (list) list.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            >
+              {t("hero_cta_primary")}
+            </button>
+            <Link href="/how-it-works" className={`button secondary ${styles.heroSecondaryCta}`}>
+              {t("hero_cta_secondary")}
+            </Link>
+          </div>
           <div className={styles.heroMicrocopy}>{t("hero_cta_microcopy")}</div>
         </div>
         <div className={`${styles.heroVisual} ${styles.fadeIn} ${styles.delay1}`}>
-          <div className={styles.timerCard}>
-            <div className={styles.timerLabel}>{t("hero_timer_label")}</div>
-            <div className={styles.heroTimer}>
-              {formattedHours}
-              <span className={styles.heroTimerDelimiter}>:</span>
-              <span className={styles.heroTimerMinutes}>{formattedMinutes}</span>
-              <span className={styles.heroTimerDelimiter}>:</span>
-              <span className={styles.heroTimerSeconds}>{formattedSeconds}</span>
-              <span className={styles.heroTimerUnit}>{t("hero_timer_unit")}</span>
+          <div className={styles.supportCard}>
+            <div className={styles.supportBadge}>{t("hero_support_badge")}</div>
+            <div className={styles.supportTitle}>{t("hero_support_title")}</div>
+            <div className={styles.supportBody}>{t("hero_support_body")}</div>
+            <div className={styles.supportPoints}>
+              {heroSupportPoints.map((point) => (
+                <span key={point} className={styles.supportPoint}>
+                  {point}
+                </span>
+              ))}
             </div>
-            <div className={styles.heroTimerNote}>{t("hero_timer_note")}</div>
+            <div className={styles.supportImpact}>{t("hero_support_impact")}</div>
           </div>
         </div>
       </section>

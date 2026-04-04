@@ -120,7 +120,7 @@
   position: relative;
   z-index: 2;
   display: grid;
-  gap: 10px;
+  gap: 12px;
   align-content: center;
   text-align: left;
 }
@@ -134,8 +134,8 @@
 
 .heroTitle {
   font-family: "Sora", "Segoe UI", sans-serif;
-  font-size: 30px;
-  line-height: 1.25;
+  font-size: 34px;
+  line-height: 1.18;
   margin: 0;
   color: #05313a;
   font-weight: 600;
@@ -143,70 +143,14 @@
 
 .heroSubtitle {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.68;
   color: rgba(5, 49, 58, 0.7);
-  max-width: 520px;
-}
-
-.heroTimer {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--brand);
-  letter-spacing: 0.6px;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.heroTimerUnit {
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(5, 49, 58, 0.6);
-  letter-spacing: 0.6px;
-  text-transform: lowercase;
-}
-
-.heroTimerMinutes,
-.heroTimerSeconds {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--brand);
-  opacity: 0.9;
-}
-
-.heroTimerDelimiter {
-  font-size: 14px;
-  color: rgba(5, 49, 58, 0.5);
-  font-weight: 600;
-}
-
-.heroTimerNote {
-  font-size: 12px;
-  color: rgba(5, 49, 58, 0.6);
-}
-
-.timerCard {
-  background: #fff;
-  border-radius: 18px;
-  padding: 18px 20px;
-  box-shadow: 0 12px 24px rgba(var(--brand-rgb), 0.18);
-  border: 1px solid rgba(5, 49, 58, 0.08);
-  min-width: 240px;
-}
-
-.timerLabel {
-  font-size: 12px;
-  color: rgba(5, 49, 58, 0.6);
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  font-weight: 600;
-  margin-bottom: 6px;
+  max-width: 560px;
 }
 
 .heroCta {
   width: fit-content;
-  margin-top: 6px;
   background: var(--brand);
   border: none;
   color: #041014;
@@ -225,10 +169,32 @@
   box-shadow: 0 6px 14px rgba(18, 199, 214, 0.25);
 }
 
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.heroSecondaryCta {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 10px 18px;
+  border: 1px solid rgba(5, 49, 58, 0.12);
+  color: #05313a;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: none;
+}
+
+.heroSecondaryCta:hover {
+  border-color: rgba(var(--brand-rgb), 0.38);
+  color: #05313a;
+}
+
 .heroMicrocopy {
   font-size: 12px;
   color: rgba(5, 49, 58, 0.6);
-  margin-top: 4px;
+  margin-top: -2px;
 }
 
 .guestHint {
@@ -246,19 +212,71 @@
   padding: 6px 10px;
   border-radius: 999px;
   width: fit-content;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.heroStat {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.supportCard {
+  width: min(100%, 380px);
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 22px;
+  padding: 22px 22px 20px;
+  box-shadow: 0 12px 24px rgba(var(--brand-rgb), 0.18);
+  border: 1px solid rgba(5, 49, 58, 0.08);
+  display: grid;
+  gap: 12px;
+  backdrop-filter: blur(8px);
+}
+
+.supportBadge {
+  font-size: 12px;
+  color: rgba(5, 49, 58, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+}
+
+.supportTitle {
+  font-family: "Sora", "Segoe UI", sans-serif;
+  font-size: 22px;
+  line-height: 1.24;
+  color: #05313a;
   font-weight: 600;
-  color: var(--muted);
 }
 
-.heroStat strong {
-  color: var(--text);
-  font-size: 18px;
+.supportBody {
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgba(5, 49, 58, 0.72);
+}
+
+.supportPoints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.supportPoint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(var(--brand-rgb), 0.08);
+  border: 1px solid rgba(var(--brand-rgb), 0.18);
+  color: #0a5460;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.supportImpact {
+  padding-top: 12px;
+  border-top: 1px solid rgba(5, 49, 58, 0.08);
+  font-size: 13px;
+  line-height: 1.6;
+  color: #0a5460;
+  font-weight: 600;
 }
 
 .fadeIn {
@@ -318,12 +336,13 @@
     font-size: 26px;
   }
 
-  .heroTimer {
-    font-size: 16px;
-  }
-
   .heroVisual {
     justify-content: flex-start;
+  }
+
+  .supportCard {
+    width: 100%;
+    max-width: 100%;
   }
 
   .heroIllustration {

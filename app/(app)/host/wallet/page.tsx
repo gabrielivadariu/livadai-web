@@ -79,6 +79,8 @@ export default function HostWalletPage() {
         const statusChargesEnabled =
           statusRes?.charges_enabled === undefined ? !!statusRes?.isStripeChargesEnabled : !!statusRes?.charges_enabled;
 
+        setStatus(statusRes);
+
         let nextBalance: WalletBalance | null = null;
         let nextStripeBalance: WalletBalance | null = null;
         let nextTransactions: Transaction[] = [];
@@ -95,7 +97,6 @@ export default function HostWalletPage() {
           }
         }
 
-        setStatus(statusRes);
         setBalance(nextBalance);
         setStripeBalance(nextStripeBalance);
         setTransactions(nextTransactions);

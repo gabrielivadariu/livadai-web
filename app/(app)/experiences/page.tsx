@@ -13,8 +13,6 @@ import styles from "./experiences.module.css";
 
 const EXPERIENCE_CREATED_KEY = "livadai-experience-created";
 
-type DiscoveryTheme = "ALL" | "GASTRO" | "NATURE" | "TRADITIONS";
-
 type Experience = {
   _id: string;
   title: string;
@@ -125,83 +123,6 @@ const formatStartTimeLabel = (item: Experience, lang: string) => {
   return normalizeTimeValue(item.startTime);
 };
 
-const buildExperienceThemeSource = (item: Experience) =>
-  [
-    item.title,
-    item.shortDescription,
-    item.description,
-    item.category,
-    item.activityType,
-    item.environment,
-    item.city,
-    item.country,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-const matchesDiscoveryTheme = (item: Experience, theme: DiscoveryTheme) => {
-  if (theme === "ALL") return true;
-  const haystack = buildExperienceThemeSource(item);
-
-  if (theme === "GASTRO") {
-    return [
-      "gastr",
-      "culin",
-      "degust",
-      "gust",
-      "bucăt",
-      "bucat",
-      "brunch",
-      "cină",
-      "cina",
-      "food",
-      "cook",
-      "chef",
-      "vin",
-      "wine",
-    ].some((keyword) => haystack.includes(keyword));
-  }
-
-  if (theme === "NATURE") {
-    return (
-      String(item.environment || "").toUpperCase() === "OUTDOOR" ||
-      [
-        "natur",
-        "drume",
-        "retreat",
-        "yoga",
-        "camp",
-        "pădur",
-        "padur",
-        "munte",
-        "mountain",
-        "trail",
-        "outdoor",
-      ].some((keyword) => haystack.includes(keyword))
-    );
-  }
-
-  if (theme === "TRADITIONS") {
-    return [
-      "tradi",
-      "atelier",
-      "mește",
-      "meste",
-      "craft",
-      "ceramic",
-      "țes",
-      "tes",
-      "olărit",
-      "olarit",
-      "workshop",
-      "artizan",
-    ].some((keyword) => haystack.includes(keyword));
-  }
-
-  return true;
-};
-
 function HeroProofItem({ children }: { children: ReactNode }) {
   return <span className={styles.heroProofItem}>{children}</span>;
 }
@@ -247,7 +168,6 @@ function ExperiencesPageContent() {
   const { user } = useAuth();
   const [items, setItems] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTheme, setActiveTheme] = useState<DiscoveryTheme>("ALL");
   const search = searchParams?.get("q") || "";
   const [showCreated, setShowCreated] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -287,10 +207,7 @@ function ExperiencesPageContent() {
     });
   }, [items, search]);
 
-  const filtered = useMemo(() => {
-    if (activeTheme === "ALL") return searchFiltered;
-    return searchFiltered.filter((item) => matchesDiscoveryTheme(item, activeTheme));
-  }, [activeTheme, searchFiltered]);
+  const filtered = useMemo(() => searchFiltered, [searchFiltered]);
 
   useEffect(() => {
     if (loading) return;
@@ -339,45 +256,9 @@ function ExperiencesPageContent() {
       .slice(0, 3);
   }, [items]);
 
-  const discoveryCards = useMemo(
-    () => [
-      {
-        key: "GASTRO" as const,
-        title: t("hero_discovery_gastro_title"),
-        body: t("hero_discovery_gastro_body"),
-        count: items.filter((item) => matchesDiscoveryTheme(item, "GASTRO")).length,
-      },
-      {
-        key: "NATURE" as const,
-        title: t("hero_discovery_nature_title"),
-        body: t("hero_discovery_nature_body"),
-        count: items.filter((item) => matchesDiscoveryTheme(item, "NATURE")).length,
-      },
-      {
-        key: "TRADITIONS" as const,
-        title: t("hero_discovery_traditions_title"),
-        body: t("hero_discovery_traditions_body"),
-        count: items.filter((item) => matchesDiscoveryTheme(item, "TRADITIONS")).length,
-      },
-    ],
-    [items, t]
-  );
-
   const scrollToExperiences = () => {
     const list = document.getElementById("experiences-list");
     if (list) list.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  const applyDiscoveryTheme = (theme: DiscoveryTheme) => {
-    setActiveTheme(theme);
-    trackEvent({
-      eventName: "cta_clicked",
-      properties: {
-        area: "experiences_hero_discovery",
-        theme,
-      },
-    });
-    window.requestAnimationFrame(() => scrollToExperiences());
   };
 
   return (
@@ -438,30 +319,6 @@ function ExperiencesPageContent() {
             <div className={styles.heroVisualBadge}>{t("hero_visual_badge")}</div>
             <div className={styles.heroVisualSupport}>{t("hero_visual_support")}</div>
           </div>
-        </div>
-      </section>
-      <section className={styles.discoverySection}>
-        <div className={styles.discoveryHeader}>
-          <div className={styles.discoveryBadge}>{t("hero_discovery_badge")}</div>
-          <h2 className={styles.discoveryTitle}>{t("hero_discovery_title")}</h2>
-          <p className={styles.discoverySubtitle}>{t("hero_discovery_subtitle")}</p>
-        </div>
-        <div className={styles.discoveryGrid}>
-          {discoveryCards.map((card) => (
-            <button
-              key={card.key}
-              type="button"
-              className={`${styles.discoveryCard} ${activeTheme === card.key ? styles.discoveryCardActive : ""}`}
-              onClick={() => applyDiscoveryTheme(card.key)}
-            >
-              <div className={styles.discoveryCardTop}>
-                <span className={styles.discoveryCardLabel}>{card.title}</span>
-                {card.count > 0 ? <span className={styles.discoveryCardCount}>{t("hero_discovery_count").replace("{{count}}", String(card.count))}</span> : null}
-              </div>
-              <p>{card.body}</p>
-              <span className={styles.discoveryCardAction}>{t("hero_discovery_cta")}</span>
-            </button>
-          ))}
         </div>
       </section>
       {!user ? <div className={styles.guestHint}>{t("guest_list_hint")}</div> : null}

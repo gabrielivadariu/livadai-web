@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { apiGet } from "@/lib/api";
@@ -12,6 +12,8 @@ import { useT } from "@/lib/i18n";
 import styles from "./experiences.module.css";
 
 const EXPERIENCE_CREATED_KEY = "livadai-experience-created";
+
+type DiscoveryTheme = "ALL" | "GASTRO" | "NATURE" | "TRADITIONS";
 
 type Experience = {
   _id: string;
@@ -46,94 +48,6 @@ type Experience = {
   seriesAvailableSlots?: number;
   seriesNextStartsAt?: string | null;
 };
-
-const HERO_LIFE_PATH = "M40 138c60 10 120 10 180 4 80-8 160-10 240-4 52 4 98 4 160-6";
-
-function HeroLifeJourneyArt() {
-  return (
-    <svg className={styles.heroJourneyArt} viewBox="0 0 640 180" aria-hidden="true">
-      <defs>
-        <linearGradient id="heroJourneyTone" x1="36" y1="0" x2="610" y2="0" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#11bfd1" stopOpacity="0.92" />
-          <stop offset="48%" stopColor="#37cada" stopOpacity="0.72" />
-          <stop offset="78%" stopColor="#dffcff" stopOpacity="0.94" />
-          <stop offset="100%" stopColor="#ffffff" stopOpacity="1" />
-        </linearGradient>
-        <radialGradient id="heroJourneySpark" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
-          <stop offset="48%" stopColor="#dcfbff" stopOpacity="0.88" />
-          <stop offset="100%" stopColor="#dcfbff" stopOpacity="0" />
-        </radialGradient>
-        <filter id="heroJourneyGlow" x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="2.2" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-
-      <g className={styles.heroJourneyTraveler}>
-        <animate attributeName="opacity" values="0;0.46;0.54;0.5;0.18;0" keyTimes="0;0.06;0.38;0.78;0.94;1" dur="15s" repeatCount="indefinite" />
-        <animateMotion dur="15s" repeatCount="indefinite" path={HERO_LIFE_PATH} rotate="auto" />
-        <g className={styles.heroJourneyScale}>
-          <animateTransform attributeName="transform" additive="sum" type="translate" values="-10 -36; -12 -44; -16 -52; -22 -56" keyTimes="0;0.28;0.66;1" dur="15s" repeatCount="indefinite" />
-          <animateTransform attributeName="transform" additive="sum" type="scale" values="0.62;0.78;0.98;1.12" keyTimes="0;0.28;0.66;1" dur="15s" repeatCount="indefinite" />
-
-          <g fill="url(#heroJourneyTone)" stroke="url(#heroJourneyTone)" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round">
-            <g className={styles.heroJourneyStage}>
-              <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.2;0.32;1" dur="15s" repeatCount="indefinite" />
-              <circle cx="0" cy="-25.5" r="4.8" />
-              <path d="M-3.4-20.8c1.2-2.2 3.1-3.3 4.2-3.3 1.3 0 3.2 1.1 4.4 3.3l1.3 6.4-3.4 2.8 1.4 8.8H1l-1.2-5.9h-1.2l-1.4 5.9h-3.5l1.4-8.8-3.2-2.8 1.1-6.4Z" />
-              <path d="M-1.8-17.8l-6 7.2" />
-              <path d="M2.2-17.8l5.6 6.8" />
-              <path d="M-1.8-2.8l-3.9 10.4" />
-              <path d="M1.8-2.8l4.6 10.8" />
-            </g>
-
-            <g className={styles.heroJourneyStage}>
-              <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.16;0.28;0.44;0.56;1" dur="15s" repeatCount="indefinite" />
-              <circle cx="0" cy="-27.6" r="4.9" />
-              <path d="M4.3-31.6c2.8 0 4.8 2.2 5 4.6-1.3 0-2.6-.5-3.8-1.6" />
-              <path d="M-2.9-22.6c1.2-2.5 3.3-3.8 5-3.8 1.8 0 4 1.3 5.2 3.8l1.4 7-2.6 1.8-.5 10.5H2.6l-1.4-7.8h-1.3l-1.8 7.8h-4.1l-.3-11.1-2.3-1.2 1.4-6.9Z" />
-              <path d="M-1.4-19.8l-6.4 6.4" />
-              <path d="M4.2-18.8l5.8 7" />
-              <path d="M-0.8-3.4l-3.2 10.8" />
-              <path d="M2.6-3.2l5 10.2" />
-            </g>
-
-            <g className={styles.heroJourneyStage}>
-              <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.42;0.56;0.76;0.88;1" dur="15s" repeatCount="indefinite" />
-              <circle cx="0" cy="-29.2" r="5" />
-              <path d="M-4.4-23.2c1.2-2.7 3.7-4.2 5.8-4.2 2.1 0 4.7 1.4 6 4.1l1.2 6-2.7 1.8-.6 12.4 1.4 10.8H2.5L.9 1.2H-.8l-2.3 8.4h-4.4l1.7-12.7-.4-11.2-2.8-1.7 1.2-7.2Z" />
-              <path d="M-2.6-21.2l-7 8.2" />
-              <path d="M4.7-21.2l6.2 8.1" />
-              <path d="M-0.2-3.4l-4.2 11.6" />
-              <path d="M2.4-3.4l5.8 9.9" />
-            </g>
-
-            <g className={styles.heroJourneyStage} transform="translate(4 0)">
-              <animate attributeName="opacity" values="0;0;0;1;1;0" keyTimes="0;0.64;0.76;0.88;0.94;1" dur="15s" repeatCount="indefinite" />
-              <circle cx="0" cy="-28.2" r="4.8" />
-              <path d="M-2.8-21.8c1.2-2.3 2.9-3.7 4.7-3.7 1.8 0 4.2 1.2 5.3 4.1l1.4 6.4-3 1.6-.6 12.5-1.6 8.8h-4L.7.6h-1.9l-2.5 8.1h-4.2l2.2-11.3-.2-9.6-2.4-2 1.7-7.6Z" />
-              <path d="M0.8-20.6c3.9 1.1 6.9 4.1 8 8.2" />
-              <path d="M-1.2-0.8l-3.4 8.8" />
-              <path d="M2.6-0.6l2.5 8.2" />
-              <path d="M8.2-10.6l6.1 18.8" />
-            </g>
-          </g>
-
-          <g filter="url(#heroJourneyGlow)">
-            <circle className={styles.heroJourneyLight} cx="2" cy="-12" r="0">
-              <animate attributeName="r" values="0;0;0;1.6;3.8;2.4;0" keyTimes="0;0.84;0.9;0.94;0.97;0.99;1" dur="15s" repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0;0;0;0.72;1;0.68;0" keyTimes="0;0.84;0.9;0.94;0.97;0.99;1" dur="15s" repeatCount="indefinite" />
-            </circle>
-          </g>
-        </g>
-      </g>
-    </svg>
-  );
-}
 
 const formatSeatsInfo = (item: Experience) => {
   const total = item.maxParticipants || 0;
@@ -211,6 +125,121 @@ const formatStartTimeLabel = (item: Experience, lang: string) => {
   return normalizeTimeValue(item.startTime);
 };
 
+const buildExperienceThemeSource = (item: Experience) =>
+  [
+    item.title,
+    item.shortDescription,
+    item.description,
+    item.category,
+    item.activityType,
+    item.environment,
+    item.city,
+    item.country,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+const matchesDiscoveryTheme = (item: Experience, theme: DiscoveryTheme) => {
+  if (theme === "ALL") return true;
+  const haystack = buildExperienceThemeSource(item);
+
+  if (theme === "GASTRO") {
+    return [
+      "gastr",
+      "culin",
+      "degust",
+      "gust",
+      "bucăt",
+      "bucat",
+      "brunch",
+      "cină",
+      "cina",
+      "food",
+      "cook",
+      "chef",
+      "vin",
+      "wine",
+    ].some((keyword) => haystack.includes(keyword));
+  }
+
+  if (theme === "NATURE") {
+    return (
+      String(item.environment || "").toUpperCase() === "OUTDOOR" ||
+      [
+        "natur",
+        "drume",
+        "retreat",
+        "yoga",
+        "camp",
+        "pădur",
+        "padur",
+        "munte",
+        "mountain",
+        "trail",
+        "outdoor",
+      ].some((keyword) => haystack.includes(keyword))
+    );
+  }
+
+  if (theme === "TRADITIONS") {
+    return [
+      "tradi",
+      "atelier",
+      "mește",
+      "meste",
+      "craft",
+      "ceramic",
+      "țes",
+      "tes",
+      "olărit",
+      "olarit",
+      "workshop",
+      "artizan",
+    ].some((keyword) => haystack.includes(keyword));
+  }
+
+  return true;
+};
+
+function HeroProofItem({ children }: { children: ReactNode }) {
+  return <span className={styles.heroProofItem}>{children}</span>;
+}
+
+function HeroVisualCard({
+  item,
+  chip,
+  className,
+}: {
+  item?: Experience;
+  chip: string;
+  className?: string;
+}) {
+  const title = item?.title || chip;
+  const location = [item?.city, item?.country].filter(Boolean).join(", ");
+
+  return (
+    <div className={`${styles.heroVisualCard} ${className || ""}`}>
+      {item?.coverImageUrl ? (
+        <img
+          src={item.coverImageUrl}
+          alt={title}
+          className={styles.heroVisualImage}
+          style={buildCoverObjectPosition(item)}
+        />
+      ) : (
+        <div className={styles.heroVisualPlaceholder} />
+      )}
+      <div className={styles.heroVisualOverlay} />
+      <span className={styles.heroVisualChip}>{chip}</span>
+      <div className={styles.heroVisualMeta}>
+        <strong>{title}</strong>
+        {location ? <span>{location}</span> : null}
+      </div>
+    </div>
+  );
+}
+
 function ExperiencesPageContent() {
   const searchParams = useSearchParams();
   const { lang } = useLang();
@@ -218,6 +247,7 @@ function ExperiencesPageContent() {
   const { user } = useAuth();
   const [items, setItems] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTheme, setActiveTheme] = useState<DiscoveryTheme>("ALL");
   const search = searchParams?.get("q") || "";
   const [showCreated, setShowCreated] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -246,7 +276,7 @@ function ExperiencesPageContent() {
     window.localStorage.removeItem(EXPERIENCE_CREATED_KEY);
   }, [showCreated]);
 
-  const filtered = useMemo(() => {
+  const searchFiltered = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return items;
     return items.filter((it) => {
@@ -257,38 +287,98 @@ function ExperiencesPageContent() {
     });
   }, [items, search]);
 
+  const filtered = useMemo(() => {
+    if (activeTheme === "ALL") return searchFiltered;
+    return searchFiltered.filter((item) => matchesDiscoveryTheme(item, activeTheme));
+  }, [activeTheme, searchFiltered]);
+
   useEffect(() => {
     if (loading) return;
     const term = search.trim();
     if (!term) return;
 
-    const resultIds = filtered.slice(0, 30).map((item) => item._id);
+    const resultIds = searchFiltered.slice(0, 30).map((item) => item._id);
     trackEvent({
       eventName: "search_initiated",
       searchQuery: term,
-      searchResultsCount: filtered.length,
+      searchResultsCount: searchFiltered.length,
       resultIds,
     });
     trackEvent({
       eventName: "search_results_viewed",
       searchQuery: term,
-      searchResultsCount: filtered.length,
+      searchResultsCount: searchFiltered.length,
       resultIds,
     });
-    if (!filtered.length) {
+    if (!searchFiltered.length) {
       trackEvent({
         eventName: "search_no_results",
         searchQuery: term,
         searchResultsCount: 0,
       });
     }
-  }, [filtered, loading, search]);
+  }, [loading, search, searchFiltered]);
 
-  const heroSupportPoints = [
-    t("hero_support_point_1"),
-    t("hero_support_point_2"),
-    t("hero_support_point_3"),
+  const heroProofItems = [
+    t("hero_proof_1"),
+    t("hero_proof_2"),
+    t("hero_proof_3"),
+    t("hero_proof_4"),
   ];
+
+  const heroVisualItems = useMemo(() => {
+    const seen = new Set<string>();
+    return items
+      .filter((item) => item.coverImageUrl)
+      .filter((item) => {
+        const signature = `${item.city || ""}-${item.title || ""}`;
+        if (seen.has(signature)) return false;
+        seen.add(signature);
+        return true;
+      })
+      .slice(0, 3);
+  }, [items]);
+
+  const discoveryCards = useMemo(
+    () => [
+      {
+        key: "GASTRO" as const,
+        title: t("hero_discovery_gastro_title"),
+        body: t("hero_discovery_gastro_body"),
+        count: items.filter((item) => matchesDiscoveryTheme(item, "GASTRO")).length,
+      },
+      {
+        key: "NATURE" as const,
+        title: t("hero_discovery_nature_title"),
+        body: t("hero_discovery_nature_body"),
+        count: items.filter((item) => matchesDiscoveryTheme(item, "NATURE")).length,
+      },
+      {
+        key: "TRADITIONS" as const,
+        title: t("hero_discovery_traditions_title"),
+        body: t("hero_discovery_traditions_body"),
+        count: items.filter((item) => matchesDiscoveryTheme(item, "TRADITIONS")).length,
+      },
+    ],
+    [items, t]
+  );
+
+  const scrollToExperiences = () => {
+    const list = document.getElementById("experiences-list");
+    if (list) list.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const applyDiscoveryTheme = (theme: DiscoveryTheme) => {
+    setActiveTheme(theme);
+    trackEvent({
+      eventName: "cta_clicked",
+      properties: {
+        area: "experiences_hero_discovery",
+        theme,
+      },
+    });
+    window.requestAnimationFrame(() => scrollToExperiences());
+  };
 
   return (
     <div className={styles.page}>
@@ -304,18 +394,12 @@ function ExperiencesPageContent() {
         </div>
       ) : null}
       <section className={styles.hero}>
-        <svg className={styles.heroIllustration} viewBox="0 0 640 180" aria-hidden="true">
-          <g fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d={HERO_LIFE_PATH} />
-          </g>
-        </svg>
-        <HeroLifeJourneyArt />
         <div className={styles.heroText}>
           <div className={`${styles.heroBadge} ${styles.fadeIn}`}>{t("hero_badge")}</div>
           <h1 className={`${styles.heroTitle} ${styles.fadeIn}`}>{t("hero_title")}</h1>
           <p className={`${styles.heroSubtitle} ${styles.fadeIn} ${styles.delay1}`}>
             {t("hero_subtitle_line1")}
-            <br />
+            {" "}
             {t("hero_subtitle_line2")}
           </p>
           <div className={`${styles.heroActions} ${styles.fadeIn} ${styles.delay2}`}>
@@ -323,32 +407,61 @@ function ExperiencesPageContent() {
               className={`button ${styles.heroCta}`}
               type="button"
               onClick={() => {
-                const list = document.getElementById("experiences-list");
-                if (list) list.scrollIntoView({ behavior: "smooth", block: "start" });
+                trackEvent({
+                  eventName: "cta_clicked",
+                  properties: {
+                    area: "experiences_hero",
+                    cta: "primary",
+                  },
+                });
+                scrollToExperiences();
               }}
             >
               {t("hero_cta_primary")}
             </button>
-            <Link href="/how-it-works" className={`button secondary ${styles.heroSecondaryCta}`}>
+            <Link href="/how-it-works" className={styles.heroSecondaryLink}>
               {t("hero_cta_secondary")}
             </Link>
+          </div>
+          <div className={styles.heroProofRow}>
+            {heroProofItems.map((item) => (
+              <HeroProofItem key={item}>{item}</HeroProofItem>
+            ))}
           </div>
           <div className={styles.heroMicrocopy}>{t("hero_cta_microcopy")}</div>
         </div>
         <div className={`${styles.heroVisual} ${styles.fadeIn} ${styles.delay1}`}>
-          <div className={styles.supportCard}>
-            <div className={styles.supportBadge}>{t("hero_support_badge")}</div>
-            <div className={styles.supportTitle}>{t("hero_support_title")}</div>
-            <div className={styles.supportBody}>{t("hero_support_body")}</div>
-            <div className={styles.supportPoints}>
-              {heroSupportPoints.map((point) => (
-                <span key={point} className={styles.supportPoint}>
-                  {point}
-                </span>
-              ))}
-            </div>
-            <div className={styles.supportImpact}>{t("hero_support_impact")}</div>
+          <div className={styles.heroVisualStage}>
+            <HeroVisualCard item={heroVisualItems[0]} chip={t("hero_visual_chip_1")} className={styles.heroVisualPrimary} />
+            <HeroVisualCard item={heroVisualItems[1]} chip={t("hero_visual_chip_2")} className={styles.heroVisualSecondary} />
+            <HeroVisualCard item={heroVisualItems[2]} chip={t("hero_visual_chip_3")} className={styles.heroVisualTertiary} />
+            <div className={styles.heroVisualBadge}>{t("hero_visual_badge")}</div>
+            <div className={styles.heroVisualSupport}>{t("hero_visual_support")}</div>
           </div>
+        </div>
+      </section>
+      <section className={styles.discoverySection}>
+        <div className={styles.discoveryHeader}>
+          <div className={styles.discoveryBadge}>{t("hero_discovery_badge")}</div>
+          <h2 className={styles.discoveryTitle}>{t("hero_discovery_title")}</h2>
+          <p className={styles.discoverySubtitle}>{t("hero_discovery_subtitle")}</p>
+        </div>
+        <div className={styles.discoveryGrid}>
+          {discoveryCards.map((card) => (
+            <button
+              key={card.key}
+              type="button"
+              className={`${styles.discoveryCard} ${activeTheme === card.key ? styles.discoveryCardActive : ""}`}
+              onClick={() => applyDiscoveryTheme(card.key)}
+            >
+              <div className={styles.discoveryCardTop}>
+                <span className={styles.discoveryCardLabel}>{card.title}</span>
+                {card.count > 0 ? <span className={styles.discoveryCardCount}>{t("hero_discovery_count").replace("{{count}}", String(card.count))}</span> : null}
+              </div>
+              <p>{card.body}</p>
+              <span className={styles.discoveryCardAction}>{t("hero_discovery_cta")}</span>
+            </button>
+          ))}
         </div>
       </section>
       {!user ? <div className={styles.guestHint}>{t("guest_list_hint")}</div> : null}

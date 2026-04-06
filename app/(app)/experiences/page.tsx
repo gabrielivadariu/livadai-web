@@ -161,6 +161,85 @@ function HeroVisualCard({
   );
 }
 
+function HeroVisualCommentCard({
+  item,
+  className,
+  label,
+}: {
+  item?: Experience;
+  className?: string;
+  label: string;
+}) {
+  const title = item?.title || label;
+  const snippet = item?.shortDescription || item?.description || label;
+  const trimmedSnippet = snippet.trim().replace(/\s+/g, " ");
+  const preview = trimmedSnippet.length > 120 ? `${trimmedSnippet.slice(0, 117).trim()}...` : trimmedSnippet;
+  const location = [item?.city, item?.country].filter(Boolean).join(", ");
+  const initials = title
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+
+  return (
+    <div className={`${styles.heroVisualCommentCard} ${className || ""}`}>
+      <span className={styles.heroVisualCommentLabel}>{label}</span>
+      <div className={styles.heroVisualCommentBody}>
+        <div className={styles.heroVisualCommentIcon}>💬</div>
+        <p>{preview}</p>
+      </div>
+      <div className={styles.heroVisualCommentMeta}>
+        <span className={styles.heroVisualCommentAvatar}>{initials || "L"}</span>
+        <div>
+          <strong>{title}</strong>
+          {location ? <span>{location}</span> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HeroVisualMomentCard({
+  item,
+  chip,
+  className,
+  label,
+}: {
+  item?: Experience;
+  chip: string;
+  className?: string;
+  label: string;
+}) {
+  const title = item?.title || chip;
+  const location = [item?.city, item?.country].filter(Boolean).join(", ");
+
+  return (
+    <div className={`${styles.heroVisualMomentCard} ${className || ""}`}>
+      <div className={styles.heroVisualMomentMedia}>
+        {item?.coverImageUrl ? (
+          <img
+            src={item.coverImageUrl}
+            alt={title}
+            className={styles.heroVisualImage}
+            style={buildCoverObjectPosition(item)}
+          />
+        ) : (
+          <div className={styles.heroVisualPlaceholder} />
+        )}
+        <div className={styles.heroVisualMomentOverlay} />
+        <span className={styles.heroVisualMomentPlay}>▶</span>
+        <span className={styles.heroVisualMomentChip}>{chip}</span>
+      </div>
+      <div className={styles.heroVisualMomentMeta}>
+        <span>{label}</span>
+        <strong>{title}</strong>
+        {location ? <small>{location}</small> : null}
+      </div>
+    </div>
+  );
+}
+
 function ExperiencesPageContent() {
   const searchParams = useSearchParams();
   const { lang } = useLang();
@@ -314,8 +393,17 @@ function ExperiencesPageContent() {
         <div className={`${styles.heroVisual} ${styles.fadeIn} ${styles.delay1}`}>
           <div className={styles.heroVisualStage}>
             <HeroVisualCard item={heroVisualItems[0]} chip={t("hero_visual_chip_1")} className={styles.heroVisualPrimary} />
-            <HeroVisualCard item={heroVisualItems[1]} chip={t("hero_visual_chip_2")} className={styles.heroVisualSecondary} />
-            <HeroVisualCard item={heroVisualItems[2]} chip={t("hero_visual_chip_3")} className={styles.heroVisualTertiary} />
+            <HeroVisualMomentCard
+              item={heroVisualItems[1] || heroVisualItems[0]}
+              chip={t("hero_visual_chip_2")}
+              label={t("hero_visual_story_label")}
+              className={styles.heroVisualSecondary}
+            />
+            <HeroVisualCommentCard
+              item={heroVisualItems[2] || heroVisualItems[1] || heroVisualItems[0]}
+              label={t("hero_visual_comment_label")}
+              className={styles.heroVisualTertiary}
+            />
             <div className={styles.heroVisualBadge}>{t("hero_visual_badge")}</div>
             <div className={styles.heroVisualSupport}>{t("hero_visual_support")}</div>
           </div>

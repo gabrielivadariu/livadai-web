@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { Suspense, useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { apiGet } from "@/lib/api";
@@ -47,13 +47,14 @@ type Experience = {
   seriesNextStartsAt?: string | null;
 };
 
-type HeroPreview = {
+type HeroStory = {
   title: string;
   location: string;
   price: string;
   imageUrl: string;
   href: string;
   badge: string;
+  label: string;
 };
 
 const formatSeatsInfo = (item: Experience) => {
@@ -132,50 +133,28 @@ const formatStartTimeLabel = (item: Experience, lang: string) => {
   return normalizeTimeValue(item.startTime);
 };
 
-function HeroProofItem({ children }: { children: ReactNode }) {
+function HeroProofItem({ children }: { children: string }) {
   return <span className={styles.heroProofItem}>{children}</span>;
 }
 
-function HeroPreviewCard({
-  card,
-  className,
-}: {
-  card: HeroPreview;
-  className?: string;
-}) {
+function HeroStoryCard({ story }: { story: HeroStory }) {
   return (
-    <Link href={card.href} className={`${styles.heroPreviewCard} ${className || ""}`}>
-      <div className={styles.heroPreviewImageWrap}>
-        <img src={card.imageUrl} alt={card.title} className={styles.heroPreviewImage} />
-        <span className={styles.heroPreviewBadge}>{card.badge}</span>
+    <Link href={story.href} className={styles.heroStoryCard}>
+      <div className={styles.heroStoryMedia}>
+        <img src={story.imageUrl} alt={story.title} className={styles.heroStoryImage} />
+        <span className={styles.heroStoryLabel}>{story.label}</span>
+        <span className={styles.heroStoryBadge}>{story.badge}</span>
       </div>
-      <div className={styles.heroPreviewBody}>
-        <div className={styles.heroPreviewHeader}>
+      <div className={styles.heroStoryBody}>
+        <div className={styles.heroStoryMeta}>
           <div>
-            <strong>{card.title}</strong>
-            <span>{card.location}</span>
+            <strong>{story.title}</strong>
+            <span>{story.location}</span>
           </div>
-          <em>{card.price}</em>
+          <em>{story.price}</em>
         </div>
-        <span className={styles.heroPreviewAction}>Rezervă acum</span>
+        <span className={styles.heroStoryAction}>Rezervă acum</span>
       </div>
-    </Link>
-  );
-}
-
-function HeroCategoryCard({
-  href,
-  title,
-  description,
-}: {
-  href: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <Link href={href} className={styles.heroCategoryCard}>
-      <strong>{title}</strong>
-      <span>{description}</span>
     </Link>
   );
 }
@@ -269,67 +248,29 @@ function ExperiencesPageContent() {
     t("hero_proof_4"),
   ];
 
-  const heroPreviewCards = useMemo<HeroPreview[]>(() => {
-    const fallbacks = [
-      {
-        badge: t("hero_visual_chip_1"),
-        title: t("hero_preview_1_title"),
-        location: t("hero_preview_1_location"),
-        fallbackPrice: t("hero_preview_1_price"),
-        searchLabel: "Degustare de plante aromatice",
-        imageUrl:
-          "https://images.unsplash.com/photo-1461354464878-ad92f492a5a0?auto=format&fit=crop&w=900&q=80",
-      },
-      {
-        badge: t("hero_visual_chip_2"),
-        title: t("hero_preview_2_title"),
-        location: t("hero_preview_2_location"),
-        fallbackPrice: t("hero_preview_2_price"),
-        searchLabel: "Tabăra oamenilor liberi",
-        imageUrl:
-          "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
-      },
-      {
-        badge: t("hero_visual_chip_3"),
-        title: t("hero_preview_3_title"),
-        location: t("hero_preview_3_location"),
-        fallbackPrice: t("hero_preview_3_price"),
-        searchLabel: "Bucătărie tradițională",
-        imageUrl:
-          "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=900&q=80",
-      },
-    ];
+  const heroStory = useMemo<HeroStory>(() => {
+    const fallbackImage =
+      "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80";
+    const storyCandidate =
+      items.find((item) =>
+        [item.title, item.shortDescription, item.description, item.category]
+          .join(" ")
+          .toLowerCase()
+          .match(/buc[aă]t|gastr|bunic|atelier|sat|tradi|tab[aă]r|ceramic|mește|mestes/)
+      ) ||
+      items.find((item) => Boolean(item.coverImageUrl)) ||
+      items[0];
 
-    return fallbacks.map((fallback) => {
-      const match = items.find((item) => item.title?.toLowerCase().includes(fallback.searchLabel.toLowerCase()));
-      return {
-        badge: fallback.badge,
-        title: match?.title || fallback.title,
-        location: match?.city || fallback.location,
-        price: match ? formatPricing(match, lang, t) : fallback.fallbackPrice,
-        imageUrl: match?.coverImageUrl || fallback.imageUrl,
-        href: match ? `/experiences/${match._id}` : `/experiences?q=${encodeURIComponent(fallback.searchLabel)}`,
-      };
-    });
+    return {
+      label: t("hero_story_label"),
+      badge: t("hero_story_badge"),
+      title: storyCandidate?.title || t("hero_story_title"),
+      location: storyCandidate?.city || t("hero_story_location"),
+      price: storyCandidate ? formatPricing(storyCandidate, lang, t) : t("hero_story_price"),
+      imageUrl: storyCandidate?.coverImageUrl || fallbackImage,
+      href: storyCandidate?._id ? `/experiences/${storyCandidate._id}` : "/experiences?q=bucătărie",
+    };
   }, [items, lang, t]);
-
-  const heroCategories = [
-    {
-      href: "/experiences?q=gastronomie",
-      title: t("hero_category_1_title"),
-      description: t("hero_category_1_description"),
-    },
-    {
-      href: "/experiences?q=retreat",
-      title: t("hero_category_2_title"),
-      description: t("hero_category_2_description"),
-    },
-    {
-      href: "/experiences?q=atelier",
-      title: t("hero_category_3_title"),
-      description: t("hero_category_3_description"),
-    },
-  ];
 
   const scrollToExperiences = () => {
     const list = document.getElementById("experiences-list");
@@ -378,6 +319,19 @@ function ExperiencesPageContent() {
       ) : null}
       <section className={styles.hero}>
         <div className={styles.heroBackdrop} />
+        <div className={styles.heroPoster} />
+        <video
+          className={styles.heroVideo}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          poster="https://picsum.photos/id/1015/2000/1200"
+          aria-hidden="true"
+        >
+          <source src="https://player.vimeo.com/external/371433846.sd.mp4?s=2367514475414f1b77d278e41b1a086e346f4eb6&profile_id=139&oauth2_token_id=57447761" type="video/mp4" />
+        </video>
         <div className={styles.heroOverlay} />
         <div className={styles.heroInner}>
           <div className={styles.heroText}>
@@ -386,7 +340,10 @@ function ExperiencesPageContent() {
               <span className={styles.heroBrandTagline}>{t("hero_brand_tagline")}</span>
             </div>
             <div className={`${styles.heroBadge} ${styles.fadeIn} ${styles.delay1}`}>{t("hero_badge")}</div>
-            <h1 className={`${styles.heroTitle} ${styles.fadeIn} ${styles.delay1}`}>{t("hero_title")}</h1>
+            <h1 className={`${styles.heroTitle} ${styles.fadeIn} ${styles.delay1}`}>
+              <span>{t("hero_title_line1")}</span>
+              <span>{t("hero_title_line2")}</span>
+            </h1>
             <p className={`${styles.heroSubtitle} ${styles.fadeIn} ${styles.delay2}`}>
               {t("hero_subtitle_line1")}
               {" "}
@@ -406,9 +363,6 @@ function ExperiencesPageContent() {
                   {t("hero_search_nearby")}
                 </Link>
               </div>
-              <Link href="/map" className={styles.heroMapLink}>
-                {t("hero_search_map")}
-              </Link>
             </form>
             <div className={`${styles.heroActions} ${styles.fadeIn} ${styles.delay2}`}>
               <button
@@ -431,8 +385,8 @@ function ExperiencesPageContent() {
               >
                 {t("hero_cta_primary")}
               </button>
-              <Link href="/how-it-works" className={styles.heroSecondaryButton}>
-                {t("hero_cta_secondary")}
+              <Link href="/map" className={styles.heroSecondaryButton}>
+                {t("hero_search_map")}
               </Link>
             </div>
             <div className={styles.heroProofRow}>
@@ -440,32 +394,14 @@ function ExperiencesPageContent() {
                 <HeroProofItem key={item}>{item}</HeroProofItem>
               ))}
             </div>
-            <div className={styles.heroMicrocopy}>{t("hero_cta_microcopy")}</div>
           </div>
           <div className={`${styles.heroVisual} ${styles.fadeIn} ${styles.delay1}`}>
             <div className={styles.heroVisualWrap}>
               <div className={styles.heroVisualFrame}>
-                <div className={styles.heroVisualIntro}>
-                  <span>{t("hero_visual_badge")}</span>
-                </div>
-                <HeroPreviewCard card={heroPreviewCards[0]} className={styles.heroPreviewPrimary} />
-                <HeroPreviewCard card={heroPreviewCards[1]} className={styles.heroPreviewSecondary} />
-                <HeroPreviewCard card={heroPreviewCards[2]} className={styles.heroPreviewTertiary} />
+                <HeroStoryCard story={heroStory} />
               </div>
             </div>
           </div>
-        </div>
-      </section>
-      <section className={styles.heroCategories}>
-        <div className={styles.heroCategoriesHeader}>
-          <div className={styles.heroCategoriesBadge}>{t("hero_categories_badge")}</div>
-          <h2>{t("hero_categories_title")}</h2>
-          <p>{t("hero_categories_subtitle")}</p>
-        </div>
-        <div className={styles.heroCategoriesGrid}>
-          {heroCategories.map((card) => (
-            <HeroCategoryCard key={card.title} href={card.href} title={card.title} description={card.description} />
-          ))}
         </div>
       </section>
       {!user ? <div className={styles.guestHint}>{t("guest_list_hint")}</div> : null}

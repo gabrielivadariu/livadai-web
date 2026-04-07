@@ -28,76 +28,72 @@
 .hero {
   position: relative;
   overflow: hidden;
-  min-height: min(65vh, 620px);
+  height: min(65vh, 620px);
   padding: 28px;
   border-radius: 32px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 26px 64px rgba(5, 49, 58, 0.16);
-  background: #153036;
+  background: #102028;
 }
 
-.heroBackdrop {
+.heroSlides,
+.heroSlide {
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(90deg, rgba(8, 32, 38, 0.44) 0%, rgba(8, 32, 38, 0.28) 38%, rgba(8, 32, 38, 0.14) 72%, rgba(8, 32, 38, 0.18) 100%),
-    linear-gradient(180deg, rgba(5, 18, 23, 0.08) 0%, rgba(5, 18, 23, 0.42) 100%);
 }
 
-.heroPoster,
-.heroVideo {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+.heroSlide {
+  opacity: 0;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  transform: scale(1.05);
+  transition: opacity 1s ease, transform 6s ease;
+  will-change: opacity, transform;
 }
 
-.heroPoster {
-  background:
-    linear-gradient(180deg, rgba(10, 36, 42, 0.04) 0%, rgba(10, 36, 42, 0.3) 100%),
-    url("https://picsum.photos/id/1015/2000/1200") center center / cover no-repeat;
-  transform: scale(1.02);
-}
-
-.heroVideo {
-  object-fit: cover;
-  opacity: 0.92;
-  transform: scale(1.04);
-  filter: saturate(0.92) contrast(0.94) brightness(0.86);
-  animation: heroVideoDrift 16s ease-in-out infinite alternate;
+.heroSlideActive {
+  opacity: 1;
+  transform: scale(1.01);
 }
 
 .heroOverlay {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(5, 18, 23, 0.1) 0%, rgba(5, 18, 23, 0.18) 42%, rgba(5, 18, 23, 0.56) 100%),
-    radial-gradient(46% 56% at 18% 22%, rgba(14, 165, 233, 0.14) 0%, rgba(14, 165, 233, 0.02) 68%, rgba(14, 165, 233, 0) 100%),
-    radial-gradient(36% 46% at 88% 82%, rgba(201, 168, 118, 0.16) 0%, rgba(201, 168, 118, 0.04) 56%, rgba(201, 168, 118, 0) 100%);
+    linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.36) 38%, rgba(0, 0, 0, 0.2) 100%),
+    radial-gradient(42% 48% at 82% 18%, rgba(14, 165, 233, 0.18) 0%, rgba(14, 165, 233, 0.04) 52%, rgba(14, 165, 233, 0) 100%),
+    linear-gradient(120deg, rgba(36, 27, 18, 0.24) 0%, rgba(36, 27, 18, 0.06) 48%, rgba(36, 27, 18, 0.16) 100%);
 }
 
 .heroInner {
   position: relative;
   z-index: 2;
-  display: grid;
-  gap: 22px;
-  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
-  align-items: center;
-  min-height: calc(min(65vh, 620px) - 56px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: min(100%, 1240px);
+  height: 100%;
+  margin: 0 auto;
 }
 
-.heroText {
+.heroContent {
   position: relative;
-  z-index: 2;
   display: grid;
-  gap: 14px;
+  gap: 16px;
   align-content: center;
-  text-align: left;
-  max-width: 720px;
+  justify-items: center;
+  text-align: center;
+  width: min(100%, 760px);
+  margin: 0 auto;
 }
 
 .heroBrand {
-  display: grid;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
   gap: 4px;
   width: fit-content;
 }
@@ -117,50 +113,52 @@
   color: rgba(248, 251, 253, 0.84);
 }
 
-.heroVisual {
+.heroHeadingStack {
   position: relative;
-  z-index: 2;
-  min-width: 0;
+  width: 100%;
+  min-height: 132px;
+  display: grid;
+  place-items: center;
 }
 
 .heroTitle {
   font-family: "Sora", "Segoe UI", sans-serif;
-  display: grid;
-  gap: 2px;
-  font-size: clamp(40px, 5vw, 68px);
-  line-height: 0.96;
   margin: 0;
+  font-size: clamp(32px, 4.2vw, 52px);
+  line-height: 1.02;
+  max-width: 12ch;
   color: #ffffff;
-  letter-spacing: -0.03em;
-  font-weight: 700;
-  max-width: 10ch;
+  letter-spacing: -0.04em;
+  font-weight: 800;
+  animation: heroHeadlineFade 0.6s ease both;
+  text-wrap: balance;
 }
 
 .heroSubtitle {
   margin: 0;
-  font-size: 17px;
-  line-height: 1.58;
+  font-size: 18px;
+  line-height: 1.5;
   color: rgba(248, 251, 253, 0.92);
-  max-width: 54ch;
+  max-width: 520px;
+  text-wrap: balance;
 }
 
 .heroSearchForm {
   display: grid;
   gap: 0;
-  max-width: 760px;
+  width: min(100%, 640px);
 }
 
 .heroSearchShell {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
   gap: 14px;
-  min-height: 76px;
-  padding: 10px 12px 10px 18px;
-  border-radius: 26px;
+  min-height: 72px;
+  padding: 10px 10px 10px 18px;
+  border-radius: 999px;
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.68);
-  box-shadow: 0 22px 44px rgba(5, 49, 58, 0.18);
+  box-shadow: 0 18px 42px rgba(5, 49, 58, 0.24);
   backdrop-filter: blur(12px);
   transition: box-shadow 0.22s ease, border-color 0.22s ease, transform 0.22s ease;
 }
@@ -177,93 +175,43 @@
 }
 
 .heroSearchInput {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   border: none;
   background: transparent;
   color: #05313a;
-  font-size: 17px;
+  font-size: 16px;
   outline: none;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .heroSearchInput::placeholder {
   color: rgba(5, 49, 58, 0.48);
 }
 
-.heroNearMeChip {
+.heroSearchButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 52px;
-  padding: 0 16px;
-  border-radius: 18px;
-  border: 1px solid rgba(var(--brand-rgb), 0.14);
-  background: rgba(14, 165, 233, 0.1);
-  color: #0a5460;
-  text-decoration: none;
-  font-weight: 700;
-  font-size: 14px;
-  white-space: nowrap;
-  transition: transform 0.18s ease, background 0.18s ease;
-}
-
-.heroNearMeChip:hover {
-  transform: translateY(-1px);
-  background: rgba(14, 165, 233, 0.12);
-}
-
-.heroCta {
-  width: fit-content;
-  background: linear-gradient(135deg, #14c8d6 0%, #0ea5e9 100%);
+  min-width: 118px;
+  padding: 0 20px;
+  border-radius: 999px;
   border: none;
+  background: linear-gradient(135deg, #12c5c7 0%, #0ea5e9 100%);
   color: #ffffff;
-  border-radius: 999px;
-  padding: 16px 26px;
-  font-size: 16px;
-  font-weight: 800;
-  box-shadow: 0 16px 30px rgba(14, 165, 233, 0.28);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-}
-
-.heroCta:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.heroCta:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 20px 34px rgba(14, 165, 233, 0.34);
-}
-
-.heroActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-}
-
-.heroSecondaryButton {
-  width: fit-content;
-  min-height: 56px;
-  padding: 0 22px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.44);
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  font-size: 15px;
   font-weight: 700;
-  text-decoration: none;
-  backdrop-filter: blur(10px);
-  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+  font-size: 15px;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 12px 22px rgba(14, 165, 233, 0.24);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
 }
 
-.heroSecondaryButton:hover {
+.heroSearchButton:hover {
   transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.52);
+  box-shadow: 0 16px 26px rgba(14, 165, 233, 0.28);
+  filter: saturate(1.04);
 }
 
 .guestHint {
@@ -272,182 +220,55 @@
   font-size: 13px;
 }
 
-
-.heroBadge {
-  font-weight: 700;
-  font-size: 11px;
-  background: rgba(255, 255, 255, 0.14);
-  color: #f8fbfd;
-  padding: 8px 12px;
-  border-radius: 999px;
-  width: fit-content;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(8px);
-}
-
 .heroProofRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  justify-content: center;
+  gap: 10px;
 }
 
 .heroProofItem {
   display: inline-flex;
   align-items: center;
-  min-height: 34px;
-  padding: 0 12px;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.14);
   color: #f8fbfd;
   font-size: 12px;
   font-weight: 700;
   backdrop-filter: blur(10px);
 }
 
-.heroVisualWrap {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.heroVisualFrame {
-  position: relative;
-  width: min(100%, 470px);
-  min-height: 360px;
-  border-radius: 30px;
-  padding: 12px 0 0;
-  background:
-    radial-gradient(circle at 16% 16%, rgba(14, 165, 233, 0.16), rgba(14, 165, 233, 0) 56%),
-    radial-gradient(circle at 88% 82%, rgba(203, 171, 120, 0.16), rgba(203, 171, 120, 0) 58%);
-}
-
-.heroStoryCard {
-  position: relative;
-  display: block;
-  width: 100%;
-  overflow: hidden;
-  border-radius: 26px;
-  text-decoration: none;
-  color: inherit;
-  border: 1px solid rgba(255, 255, 255, 0.82);
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 28px 54px rgba(5, 49, 58, 0.24);
-  backdrop-filter: blur(12px);
-  transition: transform 0.22s ease, box-shadow 0.22s ease;
-  animation: heroCardFloat 6.4s ease-in-out infinite;
-}
-
-.heroStoryCard:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 32px 58px rgba(5, 49, 58, 0.28);
-}
-
-.heroStoryMedia {
-  position: relative;
-  height: 218px;
-  overflow: hidden;
-}
-
-.heroStoryImage {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-}
-
-.heroStoryLabel,
-.heroStoryBadge {
+.heroLiveBadge {
   position: absolute;
+  right: 0;
+  bottom: 0;
   display: inline-flex;
   align-items: center;
-  min-height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.9);
-  color: #0a5460;
-  font-size: 11px;
-  font-weight: 800;
-  z-index: 2;
-}
-
-.heroStoryLabel {
-  left: 14px;
-  top: 14px;
-}
-
-.heroStoryBadge {
-  right: 14px;
-  top: 14px;
-  background: rgba(5, 49, 58, 0.86);
-  color: #ffffff;
-  box-shadow: 0 12px 22px rgba(5, 49, 58, 0.16);
-}
-
-.heroStoryBody {
-  display: grid;
-  gap: 14px;
-  padding: 18px 18px 20px;
-}
-
-.heroStoryMeta {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 1fr auto;
-  align-items: start;
-}
-
-.heroStoryMeta strong {
-  display: block;
-  font-size: 24px;
-  line-height: 1.08;
-  color: #05313a;
-}
-
-.heroStoryMeta span {
-  display: block;
-  margin-top: 8px;
-  font-size: 14px;
-  color: rgba(5, 49, 58, 0.68);
-}
-
-.heroStoryMeta em {
-  font-style: normal;
-  font-size: 14px;
-  font-weight: 800;
-  color: #0a5460;
-  background: rgba(14, 165, 233, 0.1);
-  border-radius: 999px;
-  padding: 8px 12px;
-}
-
-.heroStoryAction {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: fit-content;
-  min-height: 42px;
+  gap: 8px;
+  min-height: 38px;
   padding: 0 16px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #14c8d6 0%, #0ea5e9 100%);
+  background: rgba(255, 255, 255, 0.14);
   color: #ffffff;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 24px rgba(3, 17, 22, 0.18);
 }
 
-.fadeIn {
-  opacity: 0;
-  transform: translateY(6px);
-  animation: heroFade 0.6s ease forwards;
-}
-
-.delay1 {
-  animation-delay: 0.12s;
-}
-
-.delay2 {
-  animation-delay: 0.24s;
+.heroLiveBadge::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #5eead4;
+  box-shadow: 0 0 0 0 rgba(94, 234, 212, 0.6);
+  animation: heroPulse 1.8s ease-in-out infinite;
 }
 
 @keyframes heroFade {
@@ -457,27 +278,26 @@
   }
 }
 
-@keyframes heroVideoDrift {
+@keyframes heroHeadlineFade {
   0% {
-    transform: scale(1.04) translate3d(0, 0, 0);
-  }
-  50% {
-    transform: scale(1.08) translate3d(-1.4%, -1%, 0);
+    opacity: 0;
+    transform: translateY(10px);
   }
   100% {
-    transform: scale(1.05) translate3d(1.2%, 0.6%, 0);
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@keyframes heroCardFloat {
+@keyframes heroPulse {
   0% {
-    transform: translateY(0);
+    box-shadow: 0 0 0 0 rgba(94, 234, 212, 0.55);
   }
-  50% {
-    transform: translateY(-4px);
+  70% {
+    box-shadow: 0 0 0 8px rgba(94, 234, 212, 0);
   }
   100% {
-    transform: translateY(0);
+    box-shadow: 0 0 0 0 rgba(94, 234, 212, 0);
   }
 }
 
@@ -495,40 +315,33 @@
 
 @media (max-width: 720px) {
   .hero {
-    min-height: auto;
+    height: min(55vh, 480px);
     padding: 18px 16px;
   }
 
   .heroTitle {
     max-width: 100%;
-    font-size: 38px;
+    font-size: 28px;
   }
 
   .heroSearchShell {
-    grid-template-columns: auto 1fr;
-    padding: 10px 12px 12px 14px;
+    flex-wrap: wrap;
+    min-height: 0;
+    padding: 12px;
     gap: 10px;
   }
 
-  .heroNearMeChip {
-    grid-column: 1 / -1;
-    min-height: 44px;
+  .heroHeadingStack {
+    min-height: 88px;
   }
 
-  .heroVisualFrame {
-    min-height: 0;
+  .heroSearchButton {
     width: 100%;
-    padding-top: 0;
   }
 
-  .heroStoryMedia {
-    height: 188px;
-  }
-
-  .heroStoryBadge {
-    right: 12px;
-    top: auto;
-    bottom: 12px;
+  .heroLiveBadge {
+    position: static;
+    margin-top: 2px;
   }
 }
 
@@ -666,24 +479,7 @@
 
 @media (max-width: 959px) {
   .heroInner {
-    grid-template-columns: 1fr;
-    min-height: auto;
-  }
-
-  .hero {
-    min-height: auto;
-  }
-
-  .heroText {
-    max-width: 100%;
-  }
-
-  .heroVisualWrap {
-    justify-content: flex-start;
-  }
-
-  .heroVisualFrame {
-    width: 100%;
+    justify-content: flex-end;
   }
 
   .cardMeta {
@@ -696,52 +492,50 @@
     border-radius: 24px;
   }
 
-  .heroText {
-    gap: 12px;
+  .heroInner {
+    justify-content: flex-end;
   }
 
   .heroSubtitle {
     font-size: 15px;
   }
 
-  .heroActions {
-    align-items: flex-start;
-  }
-
-  .heroCta {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .heroSecondaryButton {
-    width: 100%;
-    justify-content: center;
+  .heroBrand {
+    position: static;
+    margin-bottom: auto;
   }
 
   .heroProofRow {
     gap: 8px;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    width: 100%;
+    scrollbar-width: none;
   }
 
   .heroProofItem {
     min-height: 32px;
     font-size: 11px;
+    flex: 0 0 auto;
   }
 
-  .heroVisualFrame {
-    min-height: 0;
+  .heroContent {
+    justify-items: stretch;
+    text-align: left;
   }
 
-  .heroStoryMedia {
-    height: 176px;
+  .heroHeadingStack {
+    min-height: 72px;
+    place-items: start;
   }
 
-  .heroStoryMeta {
-    grid-template-columns: 1fr;
-    gap: 8px;
+  .heroSearchForm {
+    width: 100%;
   }
 
-  .heroStoryMeta strong {
-    font-size: 20px;
+  .heroLiveBadge {
+    width: fit-content;
   }
 
   .cardMeta {

@@ -48,14 +48,9 @@ type Experience = {
   seriesNextStartsAt?: string | null;
 };
 
-type HeroStory = {
-  title: string;
-  location: string;
-  price: string;
+type HeroSlide = {
+  headline: string;
   imageUrl: string;
-  href: string;
-  badge: string;
-  label: string;
 };
 
 const formatSeatsInfo = (item: Experience) => {
@@ -134,29 +129,12 @@ const formatStartTimeLabel = (item: Experience, lang: string) => {
   return normalizeTimeValue(item.startTime);
 };
 
-function HeroProofItem({ children }: { children: string }) {
-  return <span className={styles.heroProofItem}>{children}</span>;
-}
-
-function HeroStoryCard({ story }: { story: HeroStory }) {
+function HeroProofItem({ icon, children }: { icon: string; children: string }) {
   return (
-    <Link href={story.href} className={styles.heroStoryCard}>
-      <div className={styles.heroStoryMedia}>
-        <img src={getOptimizedMediaUrl(story.imageUrl)} alt={story.title} className={styles.heroStoryImage} />
-        <span className={styles.heroStoryLabel}>{story.label}</span>
-        <span className={styles.heroStoryBadge}>{story.badge}</span>
-      </div>
-      <div className={styles.heroStoryBody}>
-        <div className={styles.heroStoryMeta}>
-          <div>
-            <strong>{story.title}</strong>
-            <span>{story.location}</span>
-          </div>
-          <em>{story.price}</em>
-        </div>
-        <span className={styles.heroStoryAction}>Rezervă acum</span>
-      </div>
-    </Link>
+    <span className={styles.heroProofItem}>
+      <span aria-hidden="true">{icon}</span>
+      <span>{children}</span>
+    </span>
   );
 }
 
@@ -171,6 +149,7 @@ function ExperiencesPageContent() {
   const [loading, setLoading] = useState(true);
   const search = searchParams?.get("q") || "";
   const [heroSearch, setHeroSearch] = useState(search);
+  const [activeHeroSlide, setActiveHeroSlide] = useState(0);
   const [showCreated, setShowCreated] = useState(() => {
     if (typeof window === "undefined") return false;
     return Boolean(window.localStorage.getItem(EXPERIENCE_CREATED_KEY));
@@ -201,6 +180,44 @@ function ExperiencesPageContent() {
   useEffect(() => {
     setHeroSearch(search);
   }, [search]);
+
+  const heroSlides = useMemo<HeroSlide[]>(
+    () => [
+      {
+        headline: t("hero_slide_1"),
+        imageUrl:
+          "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2000&q=80",
+      },
+      {
+        headline: t("hero_slide_2"),
+        imageUrl:
+          "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?auto=format&fit=crop&w=2000&q=80",
+      },
+      {
+        headline: t("hero_slide_3"),
+        imageUrl:
+          "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=2000&q=80",
+      },
+      {
+        headline: t("hero_slide_4"),
+        imageUrl:
+          "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2000&q=80",
+      },
+      {
+        headline: t("hero_slide_5"),
+        imageUrl:
+          "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=2000&q=80",
+      },
+    ],
+    [t]
+  );
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActiveHeroSlide((current) => (current + 1) % heroSlides.length);
+    }, 4000);
+    return () => window.clearInterval(timer);
+  }, [heroSlides.length]);
 
   const searchFiltered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -243,35 +260,30 @@ function ExperiencesPageContent() {
   }, [loading, search, searchFiltered]);
 
   const heroProofItems = [
-    t("hero_proof_1"),
-    t("hero_proof_2"),
-    t("hero_proof_3"),
-    t("hero_proof_4"),
+    { icon: "🏡", label: t("hero_proof_1") },
+    { icon: "✨", label: t("hero_proof_2") },
+    { icon: "🇷🇴", label: t("hero_proof_3") },
   ];
 
-  const heroStory = useMemo<HeroStory>(() => {
-    const fallbackImage =
-      "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80";
-    const storyCandidate =
+  const featuredExperienceId = useMemo(() => {
+    const featured =
       items.find((item) =>
         [item.title, item.shortDescription, item.description, item.category]
           .join(" ")
           .toLowerCase()
-          .match(/buc[aă]t|gastr|bunic|atelier|sat|tradi|tab[aă]r|ceramic|mește|mestes/)
-      ) ||
-      items.find((item) => Boolean(item.coverImageUrl)) ||
-      items[0];
+          .match(/tab[aă]r|buc[aă]t|gastr|vin|atelier|sat|tradi|ceramic|foc|drume/)
+      ) || items[0];
+    return featured?._id || "";
+  }, [items]);
 
-    return {
-      label: t("hero_story_label"),
-      badge: t("hero_story_badge"),
-      title: storyCandidate?.title || t("hero_story_title"),
-      location: storyCandidate?.city || t("hero_story_location"),
-      price: storyCandidate ? formatPricing(storyCandidate, lang, t) : t("hero_story_price"),
-      imageUrl: storyCandidate?.coverImageUrl || fallbackImage,
-      href: storyCandidate?._id ? `/experiences/${storyCandidate._id}` : "/experiences?q=bucătărie",
-    };
-  }, [items, lang, t]);
+  const displayedItems = useMemo(() => {
+    if (!featuredExperienceId || search.trim()) return filtered;
+    const featuredIndex = filtered.findIndex((item) => item._id === featuredExperienceId);
+    if (featuredIndex <= 0) return filtered;
+    const next = filtered.slice();
+    const [featured] = next.splice(featuredIndex, 1);
+    return [featured, ...next];
+  }, [featuredExperienceId, filtered, search]);
 
   const scrollToExperiences = () => {
     const list = document.getElementById("experiences-list");
@@ -319,38 +331,29 @@ function ExperiencesPageContent() {
         </div>
       ) : null}
       <section className={styles.hero}>
-        <div className={styles.heroBackdrop} />
-        <div className={styles.heroPoster} />
-        <video
-          className={styles.heroVideo}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="metadata"
-          poster="https://picsum.photos/id/1015/2000/1200"
-          aria-hidden="true"
-        >
-          <source src="https://player.vimeo.com/external/371433846.sd.mp4?s=2367514475414f1b77d278e41b1a086e346f4eb6&profile_id=139&oauth2_token_id=57447761" type="video/mp4" />
-        </video>
+        <div className={styles.heroSlides} aria-hidden="true">
+          {heroSlides.map((slide, index) => (
+            <div
+              key={`${slide.headline}-${index}`}
+              className={`${styles.heroSlide} ${index === activeHeroSlide ? styles.heroSlideActive : ""}`}
+              style={{ backgroundImage: `url(${slide.imageUrl})` }}
+            />
+          ))}
+        </div>
         <div className={styles.heroOverlay} />
         <div className={styles.heroInner}>
-          <div className={styles.heroText}>
-            <div className={`${styles.heroBrand} ${styles.fadeIn}`}>
+          <div className={styles.heroBrand}>
               <span className={styles.heroBrandLogo}>LIVADAI</span>
               <span className={styles.heroBrandTagline}>{t("hero_brand_tagline")}</span>
+          </div>
+          <div className={styles.heroContent}>
+            <div className={styles.heroHeadingStack}>
+              <h1 key={`${lang}-${activeHeroSlide}`} className={styles.heroTitle}>
+                {heroSlides[activeHeroSlide]?.headline}
+              </h1>
             </div>
-            <div className={`${styles.heroBadge} ${styles.fadeIn} ${styles.delay1}`}>{t("hero_badge")}</div>
-            <h1 className={`${styles.heroTitle} ${styles.fadeIn} ${styles.delay1}`}>
-              <span>{t("hero_title_line1")}</span>
-              <span>{t("hero_title_line2")}</span>
-            </h1>
-            <p className={`${styles.heroSubtitle} ${styles.fadeIn} ${styles.delay2}`}>
-              {t("hero_subtitle_line1")}
-              {" "}
-              {t("hero_subtitle_line2")}
-            </p>
-            <form className={`${styles.heroSearchForm} ${styles.fadeIn} ${styles.delay2}`} onSubmit={handleHeroSearchSubmit}>
+            <p className={styles.heroSubtitle}>{t("hero_subtitle")}</p>
+            <form className={styles.heroSearchForm} onSubmit={handleHeroSearchSubmit}>
               <div className={styles.heroSearchShell}>
                 <span className={styles.heroSearchIcon}>⌕</span>
                 <input
@@ -360,48 +363,17 @@ function ExperiencesPageContent() {
                   className={styles.heroSearchInput}
                   aria-label={t("hero_search_placeholder")}
                 />
-                <Link href="/map" className={styles.heroNearMeChip}>
-                  {t("hero_search_nearby")}
-                </Link>
+                <button className={styles.heroSearchButton} type="submit">
+                  {t("hero_search_cta")}
+                </button>
               </div>
             </form>
-            <div className={`${styles.heroActions} ${styles.fadeIn} ${styles.delay2}`}>
-              <button
-                className={`button ${styles.heroCta}`}
-                type="button"
-                onClick={() => {
-                  trackEvent({
-                    eventName: "cta_clicked",
-                    properties: {
-                      area: "experiences_hero",
-                      cta: "primary",
-                    },
-                  });
-                  if (heroSearch.trim()) {
-                    applySearch(heroSearch);
-                    return;
-                  }
-                  scrollToExperiences();
-                }}
-              >
-                {t("hero_cta_primary")}
-              </button>
-              <Link href="/map" className={styles.heroSecondaryButton}>
-                {t("hero_search_map")}
-              </Link>
-            </div>
             <div className={styles.heroProofRow}>
               {heroProofItems.map((item) => (
-                <HeroProofItem key={item}>{item}</HeroProofItem>
+                <HeroProofItem key={item.label} icon={item.icon}>{item.label}</HeroProofItem>
               ))}
             </div>
-          </div>
-          <div className={`${styles.heroVisual} ${styles.fadeIn} ${styles.delay1}`}>
-            <div className={styles.heroVisualWrap}>
-              <div className={styles.heroVisualFrame}>
-                <HeroStoryCard story={heroStory} />
-              </div>
-            </div>
+            <div className={styles.heroLiveBadge}>{t("hero_live_label")}</div>
           </div>
         </div>
       </section>
@@ -409,9 +381,9 @@ function ExperiencesPageContent() {
 
       {loading ? (
         <div className="muted">{t("common_loading_experiences")}</div>
-      ) : filtered.length ? (
+      ) : displayedItems.length ? (
         <div className={styles.grid} id="experiences-list">
-          {filtered.map((item, index) => {
+          {displayedItems.map((item, index) => {
             const priceText = formatPricing(item, lang, t);
             const start = item.seriesNextStartsAt || item.startsAt || item.startDate;
             const dateLabel = start ? new Date(start).toLocaleDateString(lang === "en" ? "en-US" : "ro-RO", { day: "numeric", month: "short" }) : "";
@@ -428,8 +400,8 @@ function ExperiencesPageContent() {
                     eventName: "experience_result_clicked",
                     experienceId: item._id,
                     searchQuery: search.trim() || undefined,
-                    searchResultsCount: filtered.length,
-                    resultIds: filtered.slice(0, 30).map((row) => row._id),
+                    searchResultsCount: displayedItems.length,
+                    resultIds: displayedItems.slice(0, 30).map((row) => row._id),
                     properties: {
                       position: index + 1,
                       title: item.title,

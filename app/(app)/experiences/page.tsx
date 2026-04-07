@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { apiGet } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
 import { buildCoverObjectPosition } from "@/lib/cover-focus";
@@ -45,6 +45,15 @@ type Experience = {
   seriesSlotsCount?: number;
   seriesAvailableSlots?: number;
   seriesNextStartsAt?: string | null;
+};
+
+type HeroPreview = {
+  title: string;
+  location: string;
+  price: string;
+  imageUrl: string;
+  href: string;
+  badge: string;
 };
 
 const formatSeatsInfo = (item: Experience) => {
@@ -127,120 +136,53 @@ function HeroProofItem({ children }: { children: ReactNode }) {
   return <span className={styles.heroProofItem}>{children}</span>;
 }
 
-function HeroVisualCard({
-  item,
-  chip,
+function HeroPreviewCard({
+  card,
   className,
 }: {
-  item?: Experience;
-  chip: string;
+  card: HeroPreview;
   className?: string;
 }) {
-  const title = item?.title || chip;
-  const location = [item?.city, item?.country].filter(Boolean).join(", ");
-
   return (
-    <div className={`${styles.heroVisualCard} ${className || ""}`}>
-      {item?.coverImageUrl ? (
-        <img
-          src={item.coverImageUrl}
-          alt={title}
-          className={styles.heroVisualImage}
-          style={buildCoverObjectPosition(item)}
-        />
-      ) : (
-        <div className={styles.heroVisualPlaceholder} />
-      )}
-      <div className={styles.heroVisualOverlay} />
-      <span className={styles.heroVisualChip}>{chip}</span>
-      <div className={styles.heroVisualMeta}>
-        <strong>{title}</strong>
-        {location ? <span>{location}</span> : null}
+    <Link href={card.href} className={`${styles.heroPreviewCard} ${className || ""}`}>
+      <div className={styles.heroPreviewImageWrap}>
+        <img src={card.imageUrl} alt={card.title} className={styles.heroPreviewImage} />
+        <span className={styles.heroPreviewBadge}>{card.badge}</span>
       </div>
-    </div>
-  );
-}
-
-function HeroVisualCommentCard({
-  item,
-  className,
-  label,
-}: {
-  item?: Experience;
-  className?: string;
-  label: string;
-}) {
-  const title = item?.title || label;
-  const snippet = item?.shortDescription || item?.description || label;
-  const trimmedSnippet = snippet.trim().replace(/\s+/g, " ");
-  const preview = trimmedSnippet.length > 120 ? `${trimmedSnippet.slice(0, 117).trim()}...` : trimmedSnippet;
-  const location = [item?.city, item?.country].filter(Boolean).join(", ");
-  const initials = title
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-
-  return (
-    <div className={`${styles.heroVisualCommentCard} ${className || ""}`}>
-      <span className={styles.heroVisualCommentLabel}>{label}</span>
-      <div className={styles.heroVisualCommentBody}>
-        <div className={styles.heroVisualCommentIcon}>💬</div>
-        <p>{preview}</p>
-      </div>
-      <div className={styles.heroVisualCommentMeta}>
-        <span className={styles.heroVisualCommentAvatar}>{initials || "L"}</span>
-        <div>
-          <strong>{title}</strong>
-          {location ? <span>{location}</span> : null}
+      <div className={styles.heroPreviewBody}>
+        <div className={styles.heroPreviewHeader}>
+          <div>
+            <strong>{card.title}</strong>
+            <span>{card.location}</span>
+          </div>
+          <em>{card.price}</em>
         </div>
+        <span className={styles.heroPreviewAction}>Rezervă acum</span>
       </div>
-    </div>
+    </Link>
   );
 }
 
-function HeroVisualMomentCard({
-  item,
-  chip,
-  className,
-  label,
+function HeroCategoryCard({
+  href,
+  title,
+  description,
 }: {
-  item?: Experience;
-  chip: string;
-  className?: string;
-  label: string;
+  href: string;
+  title: string;
+  description: string;
 }) {
-  const title = item?.title || chip;
-  const location = [item?.city, item?.country].filter(Boolean).join(", ");
-
   return (
-    <div className={`${styles.heroVisualMomentCard} ${className || ""}`}>
-      <div className={styles.heroVisualMomentMedia}>
-        {item?.coverImageUrl ? (
-          <img
-            src={item.coverImageUrl}
-            alt={title}
-            className={styles.heroVisualImage}
-            style={buildCoverObjectPosition(item)}
-          />
-        ) : (
-          <div className={styles.heroVisualPlaceholder} />
-        )}
-        <div className={styles.heroVisualMomentOverlay} />
-        <span className={styles.heroVisualMomentPlay}>▶</span>
-        <span className={styles.heroVisualMomentChip}>{chip}</span>
-      </div>
-      <div className={styles.heroVisualMomentMeta}>
-        <span>{label}</span>
-        <strong>{title}</strong>
-        {location ? <small>{location}</small> : null}
-      </div>
-    </div>
+    <Link href={href} className={styles.heroCategoryCard}>
+      <strong>{title}</strong>
+      <span>{description}</span>
+    </Link>
   );
 }
 
 function ExperiencesPageContent() {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { lang } = useLang();
   const t = useT();
@@ -248,6 +190,7 @@ function ExperiencesPageContent() {
   const [items, setItems] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
   const search = searchParams?.get("q") || "";
+  const [heroSearch, setHeroSearch] = useState(search);
   const [showCreated, setShowCreated] = useState(() => {
     if (typeof window === "undefined") return false;
     return Boolean(window.localStorage.getItem(EXPERIENCE_CREATED_KEY));
@@ -274,6 +217,10 @@ function ExperiencesPageContent() {
     if (!showCreated) return;
     window.localStorage.removeItem(EXPERIENCE_CREATED_KEY);
   }, [showCreated]);
+
+  useEffect(() => {
+    setHeroSearch(search);
+  }, [search]);
 
   const searchFiltered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -322,22 +269,98 @@ function ExperiencesPageContent() {
     t("hero_proof_4"),
   ];
 
-  const heroVisualItems = useMemo(() => {
-    const seen = new Set<string>();
-    return items
-      .filter((item) => item.coverImageUrl)
-      .filter((item) => {
-        const signature = `${item.city || ""}-${item.title || ""}`;
-        if (seen.has(signature)) return false;
-        seen.add(signature);
-        return true;
-      })
-      .slice(0, 3);
-  }, [items]);
+  const heroPreviewCards = useMemo<HeroPreview[]>(() => {
+    const fallbacks = [
+      {
+        badge: t("hero_visual_chip_1"),
+        title: t("hero_preview_1_title"),
+        location: t("hero_preview_1_location"),
+        fallbackPrice: t("hero_preview_1_price"),
+        searchLabel: "Degustare de plante aromatice",
+        imageUrl:
+          "https://images.unsplash.com/photo-1461354464878-ad92f492a5a0?auto=format&fit=crop&w=900&q=80",
+      },
+      {
+        badge: t("hero_visual_chip_2"),
+        title: t("hero_preview_2_title"),
+        location: t("hero_preview_2_location"),
+        fallbackPrice: t("hero_preview_2_price"),
+        searchLabel: "Tabăra oamenilor liberi",
+        imageUrl:
+          "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+      },
+      {
+        badge: t("hero_visual_chip_3"),
+        title: t("hero_preview_3_title"),
+        location: t("hero_preview_3_location"),
+        fallbackPrice: t("hero_preview_3_price"),
+        searchLabel: "Bucătărie tradițională",
+        imageUrl:
+          "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=900&q=80",
+      },
+    ];
+
+    return fallbacks.map((fallback) => {
+      const match = items.find((item) => item.title?.toLowerCase().includes(fallback.searchLabel.toLowerCase()));
+      return {
+        badge: fallback.badge,
+        title: match?.title || fallback.title,
+        location: match?.city || fallback.location,
+        price: match ? formatPricing(match, lang, t) : fallback.fallbackPrice,
+        imageUrl: match?.coverImageUrl || fallback.imageUrl,
+        href: match ? `/experiences/${match._id}` : `/experiences?q=${encodeURIComponent(fallback.searchLabel)}`,
+      };
+    });
+  }, [items, lang, t]);
+
+  const heroCategories = [
+    {
+      href: "/experiences?q=gastronomie",
+      title: t("hero_category_1_title"),
+      description: t("hero_category_1_description"),
+    },
+    {
+      href: "/experiences?q=retreat",
+      title: t("hero_category_2_title"),
+      description: t("hero_category_2_description"),
+    },
+    {
+      href: "/experiences?q=atelier",
+      title: t("hero_category_3_title"),
+      description: t("hero_category_3_description"),
+    },
+  ];
 
   const scrollToExperiences = () => {
     const list = document.getElementById("experiences-list");
     if (list) list.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const applySearch = (term: string) => {
+    const params = new URLSearchParams(searchParams?.toString() || "");
+    const normalized = term.trim();
+    if (normalized) {
+      params.set("q", normalized);
+    } else {
+      params.delete("q");
+    }
+    const nextUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+    router.push(nextUrl);
+    window.setTimeout(() => {
+      scrollToExperiences();
+    }, 120);
+  };
+
+  const handleHeroSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    trackEvent({
+      eventName: "cta_clicked",
+      properties: {
+        area: "hero_search",
+        cta: "search_submit",
+      },
+    });
+    applySearch(heroSearch);
   };
 
   return (
@@ -354,59 +377,95 @@ function ExperiencesPageContent() {
         </div>
       ) : null}
       <section className={styles.hero}>
-        <div className={styles.heroText}>
-          <div className={`${styles.heroBadge} ${styles.fadeIn}`}>{t("hero_badge")}</div>
-          <h1 className={`${styles.heroTitle} ${styles.fadeIn}`}>{t("hero_title")}</h1>
-          <p className={`${styles.heroSubtitle} ${styles.fadeIn} ${styles.delay1}`}>
-            {t("hero_subtitle_line1")}
-            {" "}
-            {t("hero_subtitle_line2")}
-          </p>
-          <div className={`${styles.heroActions} ${styles.fadeIn} ${styles.delay2}`}>
-            <button
-              className={`button ${styles.heroCta}`}
-              type="button"
-              onClick={() => {
-                trackEvent({
-                  eventName: "cta_clicked",
-                  properties: {
-                    area: "experiences_hero",
-                    cta: "primary",
-                  },
-                });
-                scrollToExperiences();
-              }}
-            >
-              {t("hero_cta_primary")}
-            </button>
-            <Link href="/how-it-works" className={styles.heroSecondaryLink}>
-              {t("hero_cta_secondary")}
-            </Link>
+        <div className={styles.heroBackdrop} />
+        <div className={styles.heroOverlay} />
+        <div className={styles.heroInner}>
+          <div className={styles.heroText}>
+            <div className={`${styles.heroBrand} ${styles.fadeIn}`}>
+              <span className={styles.heroBrandLogo}>LIVADAI</span>
+              <span className={styles.heroBrandTagline}>{t("hero_brand_tagline")}</span>
+            </div>
+            <div className={`${styles.heroBadge} ${styles.fadeIn} ${styles.delay1}`}>{t("hero_badge")}</div>
+            <h1 className={`${styles.heroTitle} ${styles.fadeIn} ${styles.delay1}`}>{t("hero_title")}</h1>
+            <p className={`${styles.heroSubtitle} ${styles.fadeIn} ${styles.delay2}`}>
+              {t("hero_subtitle_line1")}
+              {" "}
+              {t("hero_subtitle_line2")}
+            </p>
+            <form className={`${styles.heroSearchForm} ${styles.fadeIn} ${styles.delay2}`} onSubmit={handleHeroSearchSubmit}>
+              <div className={styles.heroSearchShell}>
+                <span className={styles.heroSearchIcon}>⌕</span>
+                <input
+                  value={heroSearch}
+                  onChange={(event) => setHeroSearch(event.target.value)}
+                  placeholder={t("hero_search_placeholder")}
+                  className={styles.heroSearchInput}
+                  aria-label={t("hero_search_placeholder")}
+                />
+                <Link href="/map" className={styles.heroNearMeChip}>
+                  {t("hero_search_nearby")}
+                </Link>
+              </div>
+              <Link href="/map" className={styles.heroMapLink}>
+                {t("hero_search_map")}
+              </Link>
+            </form>
+            <div className={`${styles.heroActions} ${styles.fadeIn} ${styles.delay2}`}>
+              <button
+                className={`button ${styles.heroCta}`}
+                type="button"
+                onClick={() => {
+                  trackEvent({
+                    eventName: "cta_clicked",
+                    properties: {
+                      area: "experiences_hero",
+                      cta: "primary",
+                    },
+                  });
+                  if (heroSearch.trim()) {
+                    applySearch(heroSearch);
+                    return;
+                  }
+                  scrollToExperiences();
+                }}
+              >
+                {t("hero_cta_primary")}
+              </button>
+              <Link href="/how-it-works" className={styles.heroSecondaryButton}>
+                {t("hero_cta_secondary")}
+              </Link>
+            </div>
+            <div className={styles.heroProofRow}>
+              {heroProofItems.map((item) => (
+                <HeroProofItem key={item}>{item}</HeroProofItem>
+              ))}
+            </div>
+            <div className={styles.heroMicrocopy}>{t("hero_cta_microcopy")}</div>
           </div>
-          <div className={styles.heroProofRow}>
-            {heroProofItems.map((item) => (
-              <HeroProofItem key={item}>{item}</HeroProofItem>
-            ))}
+          <div className={`${styles.heroVisual} ${styles.fadeIn} ${styles.delay1}`}>
+            <div className={styles.heroVisualWrap}>
+              <div className={styles.heroVisualFrame}>
+                <div className={styles.heroVisualIntro}>
+                  <span>{t("hero_visual_badge")}</span>
+                </div>
+                <HeroPreviewCard card={heroPreviewCards[0]} className={styles.heroPreviewPrimary} />
+                <HeroPreviewCard card={heroPreviewCards[1]} className={styles.heroPreviewSecondary} />
+                <HeroPreviewCard card={heroPreviewCards[2]} className={styles.heroPreviewTertiary} />
+              </div>
+            </div>
           </div>
-          <div className={styles.heroMicrocopy}>{t("hero_cta_microcopy")}</div>
         </div>
-        <div className={`${styles.heroVisual} ${styles.fadeIn} ${styles.delay1}`}>
-          <div className={styles.heroVisualStage}>
-            <HeroVisualCard item={heroVisualItems[0]} chip={t("hero_visual_chip_1")} className={styles.heroVisualPrimary} />
-            <HeroVisualMomentCard
-              item={heroVisualItems[1] || heroVisualItems[0]}
-              chip={t("hero_visual_chip_2")}
-              label={t("hero_visual_story_label")}
-              className={styles.heroVisualSecondary}
-            />
-            <HeroVisualCommentCard
-              item={heroVisualItems[2] || heroVisualItems[1] || heroVisualItems[0]}
-              label={t("hero_visual_comment_label")}
-              className={styles.heroVisualTertiary}
-            />
-            <div className={styles.heroVisualBadge}>{t("hero_visual_badge")}</div>
-            <div className={styles.heroVisualSupport}>{t("hero_visual_support")}</div>
-          </div>
+      </section>
+      <section className={styles.heroCategories}>
+        <div className={styles.heroCategoriesHeader}>
+          <div className={styles.heroCategoriesBadge}>{t("hero_categories_badge")}</div>
+          <h2>{t("hero_categories_title")}</h2>
+          <p>{t("hero_categories_subtitle")}</p>
+        </div>
+        <div className={styles.heroCategoriesGrid}>
+          {heroCategories.map((card) => (
+            <HeroCategoryCard key={card.title} href={card.href} title={card.title} description={card.description} />
+          ))}
         </div>
       </section>
       {!user ? <div className={styles.guestHint}>{t("guest_list_hint")}</div> : null}

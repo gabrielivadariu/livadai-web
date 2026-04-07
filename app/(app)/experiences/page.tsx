@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { apiGet } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
 import { buildCoverObjectPosition } from "@/lib/cover-focus";
+import { getOptimizedMediaUrl } from "@/lib/media-url";
 import { useLang } from "@/context/lang-context";
 import { useAuth } from "@/context/auth-context";
 import { useT } from "@/lib/i18n";
@@ -141,7 +142,7 @@ function HeroStoryCard({ story }: { story: HeroStory }) {
   return (
     <Link href={story.href} className={styles.heroStoryCard}>
       <div className={styles.heroStoryMedia}>
-        <img src={story.imageUrl} alt={story.title} className={styles.heroStoryImage} />
+        <img src={getOptimizedMediaUrl(story.imageUrl)} alt={story.title} className={styles.heroStoryImage} />
         <span className={styles.heroStoryLabel}>{story.label}</span>
         <span className={styles.heroStoryBadge}>{story.badge}</span>
       </div>
@@ -437,7 +438,12 @@ function ExperiencesPageContent() {
                 }
               >
                 {item.coverImageUrl ? (
-                  <img src={item.coverImageUrl} alt={item.title} className={styles.cover} style={buildCoverObjectPosition(item)} />
+                  <img
+                    src={getOptimizedMediaUrl(item.coverImageUrl)}
+                    alt={item.title}
+                    className={styles.cover}
+                    style={buildCoverObjectPosition(item)}
+                  />
                 ) : (
                   <div className={styles.coverPlaceholder} />
                 )}

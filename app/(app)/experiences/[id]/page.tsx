@@ -7,6 +7,7 @@ import { apiGet, apiPost } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
 import { dedupeBookings } from "@/lib/booking-dedupe";
 import { buildCoverObjectPosition } from "@/lib/cover-focus";
+import { getOptimizedMediaUrl } from "@/lib/media-url";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/lang-context";
 import { useT } from "@/lib/i18n";
@@ -352,9 +353,16 @@ function ExperienceDetailPageContent() {
     }
   };
   const mediaImages = useMemo(() => {
-    const list = [item?.coverImageUrl, ...((item?.images || []) as string[])].filter(Boolean) as string[];
+    const list = [item?.coverImageUrl, ...((item?.images || []) as string[])]
+      .filter(Boolean)
+      .map((img) => getOptimizedMediaUrl(img)) as string[];
     return Array.from(new Set(list));
   }, [item?.coverImageUrl, item?.images]);
+  const coverImageUrl = useMemo(() => getOptimizedMediaUrl(item?.coverImageUrl), [item?.coverImageUrl]);
+  const hostAvatarUrl = useMemo(
+    () => getOptimizedMediaUrl(item?.host?.profilePhoto || item?.host?.avatar),
+    [item?.host?.avatar, item?.host?.profilePhoto]
+  );
 
   const scrollToIndex = (index: number, ref: React.RefObject<HTMLDivElement | null>) => {
     const container = ref.current;
@@ -689,7 +697,7 @@ function ExperienceDetailPageContent() {
                       setTimeout(() => scrollToIndex(activeIndex, lightboxRef), 0);
                     }}
                   >
-                    <img src={img} alt={item.title} style={img === item.coverImageUrl ? buildCoverObjectPosition(item) : undefined} />
+                    <img src={img} alt={item.title} style={img === coverImageUrl ? buildCoverObjectPosition(item) : undefined} />
                   </button>
                 ))
               ) : (
@@ -737,9 +745,9 @@ function ExperienceDetailPageContent() {
                 {item.host?._id ? (
                   <Link href={`/hosts/${item.host._id}`} className={styles.hostChip}>
                     <span className={styles.hostAvatar}>
-                      {item.host?.profilePhoto || item.host?.avatar ? (
+                      {hostAvatarUrl ? (
                         <img
-                          src={item.host.profilePhoto || item.host.avatar}
+                          src={hostAvatarUrl}
                           alt={hostLabel}
                         />
                       ) : (
@@ -1021,9 +1029,9 @@ function ExperienceDetailPageContent() {
                 {item.host?._id ? (
                   <Link href={`/hosts/${item.host._id}`} className={`${styles.hostChip} ${styles.hostCard}`}>
                     <span className={styles.hostAvatar}>
-                      {item.host?.profilePhoto || item.host?.avatar ? (
+                      {hostAvatarUrl ? (
                         <img
-                          src={item.host.profilePhoto || item.host.avatar}
+                          src={hostAvatarUrl}
                           alt={hostLabel}
                         />
                       ) : (
@@ -1107,7 +1115,7 @@ function ExperienceDetailPageContent() {
           >
             {mediaImages.map((img) => (
               <div key={img} className={styles.lightboxSlide}>
-                <img src={img} alt={item.title} style={img === item.coverImageUrl ? buildCoverObjectPosition(item) : undefined} />
+                <img src={img} alt={item.title} style={img === coverImageUrl ? buildCoverObjectPosition(item) : undefined} />
               </div>
             ))}
           </div>

@@ -28,7 +28,7 @@
 .hero {
   position: relative;
   overflow: hidden;
-  height: min(65vh, 620px);
+  height: 55vh;
   padding: 28px;
   border-radius: 32px;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -222,9 +222,11 @@
 
 .heroProofRow {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
 }
 
 .heroProofItem {
@@ -240,29 +242,15 @@
   font-size: 12px;
   font-weight: 700;
   backdrop-filter: blur(10px);
+  white-space: nowrap;
 }
 
-.heroLiveBadge {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 38px;
-  padding: 0 16px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 700;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 10px 24px rgba(3, 17, 22, 0.18);
+.heroProofLiveItem {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
-.heroLiveBadge::before {
-  content: "";
+.heroProofLiveDot {
   width: 8px;
   height: 8px;
   border-radius: 999px;
@@ -307,6 +295,11 @@
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
+.resultsBlock {
+  display: grid;
+  gap: 18px;
+}
+
 @media (min-width: 1100px) {
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -315,7 +308,8 @@
 
 @media (max-width: 720px) {
   .hero {
-    height: min(55vh, 480px);
+    height: auto;
+    min-height: 480px;
     padding: 18px 16px;
   }
 
@@ -339,10 +333,6 @@
     width: 100%;
   }
 
-  .heroLiveBadge {
-    position: static;
-    margin-top: 2px;
-  }
 }
 
 .card {
@@ -477,6 +467,18 @@
   max-width: 420px;
 }
 
+@media (max-width: 1024px) and (min-width: 768px) {
+  .hero {
+    height: 50vh;
+  }
+}
+
+@media (max-width: 1023px) {
+  .heroProofLiveItem {
+    display: none;
+  }
+}
+
 @media (max-width: 959px) {
   .heroInner {
     justify-content: flex-end;
@@ -505,21 +507,6 @@
     margin-bottom: auto;
   }
 
-  .heroProofRow {
-    gap: 8px;
-    justify-content: flex-start;
-    overflow-x: auto;
-    padding-bottom: 2px;
-    width: 100%;
-    scrollbar-width: none;
-  }
-
-  .heroProofItem {
-    min-height: 32px;
-    font-size: 11px;
-    flex: 0 0 auto;
-  }
-
   .heroContent {
     justify-items: stretch;
     text-align: left;
@@ -534,10 +521,6 @@
     width: 100%;
   }
 
-  .heroLiveBadge {
-    width: fit-content;
-  }
-
   .cardMeta {
     display: flex;
     flex-wrap: wrap;
@@ -550,4 +533,57 @@
     max-width: 100%;
     flex: 0 0 auto;
   }
+}
+
+@media (max-width: 767px) {
+  .hero {
+    height: auto;
+    min-height: 480px;
+  }
+
+  .heroProofRow {
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .heroProofItem {
+    min-height: 34px;
+    font-size: 11px;
+    flex: 1 1 calc(50% - 6px);
+    justify-content: center;
+  }
+}
+
+.noResultsCta {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  padding: 18px 20px 0;
+  animation: heroFade 0.35s ease both;
+}
+
+.noResultsCta p {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 600;
+  text-align: center;
+}
+
+.noResultsCta button {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #12c5c7 0%, #00bfa5 100%);
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(0, 191, 165, 0.2);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.noResultsCta button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 28px rgba(0, 191, 165, 0.24);
+  filter: saturate(1.03);
 }

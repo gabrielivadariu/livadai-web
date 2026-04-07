@@ -129,10 +129,22 @@ const formatStartTimeLabel = (item: Experience, lang: string) => {
   return normalizeTimeValue(item.startTime);
 };
 
-function HeroProofItem({ icon, children }: { icon: string; children: string }) {
+function HeroProofItem({
+  icon,
+  children,
+  live = false,
+}: {
+  icon?: string;
+  children: string;
+  live?: boolean;
+}) {
   return (
-    <span className={styles.heroProofItem}>
-      <span aria-hidden="true">{icon}</span>
+    <span className={`${styles.heroProofItem} ${live ? styles.heroProofLiveItem : ""}`.trim()}>
+      {live ? (
+        <span className={styles.heroProofLiveDot} aria-hidden="true" />
+      ) : icon ? (
+        <span aria-hidden="true">{icon}</span>
+      ) : null}
       <span>{children}</span>
     </span>
   );
@@ -185,28 +197,23 @@ function ExperiencesPageContent() {
     () => [
       {
         headline: t("hero_slide_1"),
-        imageUrl:
-          "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2000&q=80",
+        imageUrl: "https://images.unsplash.com/photo-1586771107445-d3ca888129ff?w=1600",
       },
       {
         headline: t("hero_slide_2"),
-        imageUrl:
-          "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?auto=format&fit=crop&w=2000&q=80",
+        imageUrl: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1600",
       },
       {
         headline: t("hero_slide_3"),
-        imageUrl:
-          "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=2000&q=80",
+        imageUrl: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1600",
       },
       {
         headline: t("hero_slide_4"),
-        imageUrl:
-          "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2000&q=80",
+        imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1600",
       },
       {
         headline: t("hero_slide_5"),
-        imageUrl:
-          "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=2000&q=80",
+        imageUrl: "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1600",
       },
     ],
     [t]
@@ -260,9 +267,10 @@ function ExperiencesPageContent() {
   }, [loading, search, searchFiltered]);
 
   const heroProofItems = [
-    { icon: "🏡", label: t("hero_proof_1") },
-    { icon: "✨", label: t("hero_proof_2") },
-    { icon: "🇷🇴", label: t("hero_proof_3") },
+    { icon: "🏡", label: t("hero_proof_1"), live: false },
+    { icon: "✨", label: t("hero_proof_2"), live: false },
+    { icon: "🇷🇴", label: t("hero_proof_3"), live: false },
+    { label: t("hero_live_label"), live: true },
   ];
 
   const featuredExperienceId = useMemo(() => {
@@ -288,6 +296,11 @@ function ExperiencesPageContent() {
   const scrollToExperiences = () => {
     const list = document.getElementById("experiences-list");
     if (list) list.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const clearSearchAndShowAll = () => {
+    setHeroSearch("");
+    applySearch("");
   };
 
   const applySearch = (term: string) => {
@@ -316,6 +329,12 @@ function ExperiencesPageContent() {
     });
     applySearch(heroSearch);
   };
+
+  const showSearchFallback = !loading && Boolean(search.trim()) && displayedItems.length < 3;
+  const noResultsCtaTitle =
+    lang === "en" ? "Didn't find what you're looking for?" : "Nu ai găsit ce cauți?";
+  const noResultsCtaButton =
+    lang === "en" ? "✨ See all available experiences" : "✨ Vezi toate experiențele disponibile";
 
   return (
     <div className={styles.page}>
@@ -370,95 +389,114 @@ function ExperiencesPageContent() {
             </form>
             <div className={styles.heroProofRow}>
               {heroProofItems.map((item) => (
-                <HeroProofItem key={item.label} icon={item.icon}>{item.label}</HeroProofItem>
+                <HeroProofItem key={item.label} icon={item.icon} live={item.live}>
+                  {item.label}
+                </HeroProofItem>
               ))}
             </div>
-            <div className={styles.heroLiveBadge}>{t("hero_live_label")}</div>
           </div>
         </div>
       </section>
       {!user ? <div className={styles.guestHint}>{t("guest_list_hint")}</div> : null}
 
-      {loading ? (
-        <div className="muted">{t("common_loading_experiences")}</div>
-      ) : displayedItems.length ? (
-        <div className={styles.grid} id="experiences-list">
-          {displayedItems.map((item, index) => {
-            const priceText = formatPricing(item, lang, t);
-            const start = item.seriesNextStartsAt || item.startsAt || item.startDate;
-            const dateLabel = start ? new Date(start).toLocaleDateString(lang === "en" ? "en-US" : "ro-RO", { day: "numeric", month: "short" }) : "";
-            const timeLabel = formatStartTimeLabel(item, lang);
-            const seats = formatSeatsInfo(item);
-            const environmentLabel = formatEnvironment(item, t);
-            return (
-              <Link
-                key={item._id}
-                href={`/experiences/${item._id}`}
-                className={styles.card}
-                onClick={() =>
-                  trackEvent({
-                    eventName: "experience_result_clicked",
-                    experienceId: item._id,
-                    searchQuery: search.trim() || undefined,
-                    searchResultsCount: displayedItems.length,
-                    resultIds: displayedItems.slice(0, 30).map((row) => row._id),
-                    properties: {
-                      position: index + 1,
-                      title: item.title,
-                    },
+      <div className={styles.resultsBlock} id="experiences-list">
+        {loading ? (
+          <div className="muted">{t("common_loading_experiences")}</div>
+        ) : displayedItems.length ? (
+          <div className={styles.grid}>
+            {displayedItems.map((item, index) => {
+              const priceText = formatPricing(item, lang, t);
+              const start = item.seriesNextStartsAt || item.startsAt || item.startDate;
+              const dateLabel = start
+                ? new Date(start).toLocaleDateString(lang === "en" ? "en-US" : "ro-RO", {
+                    day: "numeric",
+                    month: "short",
                   })
-                }
-              >
-                {item.coverImageUrl ? (
-                  <img
-                    src={getOptimizedMediaUrl(item.coverImageUrl)}
-                    alt={item.title}
-                    className={styles.cover}
-                    style={buildCoverObjectPosition(item)}
-                  />
-                ) : (
-                  <div className={styles.coverPlaceholder} />
-                )}
-                <div className={styles.cardBody}>
-                  <div className={styles.cardTop}>
-                    <div>
-                      <h3 className={styles.cardTitle}>{item.title}</h3>
-                      <div className={styles.cardLocation}>
-                        {item.city || ""} {item.country || item.address || ""}
+                : "";
+              const timeLabel = formatStartTimeLabel(item, lang);
+              const seats = formatSeatsInfo(item);
+              const environmentLabel = formatEnvironment(item, t);
+              return (
+                <Link
+                  key={item._id}
+                  href={`/experiences/${item._id}`}
+                  className={styles.card}
+                  onClick={() =>
+                    trackEvent({
+                      eventName: "experience_result_clicked",
+                      experienceId: item._id,
+                      searchQuery: search.trim() || undefined,
+                      searchResultsCount: displayedItems.length,
+                      resultIds: displayedItems.slice(0, 30).map((row) => row._id),
+                      properties: {
+                        position: index + 1,
+                        title: item.title,
+                      },
+                    })
+                  }
+                >
+                  {item.coverImageUrl ? (
+                    <img
+                      src={getOptimizedMediaUrl(item.coverImageUrl)}
+                      alt={item.title}
+                      className={styles.cover}
+                      style={buildCoverObjectPosition(item)}
+                    />
+                  ) : (
+                    <div className={styles.coverPlaceholder} />
+                  )}
+                  <div className={styles.cardBody}>
+                    <div className={styles.cardTop}>
+                      <div>
+                        <h3 className={styles.cardTitle}>{item.title}</h3>
+                        <div className={styles.cardLocation}>
+                          {item.city || ""} {item.country || item.address || ""}
+                        </div>
+                        {item.shortDescription ? (
+                          <div className={styles.cardDesc}>{item.shortDescription}</div>
+                        ) : null}
                       </div>
-                      {item.shortDescription ? <div className={styles.cardDesc}>{item.shortDescription}</div> : null}
+                      <div className={styles.priceBadge}>{priceText}</div>
                     </div>
-                    <div className={styles.priceBadge}>
-                      {priceText}
+                    <div className={styles.cardMeta}>
+                      {dateLabel ? <span className={styles.metaPill}>📅 {dateLabel}</span> : null}
+                      {timeLabel ? <span className={styles.metaPill}>🕒 {timeLabel}</span> : null}
+                      {item.languages?.length ? (
+                        <span className={styles.metaPill}>🗣 {item.languages.slice(0, 2).join(" · ")}</span>
+                      ) : null}
+                      {environmentLabel ? <span className={styles.metaPill}>🍃 {environmentLabel}</span> : null}
+                      {seats ? <span className={styles.metaPill}>👥 {seats}</span> : null}
+                      {item.rating_avg ? <span className={styles.rating}>⭐ {Number(item.rating_avg).toFixed(1)}</span> : null}
                     </div>
                   </div>
-                  <div className={styles.cardMeta}>
-                    {dateLabel ? <span className={styles.metaPill}>📅 {dateLabel}</span> : null}
-                    {timeLabel ? <span className={styles.metaPill}>🕒 {timeLabel}</span> : null}
-                    {item.languages?.length ? <span className={styles.metaPill}>🗣 {item.languages.slice(0, 2).join(" · ")}</span> : null}
-                    {environmentLabel ? <span className={styles.metaPill}>🍃 {environmentLabel}</span> : null}
-                    {seats ? <span className={styles.metaPill}>👥 {seats}</span> : null}
-                    {item.rating_avg ? <span className={styles.rating}>⭐ {Number(item.rating_avg).toFixed(1)}</span> : null}
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      ) : (
-        <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>✨</div>
-          <div className={styles.emptyTitle}>
-            {search.trim() ? t("experiences_search_empty_title") : t("experiences_empty_title")}
+                </Link>
+              );
+            })}
           </div>
-          <div className={styles.emptyText}>
-            {search.trim() ? t("experiences_search_empty_text") : t("experiences_empty_text")}
+        ) : (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>✨</div>
+            <div className={styles.emptyTitle}>
+              {search.trim() ? t("experiences_search_empty_title") : t("experiences_empty_title")}
+            </div>
+            <div className={styles.emptyText}>
+              {search.trim() ? t("experiences_search_empty_text") : t("experiences_empty_text")}
+            </div>
+            <button className="button" type="button">
+              {t("experiences_view_map")}
+            </button>
           </div>
-          <button className="button" type="button">
-            {t("experiences_view_map")}
-          </button>
-        </div>
-      )}
+        )}
+
+        {showSearchFallback ? (
+          <div className={styles.noResultsCta}>
+            <p>{noResultsCtaTitle}</p>
+            <button type="button" onClick={clearSearchAndShowAll}>
+              {noResultsCtaButton}
+            </button>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

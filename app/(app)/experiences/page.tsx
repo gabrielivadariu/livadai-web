@@ -48,11 +48,6 @@ type Experience = {
   seriesNextStartsAt?: string | null;
 };
 
-type HeroSlide = {
-  headline: string;
-  imageUrl: string;
-};
-
 const formatSeatsInfo = (item: Experience) => {
   const total = item.maxParticipants || 0;
   const available = item.availableSpots ?? item.remainingSpots ?? item.maxParticipants;
@@ -193,30 +188,29 @@ function ExperiencesPageContent() {
     setHeroSearch(search);
   }, [search]);
 
-  const heroSlides = useMemo<HeroSlide[]>(
+  const heroHeadlines = useMemo<string[]>(
     () => [
-      {
-        headline: t("hero_slide_1"),
-        imageUrl: "https://images.unsplash.com/photo-1586771107445-d3ca888129ff?w=1600",
-      },
-      {
-        headline: t("hero_slide_2"),
-        imageUrl: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1600",
-      },
-      {
-        headline: t("hero_slide_3"),
-        imageUrl: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1600",
-      },
-      {
-        headline: t("hero_slide_4"),
-        imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1600",
-      },
-      {
-        headline: t("hero_slide_5"),
-        imageUrl: "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1600",
-      },
+      t("hero_slide_1"),
+      t("hero_slide_2"),
+      t("hero_slide_3"),
+      t("hero_slide_4"),
+      t("hero_slide_5"),
     ],
     [t]
+  );
+
+  const heroSlides = useMemo<string[]>(
+    () => [
+      "https://i.pinimg.com/1200x/e0/58/07/e05807724ed26075b18b02b8d319da5f.jpg",
+      "https://i.pinimg.com/1200x/dd/49/c8/dd49c8e85bc423437909b1755ddc0b55.jpg",
+      "https://i.pinimg.com/1200x/f6/0a/9f/f60a9fe472e46cf762bcc9536b91f091.jpg",
+      "https://i.pinimg.com/1200x/95/77/49/957749b1a2cc92a1b5029170fb88fefa.jpg",
+      "https://i.pinimg.com/1200x/9c/8f/97/9c8f973493a3a080d231cf103b6fc132.jpg",
+      "https://i.pinimg.com/1200x/71/f4/14/71f41421f3965171f2b778f87a89bf0a.jpg",
+      "https://i.pinimg.com/1200x/27/99/10/279910a6e6603348a7c6546da718f269.jpg",
+      "https://i.pinimg.com/1200x/67/6e/0b/676e0b6e81ff89473d50e11121cfa524.jpg",
+    ],
+    []
   );
 
   useEffect(() => {
@@ -353,9 +347,9 @@ function ExperiencesPageContent() {
         <div className={styles.heroSlides} aria-hidden="true">
           {heroSlides.map((slide, index) => (
             <div
-              key={`${slide.headline}-${index}`}
+              key={`hero-slide-${index}`}
               className={`${styles.heroSlide} ${index === activeHeroSlide ? styles.heroSlideActive : ""}`}
-              style={{ backgroundImage: `url(${slide.imageUrl})` }}
+              style={{ backgroundImage: `url(${slide})` }}
             />
           ))}
         </div>
@@ -368,7 +362,7 @@ function ExperiencesPageContent() {
           <div className={styles.heroContent}>
             <div className={styles.heroHeadingStack}>
               <h1 key={`${lang}-${activeHeroSlide}`} className={styles.heroTitle}>
-                {heroSlides[activeHeroSlide]?.headline}
+                {heroHeadlines[activeHeroSlide % heroHeadlines.length]}
               </h1>
             </div>
             <p className={styles.heroSubtitle}>{t("hero_subtitle")}</p>

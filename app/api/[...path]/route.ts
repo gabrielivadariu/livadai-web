@@ -4,6 +4,7 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "https://livadai-backend-production.up.railway.app";
 
 const DEFAULT_ALLOWED_ORIGINS = [
+  "https://app.livadai.com",
   "https://livadai.com",
   "https://www.livadai.com",
   "http://localhost:3000",

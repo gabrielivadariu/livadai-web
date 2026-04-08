@@ -1,0 +1,10 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">LIVADAI</title>
+  <desc id="desc">Simplified LIVADAI brand mark for search results and favicon.</desc>
+  <rect width="64" height="64" rx="18" fill="#12B8D9"/>
+  <path
+    d="M22 14C24.2091 14 26 15.7909 26 18V42H43C45.2091 42 47 43.7909 47 46C47 48.2091 45.2091 50 43 50H24.5C20.9101 50 18 47.0899 18 43.5V18C18 15.7909 19.7909 14 22 14Z"
+    fill="white"
+  />
+  <circle cx="43.5" cy="20.5" r="5.5" fill="#F1D9A7"/>
+</svg>

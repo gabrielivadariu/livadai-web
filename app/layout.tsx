@@ -25,6 +25,14 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    shortcut: ["/favicon.ico"],
+    apple: [{ url: "/icon.png", sizes: "512x512", type: "image/png" }],
+  },
   verification,
   openGraph: {
     title: `${SITE_NAME} | Experiente reale, ghiduri locale si idei de iesit in Romania`,

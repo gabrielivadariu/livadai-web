@@ -6,7 +6,7 @@ export const SITE_NAME = "LIVADAI";
 export const SITE_DESCRIPTION =
   "Descopera ce e de facut in Iasi, Cluj, Bucuresti, Timisoara si Brasov. LIVADAI aduna ghiduri locale, idei de date, activitati de weekend si experiente rezervabile.";
 export const ORGANIZATION_NAME = "LIVADAI";
-export const ORGANIZATION_LOGO_PATH = "/icon.png";
+export const ORGANIZATION_LOGO_PATH = "/favicon.svg";
 
 export const absoluteUrl = (path: string) => {
   const normalized = path.startsWith("/") ? path : `/${path}`;

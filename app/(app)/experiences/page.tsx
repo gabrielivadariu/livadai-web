@@ -192,6 +192,7 @@ function ExperiencesPageContent() {
   const heroSlides = useMemo<Array<{ url: string; position?: string }>>(
     () => [
       { url: "/hero/fain-camp-hero.png", position: "center top" },
+      { url: "/hero/cactus-host-portrait.jpg", position: "57% 64%" },
       { url: "/hero/fain-wayfinding-sign.jpg" },
       { url: "/hero/fain-lounge-pandas.jpg" },
       { url: "/hero/fain-dreamcatcher-camp.jpg" },

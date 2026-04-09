@@ -238,7 +238,7 @@ function ExperiencesPageContent() {
         setActiveHeroSlide((current) => (current + 1) % heroSlides.length);
         setIsHeroSlideVisible(true);
         heroTransitionTimeoutRef.current = null;
-      }, 500);
+      }, 600);
     }, 4000);
 
     return () => {
@@ -370,7 +370,7 @@ function ExperiencesPageContent() {
       setActiveHeroSlide(index);
       setIsHeroSlideVisible(true);
       heroTransitionTimeoutRef.current = null;
-    }, 500);
+    }, 600);
   };
 
   const showSearchFallback = !loading && Boolean(search.trim()) && displayedItems.length < 3;

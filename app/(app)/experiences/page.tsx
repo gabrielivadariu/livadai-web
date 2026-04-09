@@ -170,7 +170,7 @@ function ExperiencesPageContent() {
       lang === "en"
         ? [
             { headline: "Live. Don't just pass through.", image: "/hero/fain-camp-hero.png", position: "center top" },
-            { headline: "Real people. Real places.", image: "/hero/cactus-host-portrait.jpg", position: "57% 42%" },
+            { headline: "Real people. Real places.", image: "/hero/cactus-host-portrait.jpg", position: "57% 18%" },
             { headline: "Your meaningful weekend.", image: "/hero/fain-wayfinding-sign.jpg" },
             { headline: "Romania, differently.", image: "/hero/fain-lounge-pandas.jpg" },
             { headline: "Memories, not just photos.", image: "/hero/fain-dreamcatcher-camp.jpg" },
@@ -185,10 +185,20 @@ function ExperiencesPageContent() {
               image:
                 "https://images.unsplash.com/photo-1646282994817-1f1949198d2a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODU3fA&ixlib=rb-4.1.0&q=80&w=1080",
             },
+            {
+              headline: "Stories you take home.",
+              image:
+                "https://images.unsplash.com/photo-1759719441268-7d807f21a4ea?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODU4fA&ixlib=rb-4.1.0&q=80&w=1080",
+            },
+            {
+              headline: "Closer to places that feel alive.",
+              image:
+                "https://images.unsplash.com/photo-1775403908748-8557013c8e1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODU4fA&ixlib=rb-4.1.0&q=80&w=1080",
+            },
           ]
         : [
             { headline: "Trăiește. Nu doar mergi.", image: "/hero/fain-camp-hero.png", position: "center top" },
-            { headline: "Oameni reali. Locuri reale.", image: "/hero/cactus-host-portrait.jpg", position: "57% 42%" },
+            { headline: "Oameni reali. Locuri reale.", image: "/hero/cactus-host-portrait.jpg", position: "57% 18%" },
             { headline: "Weekend-ul tău de suflet.", image: "/hero/fain-wayfinding-sign.jpg" },
             { headline: "România, altfel.", image: "/hero/fain-lounge-pandas.jpg" },
             { headline: "Amintiri, nu doar poze.", image: "/hero/fain-dreamcatcher-camp.jpg" },
@@ -202,6 +212,16 @@ function ExperiencesPageContent() {
               headline: "Reconectează-te.",
               image:
                 "https://images.unsplash.com/photo-1646282994817-1f1949198d2a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODU3fA&ixlib=rb-4.1.0&q=80&w=1080",
+            },
+            {
+              headline: "Povești pe care le iei cu tine.",
+              image:
+                "https://images.unsplash.com/photo-1759719441268-7d807f21a4ea?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODU4fA&ixlib=rb-4.1.0&q=80&w=1080",
+            },
+            {
+              headline: "Mai aproape de locuri vii.",
+              image:
+                "https://images.unsplash.com/photo-1775403908748-8557013c8e1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODU4fA&ixlib=rb-4.1.0&q=80&w=1080",
             },
           ],
     [lang]

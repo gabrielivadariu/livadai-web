@@ -170,7 +170,7 @@ function ExperiencesPageContent() {
       lang === "en"
         ? [
             { headline: "Live. Don't just pass through.", image: "/hero/fain-camp-hero.png", position: "center top" },
-            { headline: "Real people. Real places.", image: "/hero/cactus-host-portrait.jpg", position: "57% 64%" },
+            { headline: "Real people. Real places.", image: "/hero/cactus-host-portrait.jpg", position: "57% 42%" },
             { headline: "Your meaningful weekend.", image: "/hero/fain-wayfinding-sign.jpg" },
             { headline: "Romania, differently.", image: "/hero/fain-lounge-pandas.jpg" },
             { headline: "Memories, not just photos.", image: "/hero/fain-dreamcatcher-camp.jpg" },
@@ -188,7 +188,7 @@ function ExperiencesPageContent() {
           ]
         : [
             { headline: "Trăiește. Nu doar mergi.", image: "/hero/fain-camp-hero.png", position: "center top" },
-            { headline: "Oameni reali. Locuri reale.", image: "/hero/cactus-host-portrait.jpg", position: "57% 64%" },
+            { headline: "Oameni reali. Locuri reale.", image: "/hero/cactus-host-portrait.jpg", position: "57% 42%" },
             { headline: "Weekend-ul tău de suflet.", image: "/hero/fain-wayfinding-sign.jpg" },
             { headline: "România, altfel.", image: "/hero/fain-lounge-pandas.jpg" },
             { headline: "Amintiri, nu doar poze.", image: "/hero/fain-dreamcatcher-camp.jpg" },

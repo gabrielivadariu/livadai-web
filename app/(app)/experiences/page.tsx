@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { apiGet } from "@/lib/api";
@@ -124,27 +124,6 @@ const formatStartTimeLabel = (item: Experience, lang: string) => {
   return normalizeTimeValue(item.startTime);
 };
 
-function HeroProofItem({
-  icon,
-  children,
-  live = false,
-}: {
-  icon?: string;
-  children: string;
-  live?: boolean;
-}) {
-  return (
-    <span className={`${styles.heroProofItem} ${live ? styles.heroProofLiveItem : ""}`.trim()}>
-      {live ? (
-        <span className={styles.heroProofLiveDot} aria-hidden="true" />
-      ) : icon ? (
-        <span aria-hidden="true">{icon}</span>
-      ) : null}
-      <span>{children}</span>
-    </span>
-  );
-}
-
 function ExperiencesPageContent() {
   const router = useRouter();
   const pathname = usePathname();
@@ -152,12 +131,13 @@ function ExperiencesPageContent() {
   const { lang } = useLang();
   const t = useT();
   const { user } = useAuth();
+  const heroTransitionTimeoutRef = useRef<number | null>(null);
   const [items, setItems] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
   const search = searchParams?.get("q") || "";
-  const [heroSearch, setHeroSearch] = useState(search);
-  const [activeHeroSlide, setActiveHeroSlide] = useState(0);
-  const [liveExplorerCount, setLiveExplorerCount] = useState(72);
+  const [activeHeroSequenceStep, setActiveHeroSequenceStep] = useState(0);
+  const [isHeroTextVisible, setIsHeroTextVisible] = useState(true);
+  const [liveExplorerCount, setLiveExplorerCount] = useState(97);
   const [showCreated, setShowCreated] = useState(() => {
     if (typeof window === "undefined") return false;
     return Boolean(window.localStorage.getItem(EXPERIENCE_CREATED_KEY));
@@ -185,11 +165,7 @@ function ExperiencesPageContent() {
     window.localStorage.removeItem(EXPERIENCE_CREATED_KEY);
   }, [showCreated]);
 
-  useEffect(() => {
-    setHeroSearch(search);
-  }, [search]);
-
-  const heroSlides = useMemo<Array<{ url: string; position?: string }>>(
+  const heroBackgroundSlides = useMemo<Array<{ url: string; position?: string }>>(
     () => [
       { url: "/hero/fain-camp-hero.png", position: "center top" },
       { url: "/hero/cactus-host-portrait.jpg", position: "57% 64%" },
@@ -242,27 +218,96 @@ function ExperiencesPageContent() {
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setActiveHeroSlide((current) => (current + 1) % heroSlides.length);
-    }, 4000);
-    return () => window.clearInterval(timer);
-  }, [heroSlides.length]);
+      if (heroTransitionTimeoutRef.current !== null) {
+        window.clearTimeout(heroTransitionTimeoutRef.current);
+      }
+
+      setIsHeroTextVisible(false);
+      heroTransitionTimeoutRef.current = window.setTimeout(() => {
+        setActiveHeroSequenceStep((current) => current + 1);
+        setIsHeroTextVisible(true);
+        heroTransitionTimeoutRef.current = null;
+      }, 400);
+    }, 3500);
+
+    return () => {
+      window.clearInterval(timer);
+      if (heroTransitionTimeoutRef.current !== null) {
+        window.clearTimeout(heroTransitionTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
-    const pickNextLiveCount = (current?: number) => {
-      let next = 50 + Math.floor(Math.random() * 51);
-      if (typeof current === "number" && next === current) {
-        next = current <= 75 ? Math.min(100, current + 3) : Math.max(50, current - 3);
-      }
-      return next;
+    let timer: number | null = null;
+
+    const schedule = () => {
+      timer = window.setTimeout(() => {
+        setLiveExplorerCount((current) => {
+          const delta = Math.floor(Math.random() * 7) - 3;
+          return Math.max(80, Math.min(130, current + delta));
+        });
+        schedule();
+      }, Math.floor(Math.random() * 15000) + 20000);
     };
 
-    setLiveExplorerCount(pickNextLiveCount());
-    const timer = window.setInterval(() => {
-      setLiveExplorerCount((current) => pickNextLiveCount(current));
-    }, 7000);
+    schedule();
 
-    return () => window.clearInterval(timer);
+    return () => {
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
+    };
   }, []);
+
+  const heroTextSlides = useMemo<Array<{ headline: string; sub: string }>>(
+    () =>
+      lang === "en"
+        ? [
+            { headline: "Live. Don't just pass through.", sub: "Step out of routine. Romania is waiting." },
+            { headline: "Real people. Real places.", sub: "No filters. No tourist traps. Just soul." },
+            { headline: "Your meaningful weekend.", sub: "Two days that can feel bigger than a year." },
+            { headline: "Romania, differently.", sub: "Discover what doesn't make it into tourist guides." },
+            { headline: "Memories, not just photos.", sub: "Experiences that stay with you." },
+            { headline: "Make something with your hands.", sub: "Workshops, crafts, and living traditions." },
+            {
+              headline: "Places where time slows down.",
+              sub: "Villages, forests, and hosts who welcome you in.",
+            },
+            {
+              headline: "Reconnect. With nature. With yourself.",
+              sub: "Rural Romania can heal if you let it.",
+            },
+          ]
+        : [
+            { headline: "Trăiește. Nu doar mergi.", sub: "Ieși din rutină. România te așteaptă." },
+            { headline: "Oameni reali. Locuri reale.", sub: "Fără filtre. Fără turiști. Cu suflet." },
+            { headline: "Weekend-ul tău de suflet.", sub: "Două zile care valorează cât un an." },
+            { headline: "România, altfel.", sub: "Descoperă ce nu găsești în ghiduri turistice." },
+            { headline: "Amintiri, nu doar poze.", sub: "Experiențe care rămân cu tine." },
+            { headline: "Fă ceva cu mâinile tale.", sub: "Ateliere, meșteșuguri, tradiții vii." },
+            {
+              headline: "Locuri unde timpul stă în loc.",
+              sub: "Sate, păduri, oameni care te primesc acasă.",
+            },
+            {
+              headline: "Reconectează-te. Cu natura. Cu tine.",
+              sub: "România rurală te vindecă dacă îi dai o șansă.",
+            },
+          ],
+    [lang]
+  );
+
+  const activeHeroTextSlide = activeHeroSequenceStep % heroTextSlides.length;
+  const activeHeroBackgroundSlide = Math.floor(activeHeroSequenceStep / 2) % heroBackgroundSlides.length;
+  const activeHeroText = heroTextSlides[activeHeroTextSlide];
+  const heroSubtitle =
+    lang === "en"
+      ? "Authentic experiences in soulful places across Romania."
+      : "Experiențe autentice în locuri cu suflet din România.";
+  const heroCtaLabel = lang === "en" ? "Discover experiences →" : "Descoperă experiențe →";
+  const liveExplorerLabel =
+    lang === "en" ? "people are exploring now" : "persoane explorează acum";
 
   const searchFiltered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -304,15 +349,6 @@ function ExperiencesPageContent() {
     }
   }, [loading, search, searchFiltered]);
 
-  const liveExplorerLabel =
-    lang === "en" ? `${liveExplorerCount} people are exploring now` : `${liveExplorerCount} persoane explorează acum`;
-
-  const heroProofItems = [
-    { label: t("hero_proof_2"), live: false },
-    { label: t("hero_proof_3"), live: false },
-    { label: liveExplorerLabel, live: true },
-  ];
-
   const featuredExperienceId = useMemo(() => {
     const featured =
       items.find((item) =>
@@ -339,7 +375,6 @@ function ExperiencesPageContent() {
   };
 
   const clearSearchAndShowAll = () => {
-    setHeroSearch("");
     applySearch("");
   };
 
@@ -358,16 +393,19 @@ function ExperiencesPageContent() {
     }, 120);
   };
 
-  const handleHeroSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    trackEvent({
-      eventName: "cta_clicked",
-      properties: {
-        area: "hero_search",
-        cta: "search_submit",
-      },
-    });
-    applySearch(heroSearch);
+  const handleHeroDotClick = (index: number) => {
+    if (heroTransitionTimeoutRef.current !== null) {
+      window.clearTimeout(heroTransitionTimeoutRef.current);
+      heroTransitionTimeoutRef.current = null;
+    }
+
+    setIsHeroTextVisible(false);
+    const nextStep = activeHeroSequenceStep - activeHeroTextSlide + index;
+    heroTransitionTimeoutRef.current = window.setTimeout(() => {
+      setActiveHeroSequenceStep(nextStep);
+      setIsHeroTextVisible(true);
+      heroTransitionTimeoutRef.current = null;
+    }, 400);
   };
 
   const showSearchFallback = !loading && Boolean(search.trim()) && displayedItems.length < 3;
@@ -391,43 +429,60 @@ function ExperiencesPageContent() {
       ) : null}
       <section className={styles.hero}>
         <div className={styles.heroSlides} aria-hidden="true">
-          {heroSlides.map((slide, index) => (
+          {heroBackgroundSlides.map((slide, index) => (
             <div
               key={`hero-slide-${index}`}
-              className={`${styles.heroSlide} ${index === activeHeroSlide ? styles.heroSlideActive : ""}`}
+              className={`${styles.heroSlide} ${index === activeHeroBackgroundSlide ? styles.heroSlideActive : ""}`}
               style={{ backgroundImage: `url(${slide.url})`, backgroundPosition: slide.position || "center center" }}
             />
           ))}
         </div>
         <div className={styles.heroOverlay} />
         <div className={styles.heroInner}>
-          <div className={styles.heroBrand}>
-            <span className={styles.heroBrandLogo}>LIVADAI</span>
-          </div>
-          <div className={styles.heroContent}>
-            <form className={styles.heroSearchForm} onSubmit={handleHeroSearchSubmit}>
-              <div className={styles.heroSearchShell}>
-                <span className={styles.heroSearchIcon}>⌕</span>
-                <input
-                  value={heroSearch}
-                  onChange={(event) => setHeroSearch(event.target.value)}
-                  placeholder={t("hero_search_placeholder")}
-                  className={styles.heroSearchInput}
-                  aria-label={t("hero_search_placeholder")}
-                />
-                <button className={styles.heroSearchButton} type="submit">
-                  {t("hero_search_cta")}
-                </button>
-              </div>
-            </form>
-            <div className={styles.heroProofRow}>
-              {heroProofItems.map((item) => (
-                <HeroProofItem key={item.label} live={item.live}>
-                  {item.label}
-                </HeroProofItem>
-              ))}
+          <div className={styles.heroCenterBlock}>
+            <div
+              className={`${styles.heroCenterText} ${!isHeroTextVisible ? styles.heroTextHidden : ""}`.trim()}
+            >
+              <h1 className={styles.heroHeadline} id="heroHeadline">
+                {activeHeroText.headline}
+              </h1>
+              <p className={styles.heroSubtitle}>{heroSubtitle}</p>
             </div>
+            <a
+              href="#experiences-list"
+              className={styles.heroCtaBtn}
+              onClick={(event) => {
+                event.preventDefault();
+                scrollToExperiences();
+              }}
+            >
+              {heroCtaLabel}
+            </a>
           </div>
+        </div>
+        <div className={styles.heroBottomTicker}>
+          <div
+            className={`${styles.heroTickerText} ${!isHeroTextVisible ? styles.heroTextHidden : ""}`.trim()}
+          >
+            <div className={styles.heroTickerHeadline}>{activeHeroText.headline}</div>
+            <div className={styles.heroTickerSubtitle}>{activeHeroText.sub}</div>
+          </div>
+          <div className={styles.heroDots} role="tablist" aria-label={lang === "en" ? "Hero slides" : "Slide-uri hero"}>
+            {heroTextSlides.map((slide, index) => (
+              <button
+                key={slide.headline}
+                type="button"
+                className={`${styles.heroDot} ${index === activeHeroTextSlide ? styles.heroDotActive : ""}`.trim()}
+                onClick={() => handleHeroDotClick(index)}
+                aria-label={`${lang === "en" ? "Show slide" : "Arată slide-ul"} ${index + 1}`}
+                aria-selected={index === activeHeroTextSlide}
+              />
+            ))}
+          </div>
+        </div>
+        <div className={styles.liveCounterBadge}>
+          <span className={styles.liveCounterDot} aria-hidden="true" />
+          <span id="liveCount">{liveExplorerCount}</span>&nbsp;{liveExplorerLabel}
         </div>
       </section>
       {!user ? <div className={styles.guestHint}>{t("guest_list_hint")}</div> : null}

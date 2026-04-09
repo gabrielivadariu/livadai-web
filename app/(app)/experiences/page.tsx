@@ -202,6 +202,10 @@ function ExperiencesPageContent() {
   const heroSlides = useMemo<Array<{ url: string; position?: string }>>(
     () => [
       { url: "/hero/fain-camp-hero.png", position: "center top" },
+      { url: "/hero/fain-wayfinding-sign.jpg" },
+      { url: "/hero/fain-lounge-pandas.jpg" },
+      { url: "/hero/fain-dreamcatcher-camp.jpg" },
+      { url: "/hero/fain-campfire-night.jpg" },
       {
         url: "https://plus.unsplash.com/premium_photo-1677621682631-9bfdcffaacb6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODU3fA&ixlib=rb-4.1.0&q=80&w=1080",
       },

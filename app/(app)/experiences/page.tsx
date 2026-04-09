@@ -422,7 +422,7 @@ function ExperiencesPageContent() {
             </form>
             <div className={styles.heroProofRow}>
               {heroProofItems.map((item) => (
-                <HeroProofItem key={item.label} icon={item.icon} live={item.live}>
+                <HeroProofItem key={item.label} live={item.live}>
                   {item.label}
                 </HeroProofItem>
               ))}

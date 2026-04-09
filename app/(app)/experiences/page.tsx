@@ -157,6 +157,7 @@ function ExperiencesPageContent() {
   const search = searchParams?.get("q") || "";
   const [heroSearch, setHeroSearch] = useState(search);
   const [activeHeroSlide, setActiveHeroSlide] = useState(0);
+  const [liveExplorerCount, setLiveExplorerCount] = useState(72);
   const [showCreated, setShowCreated] = useState(() => {
     if (typeof window === "undefined") return false;
     return Boolean(window.localStorage.getItem(EXPERIENCE_CREATED_KEY));
@@ -187,17 +188,6 @@ function ExperiencesPageContent() {
   useEffect(() => {
     setHeroSearch(search);
   }, [search]);
-
-  const heroHeadlines = useMemo<string[]>(
-    () => [
-      t("hero_slide_1"),
-      t("hero_slide_2"),
-      t("hero_slide_3"),
-      t("hero_slide_4"),
-      t("hero_slide_5"),
-    ],
-    [t]
-  );
 
   const heroSlides = useMemo<Array<{ url: string; position?: string }>>(
     () => [
@@ -256,6 +246,23 @@ function ExperiencesPageContent() {
     return () => window.clearInterval(timer);
   }, [heroSlides.length]);
 
+  useEffect(() => {
+    const pickNextLiveCount = (current?: number) => {
+      let next = 50 + Math.floor(Math.random() * 51);
+      if (typeof current === "number" && next === current) {
+        next = current <= 75 ? Math.min(100, current + 3) : Math.max(50, current - 3);
+      }
+      return next;
+    };
+
+    setLiveExplorerCount(pickNextLiveCount());
+    const timer = window.setInterval(() => {
+      setLiveExplorerCount((current) => pickNextLiveCount(current));
+    }, 7000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
   const searchFiltered = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return items;
@@ -296,11 +303,13 @@ function ExperiencesPageContent() {
     }
   }, [loading, search, searchFiltered]);
 
+  const liveExplorerLabel =
+    lang === "en" ? `${liveExplorerCount} people are exploring now` : `${liveExplorerCount} persoane explorează acum`;
+
   const heroProofItems = [
-    { icon: "🏡", label: t("hero_proof_1"), live: false },
-    { icon: "✨", label: t("hero_proof_2"), live: false },
-    { icon: "🇷🇴", label: t("hero_proof_3"), live: false },
-    { label: t("hero_live_label"), live: true },
+    { label: t("hero_proof_2"), live: false },
+    { label: t("hero_proof_3"), live: false },
+    { label: liveExplorerLabel, live: true },
   ];
 
   const featuredExperienceId = useMemo(() => {
@@ -392,16 +401,9 @@ function ExperiencesPageContent() {
         <div className={styles.heroOverlay} />
         <div className={styles.heroInner}>
           <div className={styles.heroBrand}>
-              <span className={styles.heroBrandLogo}>LIVADAI</span>
-              <span className={styles.heroBrandTagline}>{t("hero_brand_tagline")}</span>
+            <span className={styles.heroBrandLogo}>LIVADAI</span>
           </div>
           <div className={styles.heroContent}>
-            <div className={styles.heroHeadingStack}>
-              <h1 key={`${lang}-${activeHeroSlide}`} className={styles.heroTitle}>
-                {heroHeadlines[activeHeroSlide % heroHeadlines.length]}
-              </h1>
-            </div>
-            <p className={styles.heroSubtitle}>{t("hero_subtitle")}</p>
             <form className={styles.heroSearchForm} onSubmit={handleHeroSearchSubmit}>
               <div className={styles.heroSearchShell}>
                 <span className={styles.heroSearchIcon}>⌕</span>

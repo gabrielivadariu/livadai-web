@@ -135,8 +135,8 @@ function ExperiencesPageContent() {
   const [items, setItems] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
   const search = searchParams?.get("q") || "";
-  const [activeHeroSequenceStep, setActiveHeroSequenceStep] = useState(0);
-  const [isHeroTextVisible, setIsHeroTextVisible] = useState(true);
+  const [activeHeroSlide, setActiveHeroSlide] = useState(0);
+  const [isHeroSlideVisible, setIsHeroSlideVisible] = useState(true);
   const [liveExplorerCount, setLiveExplorerCount] = useState(97);
   const [showCreated, setShowCreated] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -165,55 +165,46 @@ function ExperiencesPageContent() {
     window.localStorage.removeItem(EXPERIENCE_CREATED_KEY);
   }, [showCreated]);
 
-  const heroBackgroundSlides = useMemo<Array<{ url: string; position?: string }>>(
-    () => [
-      { url: "/hero/fain-camp-hero.png", position: "center top" },
-      { url: "/hero/cactus-host-portrait.jpg", position: "57% 64%" },
-      { url: "/hero/fain-wayfinding-sign.jpg" },
-      { url: "/hero/fain-lounge-pandas.jpg" },
-      { url: "/hero/fain-dreamcatcher-camp.jpg" },
-      { url: "/hero/fain-campfire-night.jpg" },
-      {
-        url: "https://plus.unsplash.com/premium_photo-1677621682631-9bfdcffaacb6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODU3fA&ixlib=rb-4.1.0&q=80&w=1080",
-      },
-      {
-        url: "https://images.unsplash.com/photo-1646282994817-1f1949198d2a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODU3fA&ixlib=rb-4.1.0&q=80&w=1080",
-      },
-      {
-        url: "https://images.unsplash.com/photo-1759719441268-7d807f21a4ea?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODU4fA&ixlib=rb-4.1.0&q=80&w=1080",
-      },
-      {
-        url: "https://images.unsplash.com/photo-1775403908748-8557013c8e1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODU4fA&ixlib=rb-4.1.0&q=80&w=1080",
-      },
-      {
-        url: "https://plus.unsplash.com/premium_photo-1661425600674-39ea92c9d667?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODU5fA&ixlib=rb-4.1.0&q=80&w=1080",
-      },
-      {
-        url: "https://plus.unsplash.com/premium_photo-1671282997395-9d912dc2133f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODU5fA&ixlib=rb-4.1.0&q=80&w=1080",
-      },
-      {
-        url: "https://images.unsplash.com/photo-1771523350538-29baf74f710c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODYwfA&ixlib=rb-4.1.0&q=80&w=1080",
-      },
-      {
-        url: "https://images.unsplash.com/photo-1739713894951-6ab5f864e4cf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODYwfA&ixlib=rb-4.1.0&q=80&w=1080",
-      },
-      {
-        url: "https://images.unsplash.com/photo-1739713894545-8bc8babbb3fc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODYwfA&ixlib=rb-4.1.0&q=80&w=1080",
-      },
-      {
-        url: "https://images.unsplash.com/photo-1739713894536-6afdca5c267b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODYxfA&ixlib=rb-4.1.0&q=80&w=1080",
-      },
-      {
-        url: "https://images.unsplash.com/photo-1737564483280-15481c31608a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODYxfA&ixlib=rb-4.1.0&q=80&w=1080",
-      },
-      {
-        url: "https://images.unsplash.com/photo-1727409493351-05859b3195f4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODYyfA&ixlib=rb-4.1.0&q=80&w=1080",
-      },
-      {
-        url: "https://images.unsplash.com/photo-1579792808953-85b3438c450d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODYyfA&ixlib=rb-4.1.0&q=80&w=1080",
-      },
-    ],
-    []
+  const heroSlides = useMemo<Array<{ headline: string; image: string; position?: string }>>(
+    () =>
+      lang === "en"
+        ? [
+            { headline: "Live. Don't just pass through.", image: "/hero/fain-camp-hero.png", position: "center top" },
+            { headline: "Real people. Real places.", image: "/hero/cactus-host-portrait.jpg", position: "57% 64%" },
+            { headline: "Your meaningful weekend.", image: "/hero/fain-wayfinding-sign.jpg" },
+            { headline: "Romania, differently.", image: "/hero/fain-lounge-pandas.jpg" },
+            { headline: "Memories, not just photos.", image: "/hero/fain-dreamcatcher-camp.jpg" },
+            { headline: "Make something with your hands.", image: "/hero/fain-campfire-night.jpg" },
+            {
+              headline: "Where time slows down.",
+              image:
+                "https://plus.unsplash.com/premium_photo-1677621682631-9bfdcffaacb6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODU3fA&ixlib=rb-4.1.0&q=80&w=1080",
+            },
+            {
+              headline: "Reconnect.",
+              image:
+                "https://images.unsplash.com/photo-1646282994817-1f1949198d2a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODU3fA&ixlib=rb-4.1.0&q=80&w=1080",
+            },
+          ]
+        : [
+            { headline: "Trăiește. Nu doar mergi.", image: "/hero/fain-camp-hero.png", position: "center top" },
+            { headline: "Oameni reali. Locuri reale.", image: "/hero/cactus-host-portrait.jpg", position: "57% 64%" },
+            { headline: "Weekend-ul tău de suflet.", image: "/hero/fain-wayfinding-sign.jpg" },
+            { headline: "România, altfel.", image: "/hero/fain-lounge-pandas.jpg" },
+            { headline: "Amintiri, nu doar poze.", image: "/hero/fain-dreamcatcher-camp.jpg" },
+            { headline: "Fă ceva cu mâinile tale.", image: "/hero/fain-campfire-night.jpg" },
+            {
+              headline: "Unde timpul stă în loc.",
+              image:
+                "https://plus.unsplash.com/premium_photo-1677621682631-9bfdcffaacb6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODU3fA&ixlib=rb-4.1.0&q=80&w=1080",
+            },
+            {
+              headline: "Reconectează-te.",
+              image:
+                "https://images.unsplash.com/photo-1646282994817-1f1949198d2a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzc1NjY1ODU3fA&ixlib=rb-4.1.0&q=80&w=1080",
+            },
+          ],
+    [lang]
   );
 
   useEffect(() => {
@@ -222,13 +213,13 @@ function ExperiencesPageContent() {
         window.clearTimeout(heroTransitionTimeoutRef.current);
       }
 
-      setIsHeroTextVisible(false);
+      setIsHeroSlideVisible(false);
       heroTransitionTimeoutRef.current = window.setTimeout(() => {
-        setActiveHeroSequenceStep((current) => current + 1);
-        setIsHeroTextVisible(true);
+        setActiveHeroSlide((current) => (current + 1) % heroSlides.length);
+        setIsHeroSlideVisible(true);
         heroTransitionTimeoutRef.current = null;
-      }, 400);
-    }, 3500);
+      }, 500);
+    }, 4000);
 
     return () => {
       window.clearInterval(timer);
@@ -236,7 +227,7 @@ function ExperiencesPageContent() {
         window.clearTimeout(heroTransitionTimeoutRef.current);
       }
     };
-  }, []);
+  }, [heroSlides.length]);
 
   useEffect(() => {
     let timer: number | null = null;
@@ -260,54 +251,9 @@ function ExperiencesPageContent() {
     };
   }, []);
 
-  const heroTextSlides = useMemo<Array<{ headline: string; sub: string }>>(
-    () =>
-      lang === "en"
-        ? [
-            { headline: "Live. Don't just pass through.", sub: "Step out of routine. Romania is waiting." },
-            { headline: "Real people. Real places.", sub: "No filters. No tourist traps. Just soul." },
-            { headline: "Your meaningful weekend.", sub: "Two days that can feel bigger than a year." },
-            { headline: "Romania, differently.", sub: "Discover what doesn't make it into tourist guides." },
-            { headline: "Memories, not just photos.", sub: "Experiences that stay with you." },
-            { headline: "Make something with your hands.", sub: "Workshops, crafts, and living traditions." },
-            {
-              headline: "Places where time slows down.",
-              sub: "Villages, forests, and hosts who welcome you in.",
-            },
-            {
-              headline: "Reconnect. With nature. With yourself.",
-              sub: "Rural Romania can heal if you let it.",
-            },
-          ]
-        : [
-            { headline: "Trăiește. Nu doar mergi.", sub: "Ieși din rutină. România te așteaptă." },
-            { headline: "Oameni reali. Locuri reale.", sub: "Fără filtre. Fără turiști. Cu suflet." },
-            { headline: "Weekend-ul tău de suflet.", sub: "Două zile care valorează cât un an." },
-            { headline: "România, altfel.", sub: "Descoperă ce nu găsești în ghiduri turistice." },
-            { headline: "Amintiri, nu doar poze.", sub: "Experiențe care rămân cu tine." },
-            { headline: "Fă ceva cu mâinile tale.", sub: "Ateliere, meșteșuguri, tradiții vii." },
-            {
-              headline: "Locuri unde timpul stă în loc.",
-              sub: "Sate, păduri, oameni care te primesc acasă.",
-            },
-            {
-              headline: "Reconectează-te. Cu natura. Cu tine.",
-              sub: "România rurală te vindecă dacă îi dai o șansă.",
-            },
-          ],
-    [lang]
-  );
-
-  const activeHeroTextSlide = activeHeroSequenceStep % heroTextSlides.length;
-  const activeHeroBackgroundSlide = Math.floor(activeHeroSequenceStep / 2) % heroBackgroundSlides.length;
-  const activeHeroText = heroTextSlides[activeHeroTextSlide];
-  const heroSubtitle =
-    lang === "en"
-      ? "Authentic experiences in soulful places across Romania."
-      : "Experiențe autentice în locuri cu suflet din România.";
-  const heroCtaLabel = lang === "en" ? "Discover experiences →" : "Descoperă experiențe →";
   const liveExplorerLabel =
     lang === "en" ? "people are exploring now" : "persoane explorează acum";
+  const activeHero = heroSlides[activeHeroSlide];
 
   const searchFiltered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -393,19 +339,18 @@ function ExperiencesPageContent() {
     }, 120);
   };
 
-  const handleHeroDotClick = (index: number) => {
+  const handleHeroBarClick = (index: number) => {
     if (heroTransitionTimeoutRef.current !== null) {
       window.clearTimeout(heroTransitionTimeoutRef.current);
       heroTransitionTimeoutRef.current = null;
     }
 
-    setIsHeroTextVisible(false);
-    const nextStep = activeHeroSequenceStep - activeHeroTextSlide + index;
+    setIsHeroSlideVisible(false);
     heroTransitionTimeoutRef.current = window.setTimeout(() => {
-      setActiveHeroSequenceStep(nextStep);
-      setIsHeroTextVisible(true);
+      setActiveHeroSlide(index);
+      setIsHeroSlideVisible(true);
       heroTransitionTimeoutRef.current = null;
-    }, 400);
+    }, 500);
   };
 
   const showSearchFallback = !loading && Boolean(search.trim()) && displayedItems.length < 3;
@@ -429,56 +374,36 @@ function ExperiencesPageContent() {
       ) : null}
       <section className={styles.hero}>
         <div className={styles.heroSlides} aria-hidden="true">
-          {heroBackgroundSlides.map((slide, index) => (
-            <div
-              key={`hero-slide-${index}`}
-              className={`${styles.heroSlide} ${index === activeHeroBackgroundSlide ? styles.heroSlideActive : ""}`}
-              style={{ backgroundImage: `url(${slide.url})`, backgroundPosition: slide.position || "center center" }}
-            />
-          ))}
+          <div
+            className={`${styles.heroSlide} ${styles.heroSlideActive} ${!isHeroSlideVisible ? styles.heroSlideHidden : ""}`.trim()}
+            style={{
+              backgroundImage: `url(${activeHero.image})`,
+              backgroundPosition: activeHero.position || "center center",
+            }}
+          />
         </div>
         <div className={styles.heroOverlay} />
         <div className={styles.heroInner}>
-          <div className={styles.heroCenterBlock}>
-            <div
-              className={`${styles.heroCenterText} ${!isHeroTextVisible ? styles.heroTextHidden : ""}`.trim()}
+          <div className={styles.heroHeadlineBlock}>
+            <h1
+              className={`${styles.heroHeadline} ${!isHeroSlideVisible ? styles.heroTextHidden : ""}`.trim()}
+              id="heroHeadline"
             >
-              <h1 className={styles.heroHeadline} id="heroHeadline">
-                {activeHeroText.headline}
-              </h1>
-              <p className={styles.heroSubtitle}>{heroSubtitle}</p>
-            </div>
-            <a
-              href="#experiences-list"
-              className={styles.heroCtaBtn}
-              onClick={(event) => {
-                event.preventDefault();
-                scrollToExperiences();
-              }}
-            >
-              {heroCtaLabel}
-            </a>
+              {activeHero.headline}
+            </h1>
           </div>
         </div>
-        <div className={styles.heroBottomTicker}>
-          <div
-            className={`${styles.heroTickerText} ${!isHeroTextVisible ? styles.heroTextHidden : ""}`.trim()}
-          >
-            <div className={styles.heroTickerHeadline}>{activeHeroText.headline}</div>
-            <div className={styles.heroTickerSubtitle}>{activeHeroText.sub}</div>
-          </div>
-          <div className={styles.heroDots} role="tablist" aria-label={lang === "en" ? "Hero slides" : "Slide-uri hero"}>
-            {heroTextSlides.map((slide, index) => (
-              <button
-                key={slide.headline}
-                type="button"
-                className={`${styles.heroDot} ${index === activeHeroTextSlide ? styles.heroDotActive : ""}`.trim()}
-                onClick={() => handleHeroDotClick(index)}
-                aria-label={`${lang === "en" ? "Show slide" : "Arată slide-ul"} ${index + 1}`}
-                aria-selected={index === activeHeroTextSlide}
-              />
-            ))}
-          </div>
+        <div className={styles.slideBars} role="tablist" aria-label={lang === "en" ? "Hero slides" : "Slide-uri hero"}>
+          {heroSlides.map((slide, index) => (
+            <button
+              key={slide.headline}
+              type="button"
+              className={`${styles.slideBar} ${index === activeHeroSlide ? styles.slideBarActive : ""}`.trim()}
+              onClick={() => handleHeroBarClick(index)}
+              aria-label={`${lang === "en" ? "Show slide" : "Arată slide-ul"} ${index + 1}`}
+              aria-selected={index === activeHeroSlide}
+            />
+          ))}
         </div>
         <div className={styles.liveCounterBadge}>
           <span className={styles.liveCounterDot} aria-hidden="true" />

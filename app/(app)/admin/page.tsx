@@ -1443,7 +1443,7 @@ export default function AdminPage() {
   const criticalDialogResolverRef = useRef<((value: { confirmed: boolean; reason: string }) => void) | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [activeSection, setActiveSection] = useState<
-    "overview" | "users" | "hosts" | "experiences" | "bookings" | "reports" | "payments" | "analytics" | "audit" | "messages" | "system"
+    "overview" | "users" | "hosts" | "experiences" | "bookings" | "reports" | "payments" | "analytics" | "emailMarketing" | "audit" | "messages" | "system"
   >("overview");
   const [globalSearch, setGlobalSearch] = useState("");
   const [recentAdminActions, setRecentAdminActions] = useState<AdminAuditLogItem[]>([]);
@@ -2474,7 +2474,7 @@ export default function AdminPage() {
   };
 
   const sidebarItems: Array<{
-    key: "overview" | "users" | "hosts" | "experiences" | "bookings" | "reports" | "payments" | "analytics" | "audit" | "messages" | "system";
+    key: "overview" | "users" | "hosts" | "experiences" | "bookings" | "reports" | "payments" | "analytics" | "emailMarketing" | "audit" | "messages" | "system";
     label: string;
     hint?: string;
     href?: string;
@@ -2487,6 +2487,7 @@ export default function AdminPage() {
     { key: "reports", label: tx("Rapoarte / Moderare", "Reports / Moderation"), hint: tx("Inbox și siguranță", "Inbox & safety") },
     { key: "payments", label: tx("Plăți și refund-uri", "Payments & Refunds"), hint: tx("Sănătate și probleme", "Health & issues") },
     { key: "analytics", label: tx("Analitice", "Analytics"), hint: tx("Trafic și insight-uri", "Traffic & insights"), href: "/admin/analytics" },
+    { key: "emailMarketing", label: tx("Email Marketing", "Email Marketing"), hint: tx("Newsletter și campanii", "Newsletter & campaigns"), href: "/admin/email-marketing" },
     { key: "audit", label: tx("Audit log", "Audit log"), hint: tx("Urmează acțiunile admin", "Trace admin actions") },
     { key: "messages", label: tx("Mesaje", "Messages"), hint: tx("Conversații", "Conversations") },
     ...(isOwnerAdmin ? ([{ key: "system", label: tx("Sistem", "System"), hint: tx("Health și config", "Health & config") }] as const) : []),

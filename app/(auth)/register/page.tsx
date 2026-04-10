@@ -65,6 +65,7 @@ export default function RegisterPage() {
   const [phoneCode, setPhoneCode] = useState("+40");
   const [role, setRole] = useState<"EXPLORER" | "HOST">("EXPLORER");
   const [termsChecked, setTermsChecked] = useState(false);
+  const [marketingEmailOptIn, setMarketingEmailOptIn] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [step, setStep] = useState<"register" | "verify">("register");
@@ -104,6 +105,7 @@ export default function RegisterPage() {
         termsAccepted: true,
         termsAcceptedAt: new Date().toISOString(),
         termsVersion: "v1",
+        marketingEmailOptIn,
       });
       console.log("REGISTER RESPONSE", res);
       const needsVerification = res?.requiresEmailVerification !== false;
@@ -234,6 +236,15 @@ export default function RegisterPage() {
             />
           </div>
           <div className={styles.hint}>{t("register_phone_hint")}</div>
+
+          <label className={styles.termsRow}>
+            <input
+              type="checkbox"
+              checked={marketingEmailOptIn}
+              onChange={(e) => setMarketingEmailOptIn(e.target.checked)}
+            />
+            <span>{t("register_marketing_opt_in")}</span>
+          </label>
 
           <label className={styles.termsRow}>
             <input type="checkbox" checked={termsChecked} onChange={(e) => setTermsChecked(e.target.checked)} />

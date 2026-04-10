@@ -8,6 +8,7 @@ type User = {
   email?: string;
   role?: string;
   avatar?: string;
+  marketingEmailOptIn?: boolean;
 };
 
 type AuthContextValue = {

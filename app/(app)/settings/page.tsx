@@ -5,16 +5,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/lang-context";
+import { apiGet, apiPatch } from "@/lib/api";
 import { useT } from "@/lib/i18n";
-
-const NOTIFICATIONS_KEY = "livadai-notifications";
 
 export default function SettingsPage() {
   const t = useT();
   const router = useRouter();
-  const { logout, token, loading } = useAuth();
+  const { token, loading } = useAuth();
   const { lang, setLang } = useLang();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [marketingEmailOptIn, setMarketingEmailOptIn] = useState(false);
+  const [preferencesLoading, setPreferencesLoading] = useState(true);
+  const [preferencesSaving, setPreferencesSaving] = useState(false);
+  const [preferencesError, setPreferencesError] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -25,14 +27,53 @@ export default function SettingsPage() {
       router.replace("/login?reason=auth&next=/settings");
       return;
     }
-    const stored = window.localStorage.getItem(NOTIFICATIONS_KEY);
-    if (stored === "off") setNotificationsEnabled(false);
+
+    let active = true;
+    setPreferencesLoading(true);
+    setPreferencesError("");
+
+    apiGet<{ marketingEmailOptIn?: boolean; preferences?: { marketingEmailOptIn?: boolean } }>("/users/me")
+      .then((data) => {
+        if (!active) return;
+        const nextValue =
+          typeof data?.preferences?.marketingEmailOptIn === "boolean"
+            ? data.preferences.marketingEmailOptIn
+            : !!data?.marketingEmailOptIn;
+        setMarketingEmailOptIn(nextValue);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setPreferencesError((err as Error).message || t("settings_email_updates_error"));
+      })
+      .finally(() => {
+        if (!active) return;
+        setPreferencesLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [loading, token, router]);
 
-  const toggleNotifications = () => {
-    const next = !notificationsEnabled;
-    setNotificationsEnabled(next);
-    window.localStorage.setItem(NOTIFICATIONS_KEY, next ? "on" : "off");
+  const toggleMarketingEmails = async () => {
+    const next = !marketingEmailOptIn;
+    setPreferencesSaving(true);
+    setPreferencesError("");
+    try {
+      const data = await apiPatch<{ marketingEmailOptIn?: boolean; preferences?: { marketingEmailOptIn?: boolean } }>(
+        "/users/me/preferences",
+        { marketingEmailOptIn: next }
+      );
+      const savedValue =
+        typeof data?.preferences?.marketingEmailOptIn === "boolean"
+          ? data.preferences.marketingEmailOptIn
+          : !!data?.marketingEmailOptIn;
+      setMarketingEmailOptIn(savedValue);
+    } catch (err) {
+      setPreferencesError((err as Error).message || t("settings_email_updates_error"));
+    } finally {
+      setPreferencesSaving(false);
+    }
   };
 
   const onDeleteAccount = () => {
@@ -68,10 +109,25 @@ export default function SettingsPage() {
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>{t("settings_notifications_title")}</h3>
-        <p className="muted">{t("settings_notifications_text")}</p>
-        <button className="button secondary" type="button" onClick={toggleNotifications}>
-          {notificationsEnabled ? t("settings_notifications_on") : t("settings_notifications_off")}
-        </button>
+        <p className="muted">{t("settings_email_updates_text")}</p>
+        {preferencesError ? <div style={{ color: "#b91c1c", marginBottom: 8 }}>{preferencesError}</div> : null}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+          <button
+            className="button secondary"
+            type="button"
+            onClick={toggleMarketingEmails}
+            disabled={preferencesLoading || preferencesSaving}
+          >
+            {preferencesSaving
+              ? t("settings_email_updates_saving")
+              : marketingEmailOptIn
+                ? t("settings_email_updates_on")
+                : t("settings_email_updates_off")}
+          </button>
+          <span className="muted" style={{ fontSize: 14 }}>
+            {t("settings_email_updates_label")}
+          </span>
+        </div>
       </div>
 
       <div className="card">

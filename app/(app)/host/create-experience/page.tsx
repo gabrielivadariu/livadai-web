@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
@@ -801,15 +801,22 @@ function CreateExperienceContent() {
     return true;
   }, [form, step, scheduleState, recurringState, isEdit, hasCreationMode, hasActivityType, hasEnvironment, hasLanguages]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (step <= 1) return;
     const scrollTarget = () => {
-      const absoluteTop = (pageTopRef.current?.getBoundingClientRect().top || 0) + window.scrollY - 24;
-      window.scrollTo({ top: Math.max(0, absoluteTop), left: 0, behavior: "auto" });
+      const target = pageTopRef.current;
+      if (!target) return;
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({ block: "start", inline: "nearest", behavior: "auto" });
+      const absoluteTop = target.getBoundingClientRect().top + window.scrollY - 24;
+      const top = Math.max(0, absoluteTop);
+      window.scrollTo({ top, left: 0, behavior: "auto" });
+      document.documentElement.scrollTop = top;
+      document.body.scrollTop = top;
     };
     scrollTarget();
     const frame = window.requestAnimationFrame(scrollTarget);
-    const timeout = window.setTimeout(scrollTarget, 80);
+    const timeout = window.setTimeout(scrollTarget, 120);
     return () => {
       window.cancelAnimationFrame(frame);
       window.clearTimeout(timeout);
@@ -1160,7 +1167,7 @@ function CreateExperienceContent() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header} ref={pageTopRef}>
+      <div className={styles.header} ref={pageTopRef} tabIndex={-1}>
         <div>
           <div className={styles.kicker}>{t("create_experience_kicker")}</div>
           <h1>{isEdit ? t("edit_experience_title") : t("create_experience_title")}</h1>

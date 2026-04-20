@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
@@ -10,7 +10,7 @@ import { getMessage, useT } from "@/lib/i18n";
 import styles from "./create-experience.module.css";
 
 const EXPERIENCE_CREATED_KEY = "livadai-experience-created";
-const TITLE_MAX_LENGTH = 80;
+const TITLE_MAX_LENGTH = 30;
 const SHORT_DESCRIPTION_MAX_LENGTH = 50;
 
 const languages = [
@@ -196,6 +196,25 @@ const weekdayOptions = [
   { key: 0, labelKey: "weekday_sunday_short" },
 ] as const;
 
+const formatPreviewEnvironment = (environment: FormState["environment"], lang: string) => {
+  if (environment === "OUTDOOR") return lang === "en" ? "Outdoor" : "Outdoor";
+  if (environment === "INDOOR") return lang === "en" ? "Indoor" : "Indoor";
+  if (environment === "BOTH") return lang === "en" ? "Both" : "Ambele";
+  return "";
+};
+
+const formatPreviewPrice = (form: FormState, lang: string) => {
+  const isFree = !form.price || Number(form.price) <= 0;
+  if (isFree) return lang === "en" ? "Free" : "Gratuit";
+  if (form.activityType === "GROUP" && form.pricingMode === "PER_GROUP") {
+    const packageSize = Math.max(1, Number(form.groupPackageSize) || Number(form.maxParticipants) || 1);
+    return lang === "en"
+      ? `${form.price} ${form.currencyCode} / group (${packageSize})`
+      : `${form.price} ${form.currencyCode} / grup (${packageSize})`;
+  }
+  return `${form.price} ${form.currencyCode}`;
+};
+
 type CoverFocusEditorProps = {
   imageUrl: string;
   focusX: number;
@@ -281,6 +300,7 @@ function CreateExperienceContent() {
   const [success, setSuccess] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [recurrenceExcludedInput, setRecurrenceExcludedInput] = useState("");
+  const pageTopRef = useRef<HTMLDivElement | null>(null);
   const editId = searchParams?.get("edit");
   const isEdit = Boolean(editId);
   const [stripeGate, setStripeGate] = useState<StripeGateState>({
@@ -783,7 +803,13 @@ function CreateExperienceContent() {
 
   useEffect(() => {
     if (step <= 1) return;
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    const scrollTarget = () => {
+      const absoluteTop = (pageTopRef.current?.getBoundingClientRect().top || 0) + window.scrollY - 24;
+      window.scrollTo({ top: Math.max(0, absoluteTop), left: 0, behavior: "auto" });
+    };
+    scrollTarget();
+    const frame = window.requestAnimationFrame(scrollTarget);
+    return () => window.cancelAnimationFrame(frame);
   }, [step]);
 
   const scheduleErrorText = useMemo(() => {
@@ -945,6 +971,15 @@ function CreateExperienceContent() {
   const editCoverImage = form.coverImageUrl || images[0] || "";
   const coverFocus = resolveCoverFocus(form);
   const goToWallet = () => router.push("/host/wallet");
+  const previewCoverImage = form.coverImageUrl || images[0] || "";
+  const previewTitle = form.title.trim() || (lang === "en" ? "Your experience title" : "Titlul experienței tale");
+  const previewShortDescription =
+    form.shortDescription.trim() || (lang === "en" ? "Short description shown in cards." : "Descrierea scurtă afișată pe carduri.");
+  const previewLocation = [form.city.trim(), form.country.trim() || "Romania"].filter(Boolean).join(" ");
+  const previewLanguages = form.languages.slice(0, 2).join(" · ") || (lang === "en" ? "Languages" : "Limbi");
+  const previewEnvironment = formatPreviewEnvironment(form.environment, lang) || (lang === "en" ? "Environment" : "Mediu");
+  const previewSeats = `${Math.max(0, Number(form.maxParticipants) || 0)}/${Math.max(1, Number(form.maxParticipants) || 1)}`;
+  const previewPrice = formatPreviewPrice(form, lang);
   const handleNextStep = () => {
     if (stripeGate.blocked) {
       setError(stripeGate.message);
@@ -1114,7 +1149,7 @@ function CreateExperienceContent() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
+      <div className={styles.header} ref={pageTopRef}>
         <div>
           <div className={styles.kicker}>{t("create_experience_kicker")}</div>
           <h1>{isEdit ? t("edit_experience_title") : t("create_experience_title")}</h1>
@@ -1486,75 +1521,166 @@ function CreateExperienceContent() {
       {step === 3 ? (
         <div className={styles.card}>
           <h2>{t("create_experience_step_3")}</h2>
-          <div className={styles.grid}>
-            <div>
-              <label>{t("create_experience_price")}</label>
-              <input className="input" type="number" value={form.price} onChange={(e) => onChange("price", e.target.value)} />
-            </div>
-            {form.activityType === "GROUP" ? (
-              <>
-                <div className={styles.full}>
-                  <label>{lang === "en" ? "How is the group price charged?" : "Cum se aplică prețul pentru grup?"}</label>
-                  <div className={styles.chips}>
-                    <button
-                      type="button"
-                      className={`${styles.chip} ${form.pricingMode === "PER_PERSON" ? styles.chipActive : ""}`}
-                      onClick={() => onChange("pricingMode", "PER_PERSON")}
-                    >
-                      {lang === "en" ? "Per person" : "Per persoană"}
-                    </button>
-                    <button
-                      type="button"
-                      className={`${styles.chip} ${form.pricingMode === "PER_GROUP" ? styles.chipActive : ""}`}
-                      onClick={() => onChange("pricingMode", "PER_GROUP")}
-                    >
-                      {lang === "en" ? "Per fixed group" : "Per grup fix"}
-                    </button>
+          <div className={styles.stepThreeLayout}>
+            <div className={styles.stepThreeMain}>
+              <div className={styles.grid}>
+                <div>
+                  <label>{t("create_experience_price")}</label>
+                  <input className="input" type="number" value={form.price} onChange={(e) => onChange("price", e.target.value)} />
+                </div>
+                <div>
+                  <label>{t("create_experience_cover_url")}</label>
+                  <input className="input" value={form.coverImageUrl} onChange={(e) => onChange("coverImageUrl", e.target.value)} />
+                </div>
+                {form.activityType === "GROUP" ? (
+                  <>
+                    <div className={styles.full}>
+                      <label>{lang === "en" ? "How is the group price charged?" : "Cum se aplică prețul pentru grup?"}</label>
+                      <div className={styles.chips}>
+                        <button
+                          type="button"
+                          className={`${styles.chip} ${form.pricingMode === "PER_PERSON" ? styles.chipActive : ""}`}
+                          onClick={() => onChange("pricingMode", "PER_PERSON")}
+                        >
+                          {lang === "en" ? "Per person" : "Per persoană"}
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.chip} ${form.pricingMode === "PER_GROUP" ? styles.chipActive : ""}`}
+                          onClick={() => onChange("pricingMode", "PER_GROUP")}
+                        >
+                          {lang === "en" ? "Per fixed group" : "Per grup fix"}
+                        </button>
+                      </div>
+                    </div>
+                    {form.pricingMode === "PER_GROUP" ? (
+                      <div>
+                        <label>{lang === "en" ? "Participants included in one group booking" : "Participanți incluși într-un booking de grup"}</label>
+                        <input
+                          className="input"
+                          type="number"
+                          min={1}
+                          max={Math.max(1, Number(form.maxParticipants) || 1)}
+                          value={form.groupPackageSize}
+                          onChange={(e) => onChange("groupPackageSize", e.target.value)}
+                        />
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+
+              <section className={styles.stepSection}>
+                <div className={styles.sectionHeading}>
+                  <div>
+                    <h3>{t("create_experience_cover_photo")}</h3>
+                    <p>{lang === "en" ? "Upload the image and adjust the framing before you publish." : "Încarcă imaginea și ajustează încadrarea înainte să publici."}</p>
                   </div>
                 </div>
-                {form.pricingMode === "PER_GROUP" ? (
-                  <div>
-                    <label>{lang === "en" ? "Participants included in one group booking" : "Participanți incluși într-un booking de grup"}</label>
+                <div className={styles.coverRow}>
+                  <label className={styles.coverPicker}>
                     <input
-                      className="input"
-                      type="number"
-                      min={1}
-                      max={Math.max(1, Number(form.maxParticipants) || 1)}
-                      value={form.groupPackageSize}
-                      onChange={(e) => onChange("groupPackageSize", e.target.value)}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) onPickCoverImage(file);
+                      }}
                     />
+                    <span>{t("create_experience_cover_upload")}</span>
+                  </label>
+                  <div className={styles.coverPreview}>
+                    {previewCoverImage ? (
+                      <img src={previewCoverImage} alt="cover" style={buildCoverObjectPosition(form)} />
+                    ) : (
+                      <div className={styles.coverPlaceholder}>{t("create_experience_cover_empty")}</div>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              <section className={styles.stepSection}>
+                <div className={styles.sectionHeading}>
+                  <div>
+                    <h3>{t("create_experience_upload_images")}</h3>
+                    <p>{lang === "en" ? "Add the rest of the gallery here." : "Adaugă aici restul galeriei de imagini."}</p>
+                  </div>
+                </div>
+                <div
+                  className={`${styles.dropzone} ${dragActive ? styles.dropzoneActive : ""}`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragActive(true);
+                  }}
+                  onDragLeave={() => setDragActive(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragActive(false);
+                    const files = Array.from(e.dataTransfer.files || []).filter((file) => file.type.startsWith("image/"));
+                    onPickImages(files);
+                  }}
+                >
+                  <input
+                    className={styles.file}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={(e) => onPickImages(Array.from(e.target.files || []))}
+                  />
+                  <div className={styles.dropzoneText}>
+                    <strong>{t("create_experience_drop_title")}</strong>
+                    <span>{t("create_experience_drop_sub")}</span>
+                  </div>
+                </div>
+                {uploading ? <div className="muted">{t("create_experience_uploading")}</div> : null}
+                {images.length ? (
+                  <div className={styles.imageGrid}>
+                    {images.map((img) => (
+                      <div key={img} className={styles.imageThumb}>
+                        <img src={img} alt="upload" />
+                      </div>
+                    ))}
                   </div>
                 ) : null}
-              </>
-            ) : null}
-            <div>
-              <label>{t("create_experience_cover_url")}</label>
-              <input className="input" value={form.coverImageUrl} onChange={(e) => onChange("coverImageUrl", e.target.value)} />
+              </section>
             </div>
-            <div className={styles.full}>
-              <label>{t("create_experience_cover_photo")}</label>
-              <div className={styles.coverRow}>
-                <label className={styles.coverPicker}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) onPickCoverImage(file);
-                    }}
-                  />
-                  <span>{t("create_experience_cover_upload")}</span>
-                </label>
-                <div className={styles.coverPreview}>
-                  {form.coverImageUrl || images[0] ? (
-                    <img src={form.coverImageUrl || images[0]} alt="cover" style={buildCoverObjectPosition(form)} />
+
+            <aside className={styles.stepThreeAside}>
+              <div className={styles.homeCardPreview}>
+                <div className={styles.homeCardPreviewLabel}>
+                  {lang === "en" ? "Homepage card preview" : "Preview card homepage"}
+                </div>
+                <div className={styles.homePreviewCard}>
+                  {previewCoverImage ? (
+                    <img
+                      src={previewCoverImage}
+                      alt={previewTitle}
+                      className={styles.homePreviewCover}
+                      style={buildCoverObjectPosition(form)}
+                    />
                   ) : (
-                    <div className={styles.coverPlaceholder}>{t("create_experience_cover_empty")}</div>
+                    <div className={styles.homePreviewCoverPlaceholder}>{t("create_experience_cover_empty")}</div>
                   )}
+                  <div className={styles.homePreviewBody}>
+                    <div className={styles.homePreviewTop}>
+                      <div>
+                        <div className={styles.homePreviewTitle}>{previewTitle}</div>
+                        <div className={styles.homePreviewLocation}>{previewLocation || "Romania"}</div>
+                        <div className={styles.homePreviewDescription}>{previewShortDescription}</div>
+                      </div>
+                      <div className={styles.homePreviewPrice}>{previewPrice}</div>
+                    </div>
+                    <div className={styles.homePreviewMeta}>
+                      <span className={styles.homePreviewPill}>🍃 {previewEnvironment}</span>
+                      <span className={styles.homePreviewPill}>👥 {previewSeats}</span>
+                      <span className={styles.homePreviewPill}>🗣 {previewLanguages}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
+
               <CoverFocusEditor
-                imageUrl={form.coverImageUrl || images[0] || ""}
+                imageUrl={previewCoverImage}
                 focusX={coverFocus.x}
                 focusY={coverFocus.y}
                 title={t("create_experience_cover_focus_title")}
@@ -1564,46 +1690,7 @@ function CreateExperienceContent() {
                 onChange={setCoverFocus}
                 onReset={resetCoverFocus}
               />
-            </div>
-            <div className={styles.full}>
-              <label>{t("create_experience_upload_images")}</label>
-              <div
-                className={`${styles.dropzone} ${dragActive ? styles.dropzoneActive : ""}`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragActive(true);
-                }}
-                onDragLeave={() => setDragActive(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragActive(false);
-                  const files = Array.from(e.dataTransfer.files || []).filter((file) => file.type.startsWith("image/"));
-                  onPickImages(files);
-                }}
-              >
-                <input
-                  className={styles.file}
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(e) => onPickImages(Array.from(e.target.files || []))}
-                />
-                <div className={styles.dropzoneText}>
-                  <strong>{t("create_experience_drop_title")}</strong>
-                  <span>{t("create_experience_drop_sub")}</span>
-                </div>
-              </div>
-              {uploading ? <div className="muted">{t("create_experience_uploading")}</div> : null}
-              {images.length ? (
-                <div className={styles.imageGrid}>
-                  {images.map((img) => (
-                    <div key={img} className={styles.imageThumb}>
-                      <img src={img} alt="upload" />
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </div>
+            </aside>
           </div>
         </div>
       ) : null}

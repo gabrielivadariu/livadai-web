@@ -809,8 +809,19 @@ function CreateExperienceContent() {
     };
     scrollTarget();
     const frame = window.requestAnimationFrame(scrollTarget);
-    return () => window.cancelAnimationFrame(frame);
+    const timeout = window.setTimeout(scrollTarget, 80);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timeout);
+    };
   }, [step]);
+
+  const moveToStep = (nextStep: number) => {
+    if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setStep(nextStep);
+  };
 
   const scheduleErrorText = useMemo(() => {
     if (!isEdit && form.creationMode === "LONG_TERM") {
@@ -990,7 +1001,7 @@ function CreateExperienceContent() {
       return;
     }
     setError("");
-    setStep(step + 1);
+    moveToStep(step + 1);
   };
 
   if (isEdit) {
@@ -1700,7 +1711,7 @@ function CreateExperienceContent() {
         {success ? <div className={styles.success}>{success}</div> : null}
         <div className={styles.footerActions}>
           {step > 1 ? (
-            <button className="button secondary" type="button" onClick={() => setStep(step - 1)}>
+            <button className="button secondary" type="button" onClick={() => moveToStep(step - 1)}>
               {t("create_experience_back")}
             </button>
           ) : null}

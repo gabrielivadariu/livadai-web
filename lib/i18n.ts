@@ -1054,11 +1054,12 @@ const messages: Record<Lang, Messages> = {
     create_experience_mode_long_term_hint:
       "Setezi un interval recurent (zile + ore), iar LIVADAI creează automat sloturile rezervabile.",
     create_experience_step_1_required_options:
-      "Completează descrierile și selectează manual tipul de creare, tipul de activitate și mediul.",
+      "Completează titlul și descrierile, apoi selectează manual tipul de creare, tipul de activitate, mediul și cel puțin o limbă.",
     create_experience_activity: "Tip activitate",
     create_experience_group_max: "Participanți max.",
     create_experience_environment: "Mediu",
     create_experience_languages: "Limbi vorbite",
+    create_experience_languages_required: "Selectează cel puțin o limbă vorbită.",
     create_experience_starts: "Începe la",
     create_experience_ends: "Se termină la",
     create_experience_duration: "Durată (minute)",
@@ -2220,11 +2221,12 @@ const messages: Record<Lang, Messages> = {
     create_experience_mode_long_term_hint:
       "Set recurring availability (days + hours), and LIVADAI auto-creates bookable slots.",
     create_experience_step_1_required_options:
-      "Complete all descriptions and manually choose creation type, activity type, and environment.",
+      "Complete the title and descriptions, then manually choose creation type, activity type, environment, and at least one language.",
     create_experience_activity: "Activity type",
     create_experience_group_max: "Max participants",
     create_experience_environment: "Environment",
     create_experience_languages: "Languages spoken",
+    create_experience_languages_required: "Select at least one spoken language.",
     create_experience_starts: "Starts at",
     create_experience_ends: "Ends at",
     create_experience_duration: "Duration (minutes)",

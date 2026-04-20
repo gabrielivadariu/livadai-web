@@ -10,6 +10,8 @@ import { getMessage, useT } from "@/lib/i18n";
 import styles from "./create-experience.module.css";
 
 const EXPERIENCE_CREATED_KEY = "livadai-experience-created";
+const TITLE_MAX_LENGTH = 80;
+const SHORT_DESCRIPTION_MAX_LENGTH = 50;
 
 const languages = [
   { code: "ro", label: "Română" },
@@ -181,6 +183,8 @@ const normalizePositiveInteger = (rawValue: string) => {
   if (!Number.isFinite(parsed) || parsed < 1) return 1;
   return parsed;
 };
+
+const clampText = (value: string, maxLength: number) => String(value || "").slice(0, maxLength);
 
 const weekdayOptions = [
   { key: 1, labelKey: "weekday_monday_short" },
@@ -737,6 +741,7 @@ function CreateExperienceContent() {
   const hasCreationMode = form.creationMode === "ONE_TIME" || form.creationMode === "LONG_TERM";
   const hasActivityType = form.activityType === "INDIVIDUAL" || form.activityType === "GROUP";
   const hasEnvironment = form.environment === "OUTDOOR" || form.environment === "INDOOR" || form.environment === "BOTH";
+  const hasLanguages = form.languages.length > 0;
 
   const canProceed = useMemo(() => {
     if (step === 1) {
@@ -746,7 +751,8 @@ function CreateExperienceContent() {
         !!form.longDescription.trim() &&
         hasCreationMode &&
         hasActivityType &&
-        hasEnvironment
+        hasEnvironment &&
+        hasLanguages
       );
     }
     if (step === 2) {
@@ -773,7 +779,12 @@ function CreateExperienceContent() {
       return packageSize <= maxParticipants;
     }
     return true;
-  }, [form, step, scheduleState, recurringState, isEdit, hasCreationMode, hasActivityType, hasEnvironment]);
+  }, [form, step, scheduleState, recurringState, isEdit, hasCreationMode, hasActivityType, hasEnvironment, hasLanguages]);
+
+  useEffect(() => {
+    if (step <= 1) return;
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [step]);
 
   const scheduleErrorText = useMemo(() => {
     if (!isEdit && form.creationMode === "LONG_TERM") {
@@ -849,7 +860,7 @@ function CreateExperienceContent() {
         setLoading(false);
         return;
       }
-      if (!hasCreationMode || !hasActivityType || !hasEnvironment) {
+      if (!hasCreationMode || !hasActivityType || !hasEnvironment || !hasLanguages) {
         setError(t("create_experience_step_1_required_options"));
         setLoading(false);
         return;
@@ -934,32 +945,16 @@ function CreateExperienceContent() {
   const editCoverImage = form.coverImageUrl || images[0] || "";
   const coverFocus = resolveCoverFocus(form);
   const goToWallet = () => router.push("/host/wallet");
-  const creationModeLabel =
-    form.creationMode === "ONE_TIME"
-      ? t("create_experience_mode_single")
-      : form.creationMode === "LONG_TERM"
-      ? t("create_experience_mode_long_term")
-      : t("create_experience_summary_empty");
-  const activityLabel =
-    form.activityType === "INDIVIDUAL"
-      ? t("activity_individual")
-      : form.activityType === "GROUP"
-      ? t("activity_group")
-      : t("create_experience_summary_empty");
-  const environmentLabel =
-    form.environment === "OUTDOOR"
-      ? t("environment_outdoor")
-      : form.environment === "INDOOR"
-      ? t("environment_indoor")
-      : form.environment === "BOTH"
-      ? t("environment_both")
-      : t("create_experience_summary_empty");
-  const languagesSummary = form.languages.length ? String(form.languages.length) : t("create_experience_summary_empty");
   const handleNextStep = () => {
     if (stripeGate.blocked) {
       setError(stripeGate.message);
       return;
     }
+    if (!canProceed) {
+      setError(step === 1 ? t("create_experience_step_1_required_options") : scheduleErrorText || "");
+      return;
+    }
+    setError("");
     setStep(step + 1);
   };
 
@@ -985,16 +980,23 @@ function CreateExperienceContent() {
               <div className={styles.grid}>
                 <div>
                   <label>{t("create_experience_label_title")}</label>
-                  <input className="input" value={form.title} onChange={(e) => onChange("title", e.target.value)} />
+                  <input
+                    className="input"
+                    value={form.title}
+                    maxLength={TITLE_MAX_LENGTH}
+                    onChange={(e) => onChange("title", clampText(e.target.value, TITLE_MAX_LENGTH))}
+                  />
+                  <div className={styles.fieldCounter}>{`${form.title.length}/${TITLE_MAX_LENGTH}`}</div>
                 </div>
                 <div>
                   <label>{t("create_experience_label_short")}</label>
                   <input
                     className="input"
                     value={form.shortDescription}
-                    maxLength={50}
-                    onChange={(e) => onChange("shortDescription", e.target.value.slice(0, 50))}
+                    maxLength={SHORT_DESCRIPTION_MAX_LENGTH}
+                    onChange={(e) => onChange("shortDescription", clampText(e.target.value, SHORT_DESCRIPTION_MAX_LENGTH))}
                   />
+                  <div className={styles.fieldCounter}>{`${form.shortDescription.length}/${SHORT_DESCRIPTION_MAX_LENGTH}`}</div>
                 </div>
                 <div className={styles.full}>
                   <label>{t("create_experience_label_long")}</label>
@@ -1143,8 +1145,7 @@ function CreateExperienceContent() {
         <div className="muted">{t("common_loading_experiences")}</div>
       ) : step === 1 ? (
         <div className={styles.card}>
-          <div className={styles.stepLayout}>
-            <div className={styles.stepMain}>
+          <div className={styles.stepMain}>
               <div className={styles.stepIntro}>
                 <div>
                   <h2>{t("create_experience_step_1")}</h2>
@@ -1162,11 +1163,23 @@ function CreateExperienceContent() {
                 <div className={styles.grid}>
                   <div className={styles.fieldGroup}>
                     <label>{t("create_experience_label_title")}</label>
-                    <input className="input" value={form.title} onChange={(e) => onChange("title", e.target.value)} />
+                    <input
+                      className="input"
+                      value={form.title}
+                      maxLength={TITLE_MAX_LENGTH}
+                      onChange={(e) => onChange("title", clampText(e.target.value, TITLE_MAX_LENGTH))}
+                    />
+                    <div className={styles.fieldCounter}>{`${form.title.length}/${TITLE_MAX_LENGTH}`}</div>
                   </div>
                   <div className={styles.fieldGroup}>
                     <label>{t("create_experience_label_short")}</label>
-                    <input className="input" value={form.shortDescription} onChange={(e) => onChange("shortDescription", e.target.value)} />
+                    <input
+                      className="input"
+                      value={form.shortDescription}
+                      maxLength={SHORT_DESCRIPTION_MAX_LENGTH}
+                      onChange={(e) => onChange("shortDescription", clampText(e.target.value, SHORT_DESCRIPTION_MAX_LENGTH))}
+                    />
+                    <div className={styles.fieldCounter}>{`${form.shortDescription.length}/${SHORT_DESCRIPTION_MAX_LENGTH}`}</div>
                   </div>
                   <div className={`${styles.fieldGroup} ${styles.full}`}>
                     <label>{t("create_experience_label_long")}</label>
@@ -1287,36 +1300,9 @@ function CreateExperienceContent() {
                       </button>
                     ))}
                   </div>
+                  {!hasLanguages ? <div className={styles.scheduleError}>{t("create_experience_languages_required")}</div> : null}
                 </div>
               </section>
-            </div>
-
-            <aside className={styles.stepAside}>
-              <div className={styles.summaryCard}>
-                <div className={styles.summaryTitle}>{t("create_experience_summary_title")}</div>
-                <p className={styles.summaryHint}>{t("create_experience_summary_hint")}</p>
-                <div className={styles.summaryList}>
-                  {!isEdit ? (
-                    <div className={styles.summaryRow}>
-                      <span>{t("create_experience_mode_label")}</span>
-                      <strong>{creationModeLabel}</strong>
-                    </div>
-                  ) : null}
-                  <div className={styles.summaryRow}>
-                    <span>{t("create_experience_activity")}</span>
-                    <strong>{activityLabel}</strong>
-                  </div>
-                  <div className={styles.summaryRow}>
-                    <span>{t("create_experience_environment")}</span>
-                    <strong>{environmentLabel}</strong>
-                  </div>
-                  <div className={styles.summaryRow}>
-                    <span>{t("create_experience_languages")}</span>
-                    <strong>{languagesSummary}</strong>
-                  </div>
-                </div>
-              </div>
-            </aside>
           </div>
         </div>
       ) : null}

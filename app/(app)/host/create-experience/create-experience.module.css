@@ -60,10 +60,10 @@
   background: #fff;
   border-radius: 24px;
   border: 1px solid #e6eff2;
-  padding: 24px;
+  padding: 28px;
   box-shadow: var(--shadow-soft);
   display: grid;
-  gap: 18px;
+  gap: 22px;
 }
 
 .lockedNotice {
@@ -153,7 +153,7 @@
 
 .stepMain {
   display: grid;
-  gap: 18px;
+  gap: 22px;
 }
 
 .stepThreeLayout {
@@ -180,7 +180,12 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 4px 2px 2px;
+  padding: 22px 24px;
+  border-radius: 24px;
+  border: 1px solid #e6eff2;
+  background:
+    radial-gradient(circle at top right, rgba(var(--brand-rgb), 0.12), transparent 42%),
+    linear-gradient(180deg, #ffffff 0%, #f9fcfd 100%);
 }
 
 .stepIntro h2 {
@@ -191,20 +196,23 @@
 }
 
 .stepIntro p {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   max-width: 620px;
   font-size: 15px;
-  line-height: 1.6;
+  line-height: 1.7;
   color: #64748b;
 }
 
 .stepSection {
   display: grid;
-  gap: 16px;
-  padding: 20px;
-  border-radius: 22px;
-  border: 1px solid #eaf0f3;
-  background: linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
+  gap: 18px;
+  padding: 24px;
+  border-radius: 24px;
+  border: 1px solid #e6eff2;
+  background:
+    radial-gradient(circle at top right, rgba(var(--brand-rgb), 0.06), transparent 44%),
+    linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.04);
 }
 
 .sectionHeading {
@@ -232,6 +240,7 @@
 .scheduleHint {
   color: var(--muted);
   font-size: 12px;
+  line-height: 1.55;
 }
 
 .scheduleError {
@@ -722,11 +731,24 @@
 .readonlyField {
   width: 100%;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: 16px;
   border: 1px solid #e2e8f0;
-  background: #f1f5f9;
+  background: linear-gradient(180deg, #f8fbfd 0%, #f1f5f9 100%);
   color: #475569;
   font-size: 14px;
+}
+
+.priceFieldShell {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.inlineHint {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 .imageThumb {

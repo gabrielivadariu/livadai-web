@@ -57,12 +57,18 @@ type Experience = {
   host?: { _id?: string; name?: string; displayName?: string; profilePhoto?: string; avatar?: string };
 };
 
-const URL_PATTERN = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
+const URL_PATTERN = /(https?:\/\/[^\s]+|www\.[^\s]+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s]*)?\b)/gi;
 
 const normalizeUrlHref = (value: string) => {
   const trimmed = value.trim();
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 };
+
+const normalizeUrlText = (value: string) =>
+  value
+    .trim()
+    .replace(/\s*\.\s*/g, ".")
+    .replace(/\s+/g, "");
 
 const trimUrlEdgePunctuation = (value: string) => {
   let url = value;
@@ -89,15 +95,16 @@ const renderParagraphWithLinks = (paragraph: string) => {
     }
 
     const { url, trailing } = trimUrlEdgePunctuation(rawMatch);
+    const normalizedUrl = normalizeUrlText(url);
     nodes.push(
       <a
-        key={`link-${index}-${url}`}
-        href={normalizeUrlHref(url)}
+        key={`link-${index}-${normalizedUrl}`}
+        href={normalizeUrlHref(normalizedUrl)}
         target="_blank"
         rel="noopener noreferrer nofollow"
         className={styles.storyLink}
       >
-        {url}
+        {normalizedUrl}
       </a>,
     );
 
@@ -648,10 +655,7 @@ function ExperienceDetailPageContent() {
     );
   }
 
-  const storyText = (item.description || item.shortDescription || t("experience_details_fallback"))
-    .replace(/\s+/g, " ")
-    .replace(/([,.;!?])(?=\S)/g, "$1 ")
-    .trim();
+  const storyText = (item.description || item.shortDescription || t("experience_details_fallback")).replace(/\s+/g, " ").trim();
   const storyParagraphs = (() => {
     if (!storyText) return [];
     const words = storyText.split(" ").filter(Boolean);

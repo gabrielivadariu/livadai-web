@@ -998,6 +998,7 @@ function CreateExperienceContent() {
   const previewEnvironment = formatPreviewEnvironment(form.environment, lang) || (lang === "en" ? "Environment" : "Mediu");
   const previewSeats = `${Math.max(0, Number(form.maxParticipants) || 0)}/${Math.max(1, Number(form.maxParticipants) || 1)}`;
   const previewPrice = formatPreviewPrice(form, lang);
+  const isFreePrice = !form.price || Number(form.price) <= 0;
   const handleNextStep = () => {
     if (stripeGate.blocked) {
       setError(stripeGate.message);
@@ -1240,6 +1241,11 @@ function CreateExperienceContent() {
                       className={styles.textarea}
                       value={form.longDescription}
                       onChange={(e) => onChange("longDescription", e.target.value)}
+                      placeholder={
+                        lang === "en"
+                          ? "You can also include links like https://example.com or www.example.com"
+                          : "Poți include și linkuri ca https://exemplu.ro sau www.exemplu.ro"
+                      }
                     />
                   </div>
                 </div>
@@ -1362,176 +1368,242 @@ function CreateExperienceContent() {
 
       {step === 2 ? (
         <div className={styles.card}>
-          <h2>{t("create_experience_step_2")}</h2>
-          <div className={styles.grid}>
+          <div className={styles.stepMain}>
+            <div className={styles.stepIntro}>
+              <div>
+                <h2>{t("create_experience_step_2")}</h2>
+                <p>
+                  {lang === "en"
+                    ? "Set the timing first, then the exact place where people will arrive."
+                    : "Setează mai întâi programul, apoi locul exact în care vor ajunge oamenii."}
+                </p>
+              </div>
+            </div>
+
             {!isEdit && form.creationMode === "LONG_TERM" ? (
               <>
-                <div>
-                  <label>{t("create_experience_recurrence_period_start")}</label>
-                  <input
-                    className="input"
-                    type="date"
-                    value={form.recurrenceStartDate}
-                    onChange={(e) => onChange("recurrenceStartDate", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label>{t("create_experience_recurrence_period_end")}</label>
-                  <input
-                    className="input"
-                    type="date"
-                    value={form.recurrenceEndDate}
-                    onChange={(e) => onChange("recurrenceEndDate", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label>{t("create_experience_recurrence_daily_start")}</label>
-                  <input
-                    className="input"
-                    type="time"
-                    value={form.recurrenceDailyStart}
-                    onChange={(e) => onChange("recurrenceDailyStart", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label>{t("create_experience_recurrence_daily_end")}</label>
-                  <input
-                    className="input"
-                    type="time"
-                    value={form.recurrenceDailyEnd}
-                    onChange={(e) => onChange("recurrenceDailyEnd", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label>{t("create_experience_recurrence_slot_minutes")}</label>
-                  <input
-                    className="input"
-                    type="number"
-                    min={15}
-                    step={5}
-                    value={form.recurrenceSlotMinutes}
-                    onChange={(e) => onChange("recurrenceSlotMinutes", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label>{t("create_experience_recurrence_generated_slots")}</label>
-                  <div className={styles.readonlyField}>{recurringOccurrences.length}</div>
-                </div>
-                <div className={styles.full}>
-                  <label>{t("create_experience_recurrence_days_label")}</label>
-                  <div className={styles.chips}>
-                    {weekdayOptions.map((day) => (
-                      <button
-                        key={day.key}
-                        type="button"
-                        className={`${styles.chip} ${form.recurrenceWeekdays.includes(day.key) ? styles.chipActive : ""}`}
-                        onClick={() => toggleWeekday(day.key)}
-                      >
-                        {t(day.labelKey)}
-                      </button>
-                    ))}
+                <section className={styles.stepSection}>
+                  <div className={styles.sectionHeading}>
+                    <div>
+                      <h3>{lang === "en" ? "Recurring schedule" : "Program recurent"}</h3>
+                      <p>
+                        {lang === "en"
+                          ? "Choose the period, the daily interval, and the slot size generated for booking."
+                          : "Alege perioada, intervalul zilnic și durata sloturilor generate pentru booking."}
+                      </p>
+                    </div>
+                  </div>
+                  <div className={styles.grid}>
+                    <div>
+                      <label>{t("create_experience_recurrence_period_start")}</label>
+                      <input
+                        className="input"
+                        type="date"
+                        value={form.recurrenceStartDate}
+                        onChange={(e) => onChange("recurrenceStartDate", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label>{t("create_experience_recurrence_period_end")}</label>
+                      <input
+                        className="input"
+                        type="date"
+                        value={form.recurrenceEndDate}
+                        onChange={(e) => onChange("recurrenceEndDate", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label>{t("create_experience_recurrence_daily_start")}</label>
+                      <input
+                        className="input"
+                        type="time"
+                        value={form.recurrenceDailyStart}
+                        onChange={(e) => onChange("recurrenceDailyStart", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label>{t("create_experience_recurrence_daily_end")}</label>
+                      <input
+                        className="input"
+                        type="time"
+                        value={form.recurrenceDailyEnd}
+                        onChange={(e) => onChange("recurrenceDailyEnd", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label>{t("create_experience_recurrence_slot_minutes")}</label>
+                      <input
+                        className="input"
+                        type="number"
+                        min={15}
+                        step={5}
+                        value={form.recurrenceSlotMinutes}
+                        onChange={(e) => onChange("recurrenceSlotMinutes", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label>{t("create_experience_recurrence_generated_slots")}</label>
+                      <div className={styles.readonlyField}>{recurringOccurrences.length}</div>
+                    </div>
+                  </div>
+                </section>
+
+                <section className={styles.stepSection}>
+                  <div className={styles.sectionHeading}>
+                    <div>
+                      <h3>{lang === "en" ? "Days & exceptions" : "Zile și excepții"}</h3>
+                      <p>
+                        {lang === "en"
+                          ? "Select the active weekdays and block the dates when you are not available."
+                          : "Selectează zilele active și blochează datele în care nu ești disponibil."}
+                      </p>
+                    </div>
+                  </div>
+                  <div className={styles.grid}>
+                    <div className={styles.full}>
+                      <label>{t("create_experience_recurrence_days_label")}</label>
+                      <div className={styles.chips}>
+                        {weekdayOptions.map((day) => (
+                          <button
+                            key={day.key}
+                            type="button"
+                            className={`${styles.chip} ${form.recurrenceWeekdays.includes(day.key) ? styles.chipActive : ""}`}
+                            onClick={() => toggleWeekday(day.key)}
+                          >
+                            {t(day.labelKey)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className={styles.full}>
+                      <label>{t("create_experience_recurrence_excluded_label")}</label>
+                      <div className={styles.excludedRow}>
+                        <input
+                          className="input"
+                          type="date"
+                          value={recurrenceExcludedInput}
+                          onChange={(e) => setRecurrenceExcludedInput(e.target.value)}
+                        />
+                        <button type="button" className={`${styles.chip} ${styles.excludedAddBtn}`} onClick={addExcludedDate}>
+                          {t("create_experience_recurrence_excluded_add")}
+                        </button>
+                      </div>
+                      {form.recurrenceExcludedDates.length ? (
+                        <div className={styles.excludedList}>
+                          {form.recurrenceExcludedDates.map((value) => (
+                            <button
+                              key={value}
+                              type="button"
+                              className={`${styles.chip} ${styles.excludedChip}`}
+                              onClick={() => removeExcludedDate(value)}
+                            >
+                              {value} ×
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className={styles.scheduleHint}>{t("create_experience_recurrence_excluded_empty")}</div>
+                      )}
+                    </div>
+                    <div className={styles.full}>
+                      <div className={styles.scheduleHint}>{t("create_experience_recurrence_hint")}</div>
+                      <div className={styles.scheduleHint}>{t("create_experience_recurrence_excluded_hint")}</div>
+                      {scheduleErrorText ? <div className={styles.scheduleError}>{scheduleErrorText}</div> : null}
+                    </div>
+                  </div>
+                </section>
+              </>
+            ) : (
+              <section className={styles.stepSection}>
+                <div className={styles.sectionHeading}>
+                  <div>
+                    <h3>{lang === "en" ? "Schedule" : "Program"}</h3>
+                    <p>
+                      {lang === "en"
+                        ? "Set the exact start and end of the experience so people know when to arrive."
+                        : "Setează clar începutul și sfârșitul experienței, ca oamenii să știe exact când ajung."}
+                    </p>
                   </div>
                 </div>
-                <div className={styles.full}>
-                  <label>{t("create_experience_recurrence_excluded_label")}</label>
-                  <div className={styles.excludedRow}>
+                <div className={styles.grid}>
+                  <div>
+                    <label>{t("create_experience_starts")}</label>
                     <input
                       className="input"
-                      type="date"
-                      value={recurrenceExcludedInput}
-                      onChange={(e) => setRecurrenceExcludedInput(e.target.value)}
+                      type="datetime-local"
+                      value={form.startsAt}
+                      onChange={(e) => onChange("startsAt", e.target.value)}
                     />
-                    <button type="button" className={`${styles.chip} ${styles.excludedAddBtn}`} onClick={addExcludedDate}>
-                      {t("create_experience_recurrence_excluded_add")}
-                    </button>
                   </div>
-                  {form.recurrenceExcludedDates.length ? (
-                    <div className={styles.excludedList}>
-                      {form.recurrenceExcludedDates.map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          className={`${styles.chip} ${styles.excludedChip}`}
-                          onClick={() => removeExcludedDate(value)}
-                        >
-                          {value} ×
+                  <div>
+                    <label>{t("create_experience_ends")}</label>
+                    <input
+                      className="input"
+                      type="datetime-local"
+                      value={form.endsAt}
+                      onChange={(e) => onChange("endsAt", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label>{t("create_experience_duration")}</label>
+                    <div className={styles.readonlyField}>{formatDuration(form.durationMinutes) || "—"}</div>
+                  </div>
+                  <div className={styles.full}>
+                    <div className={styles.scheduleHint}>{t("create_experience_schedule_hint")}</div>
+                    {scheduleErrorText ? <div className={styles.scheduleError}>{scheduleErrorText}</div> : null}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            <section className={styles.stepSection}>
+              <div className={styles.sectionHeading}>
+                <div>
+                  <h3>{lang === "en" ? "Location details" : "Detalii locație"}</h3>
+                  <p>
+                    {lang === "en"
+                      ? "Search the address first, then fine-tune the exact city and street details."
+                      : "Caută mai întâi adresa, apoi ajustează exact orașul și detaliile străzii."}
+                  </p>
+                </div>
+              </div>
+              <div className={styles.grid}>
+                <div className={styles.full}>
+                  <label>{t("create_experience_search_address")}</label>
+                  <input
+                    className="input"
+                    value={addressQuery}
+                    onChange={(e) => setAddressQuery(e.target.value)}
+                    placeholder={t("create_experience_address_placeholder")}
+                  />
+                  {suggestions.length ? (
+                    <div className={styles.suggestions}>
+                      {suggestions.map((s, idx) => (
+                        <button key={idx} type="button" onClick={() => selectSuggestion(s)}>
+                          {s.label || s.city || s.country}
                         </button>
                       ))}
                     </div>
-                  ) : (
-                    <div className={styles.scheduleHint}>{t("create_experience_recurrence_excluded_empty")}</div>
-                  )}
-                </div>
-                <div className={styles.full}>
-                  <div className={styles.scheduleHint}>{t("create_experience_recurrence_hint")}</div>
-                  <div className={styles.scheduleHint}>{t("create_experience_recurrence_excluded_hint")}</div>
-                  {scheduleErrorText ? <div className={styles.scheduleError}>{scheduleErrorText}</div> : null}
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <label>{t("create_experience_starts")}</label>
-                  <input
-                    className="input"
-                    type="datetime-local"
-                    value={form.startsAt}
-                    onChange={(e) => onChange("startsAt", e.target.value)}
-                  />
+                  ) : null}
                 </div>
                 <div>
-                  <label>{t("create_experience_ends")}</label>
-                  <input
-                    className="input"
-                    type="datetime-local"
-                    value={form.endsAt}
-                    onChange={(e) => onChange("endsAt", e.target.value)}
-                  />
+                  <label>{t("create_experience_city")}</label>
+                  <input className="input" value={form.city} onChange={(e) => onChange("city", e.target.value)} />
                 </div>
                 <div>
-                  <label>{t("create_experience_duration")}</label>
-                  <div className={styles.readonlyField}>{formatDuration(form.durationMinutes) || "—"}</div>
+                  <label>{t("create_experience_street")}</label>
+                  <input className="input" value={form.street} onChange={(e) => onChange("street", e.target.value)} />
                 </div>
-                <div className={styles.full}>
-                  <div className={styles.scheduleHint}>{t("create_experience_schedule_hint")}</div>
-                  {scheduleErrorText ? <div className={styles.scheduleError}>{scheduleErrorText}</div> : null}
+                <div>
+                  <label>{t("create_experience_number")}</label>
+                  <input className="input" value={form.streetNumber} onChange={(e) => onChange("streetNumber", e.target.value)} />
                 </div>
-              </>
-            )}
-            <div className={styles.full}>
-              <label>{t("create_experience_search_address")}</label>
-              <input
-                className="input"
-                value={addressQuery}
-                onChange={(e) => setAddressQuery(e.target.value)}
-                placeholder={t("create_experience_address_placeholder")}
-              />
-              {suggestions.length ? (
-                <div className={styles.suggestions}>
-                  {suggestions.map((s, idx) => (
-                    <button key={idx} type="button" onClick={() => selectSuggestion(s)}>
-                      {s.label || s.city || s.country}
-                    </button>
-                  ))}
+                <div>
+                  <label>{t("create_experience_postal")}</label>
+                  <input className="input" value={form.postalCode} onChange={(e) => onChange("postalCode", e.target.value)} />
                 </div>
-              ) : null}
-            </div>
-            <div>
-              <label>{t("create_experience_city")}</label>
-              <input className="input" value={form.city} onChange={(e) => onChange("city", e.target.value)} />
-            </div>
-            <div>
-              <label>{t("create_experience_street")}</label>
-              <input className="input" value={form.street} onChange={(e) => onChange("street", e.target.value)} />
-            </div>
-            <div>
-              <label>{t("create_experience_number")}</label>
-              <input className="input" value={form.streetNumber} onChange={(e) => onChange("streetNumber", e.target.value)} />
-            </div>
-            <div>
-              <label>{t("create_experience_postal")}</label>
-              <input className="input" value={form.postalCode} onChange={(e) => onChange("postalCode", e.target.value)} />
-            </div>
+              </div>
+            </section>
           </div>
         </div>
       ) : null}
@@ -1541,17 +1613,65 @@ function CreateExperienceContent() {
           <h2>{t("create_experience_step_3")}</h2>
           <div className={styles.stepThreeLayout}>
             <div className={styles.stepThreeMain}>
-              <div className={styles.grid}>
-                <div>
-                  <label>{t("create_experience_price")}</label>
-                  <input className="input" type="number" value={form.price} onChange={(e) => onChange("price", e.target.value)} />
+              <section className={styles.stepSection}>
+                <div className={styles.sectionHeading}>
+                  <div>
+                    <h3>{lang === "en" ? "Pricing setup" : "Setare preț"}</h3>
+                    <p>
+                      {lang === "en"
+                        ? "Choose whether the experience is free or paid, then fine-tune how the amount is charged."
+                        : "Alege dacă experiența este gratuită sau cu plată, apoi ajustează cum se percepe suma."}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <label>{t("create_experience_cover_url")}</label>
-                  <input className="input" value={form.coverImageUrl} onChange={(e) => onChange("coverImageUrl", e.target.value)} />
+                <div className={styles.grid}>
+                  <div className={styles.full}>
+                    <label>{lang === "en" ? "Access type" : "Tip acces"}</label>
+                    <div className={styles.chips}>
+                      <button
+                        type="button"
+                        className={`${styles.chip} ${isFreePrice ? styles.chipActive : ""}`}
+                        onClick={() => onChange("price", "0")}
+                      >
+                        {lang === "en" ? "Free" : "Gratis"}
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.chip} ${!isFreePrice ? styles.chipActive : ""}`}
+                        onClick={() => onChange("price", form.price && Number(form.price) > 0 ? form.price : "50")}
+                      >
+                        {lang === "en" ? "Paid" : "Cu preț"}
+                      </button>
+                    </div>
+                  </div>
+                  <div className={styles.priceFieldShell}>
+                    <label>{t("create_experience_price")}</label>
+                    <input
+                      className="input"
+                      type="number"
+                      min={0}
+                      disabled={isFreePrice}
+                      value={isFreePrice ? "" : form.price}
+                      placeholder={isFreePrice ? (lang === "en" ? "Free experience" : "Experiență gratuită") : "0"}
+                      onChange={(e) => onChange("price", e.target.value)}
+                    />
+                    <p className={styles.inlineHint}>
+                      {isFreePrice
+                        ? lang === "en"
+                          ? "The homepage card and booking flow will show this experience as free."
+                          : "Cardul din homepage și flow-ul de booking vor arăta această experiență ca gratuită."
+                        : lang === "en"
+                          ? "Set the participant price in RON."
+                          : "Setează prețul per participant în RON."}
+                    </p>
+                  </div>
+                  <div>
+                    <label>{t("create_experience_cover_url")}</label>
+                    <input className="input" value={form.coverImageUrl} onChange={(e) => onChange("coverImageUrl", e.target.value)} />
+                  </div>
                 </div>
                 {form.activityType === "GROUP" ? (
-                  <>
+                  <div className={styles.grid}>
                     <div className={styles.full}>
                       <label>{lang === "en" ? "How is the group price charged?" : "Cum se aplică prețul pentru grup?"}</label>
                       <div className={styles.chips}>
@@ -1584,9 +1704,9 @@ function CreateExperienceContent() {
                         />
                       </div>
                     ) : null}
-                  </>
+                  </div>
                 ) : null}
-              </div>
+              </section>
 
               <section className={styles.stepSection}>
                 <div className={styles.sectionHeading}>

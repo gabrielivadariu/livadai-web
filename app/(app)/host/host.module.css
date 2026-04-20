@@ -15,6 +15,10 @@
   box-shadow: var(--shadow-soft);
 }
 
+.headerCopy {
+  max-width: 620px;
+}
+
 .kicker {
   font-size: 12px;
   letter-spacing: 2px;

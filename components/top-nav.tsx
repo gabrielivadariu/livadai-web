@@ -195,6 +195,16 @@ export default function TopNav({ pathname }: Props) {
 
       {user ? (
         <div className="nav-profile">
+          {isHost ? (
+            <Link
+              href="/host/create-experience"
+              className="nav-create-quick"
+              aria-label={t("host_menu_create")}
+              title={t("host_menu_create")}
+            >
+              <span aria-hidden="true">+</span>
+            </Link>
+          ) : null}
           <details className="profile-menu" ref={profileMenuRef}>
             <summary className="profile-summary">
               <span className="profile-dot" />

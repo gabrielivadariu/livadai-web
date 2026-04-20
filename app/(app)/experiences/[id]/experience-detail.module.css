@@ -454,6 +454,19 @@
   text-wrap: pretty;
 }
 
+.storyLink {
+  color: var(--brand);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+.storyLink:hover {
+  color: #0891b2;
+}
+
 .detailsAside {
   display: grid;
   gap: 14px;

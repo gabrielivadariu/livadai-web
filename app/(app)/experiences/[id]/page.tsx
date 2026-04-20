@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -54,6 +55,64 @@ type Experience = {
   seriesAvailableSlots?: number;
   seriesNextStartsAt?: string | null;
   host?: { _id?: string; name?: string; displayName?: string; profilePhoto?: string; avatar?: string };
+};
+
+const URL_PATTERN = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
+
+const normalizeUrlHref = (value: string) => {
+  const trimmed = value.trim();
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+};
+
+const trimUrlEdgePunctuation = (value: string) => {
+  let url = value;
+  let trailing = "";
+  while (/[),.;!?]$/.test(url)) {
+    trailing = `${url.slice(-1)}${trailing}`;
+    url = url.slice(0, -1);
+  }
+  return { url, trailing };
+};
+
+const renderParagraphWithLinks = (paragraph: string) => {
+  const matches = Array.from(paragraph.matchAll(URL_PATTERN));
+  if (!matches.length) return paragraph;
+
+  const nodes: ReactNode[] = [];
+  let lastIndex = 0;
+
+  matches.forEach((match, index) => {
+    const rawMatch = match[0];
+    const matchIndex = match.index ?? 0;
+    if (matchIndex > lastIndex) {
+      nodes.push(<span key={`text-${index}-${lastIndex}`}>{paragraph.slice(lastIndex, matchIndex)}</span>);
+    }
+
+    const { url, trailing } = trimUrlEdgePunctuation(rawMatch);
+    nodes.push(
+      <a
+        key={`link-${index}-${url}`}
+        href={normalizeUrlHref(url)}
+        target="_blank"
+        rel="noopener noreferrer nofollow"
+        className={styles.storyLink}
+      >
+        {url}
+      </a>,
+    );
+
+    if (trailing) {
+      nodes.push(<span key={`trail-${index}-${matchIndex}`}>{trailing}</span>);
+    }
+
+    lastIndex = matchIndex + rawMatch.length;
+  });
+
+  if (lastIndex < paragraph.length) {
+    nodes.push(<span key={`text-final-${lastIndex}`}>{paragraph.slice(lastIndex)}</span>);
+  }
+
+  return nodes;
 };
 
 const formatDuration = (minutes: number | undefined, lang: string) => {
@@ -1015,7 +1074,7 @@ function ExperienceDetailPageContent() {
               </div>
               <div className={styles.storyBody}>
                 {storyParagraphs.map((paragraph, index) => (
-                  <p key={`${index}-${paragraph.slice(0, 24)}`}>{paragraph}</p>
+                  <p key={`${index}-${paragraph.slice(0, 24)}`}>{renderParagraphWithLinks(paragraph)}</p>
                 ))}
               </div>
             </section>

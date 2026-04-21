@@ -105,6 +105,13 @@
   font-size: 12px;
 }
 
+.txStatus {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
 .txAmount {
   font-weight: 800;
 }

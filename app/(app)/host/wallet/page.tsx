@@ -28,6 +28,7 @@ type Transaction = {
   amount?: number;
   currency?: string;
   type?: string;
+  status?: string;
   createdAt?: string;
 };
 
@@ -169,6 +170,19 @@ export default function HostWalletPage() {
       ? t("host_wallet_status_available").replace("{{amount}}", stripeAvailable)
       : t("host_wallet_status_empty");
   const showError = error && !(payoutsEnabled && /Stripe account not ready/i.test(error));
+  const getTransactionLabel = (tx: Transaction) => {
+    if (tx.type === "payout") return t("host_wallet_tx_payout");
+    if (tx.type === "payment") return t("host_wallet_tx_payment");
+    return tx.type || t("host_wallet_tx_generic");
+  };
+  const getTransactionStatusLabel = (tx: Transaction) => {
+    const normalized = String(tx.status || "").trim().toUpperCase();
+    if (!normalized) return "";
+    if (normalized === "TRANSFERRED") return t("host_wallet_tx_status_transferred");
+    if (normalized === "CONFIRMED") return t("host_wallet_tx_status_confirmed");
+    if (normalized === "REFUNDED") return t("host_wallet_tx_status_refunded");
+    return normalized;
+  };
 
   return (
     <div className={styles.page}>
@@ -187,10 +201,12 @@ export default function HostWalletPage() {
           <>
             <div className={styles.info}>
               <div className={styles.infoTitle}>{statusMessage}</div>
+              <div className={styles.infoText}>{t("host_wallet_status_explainer")}</div>
             </div>
 
             <div className={styles.info}>
               <div className={styles.infoTitle}>{t("host_wallet_internal_title")}</div>
+              <div className={styles.infoText}>{t("host_wallet_internal_title_note")}</div>
             </div>
             <div className={styles.balanceGrid}>
               <div className={styles.balanceCard}>
@@ -210,6 +226,7 @@ export default function HostWalletPage() {
 
             <div className={styles.info}>
               <div className={styles.infoTitle}>{t("host_wallet_stripe_title")}</div>
+              <div className={styles.infoText}>{t("host_wallet_stripe_title_note")}</div>
               <div className={styles.balanceGrid}>
                 <div className={styles.balanceCard}>
                   <div className={styles.balanceLabel}>{t("host_wallet_stripe_available")}</div>
@@ -235,10 +252,6 @@ export default function HostWalletPage() {
               <div className={styles.infoText}>{t("host_wallet_collect_disabled")}</div>
             ) : null}
 
-            <div className={styles.info}>
-              <div className={styles.infoTitle}>{statusMessage}</div>
-            </div>
-
             <div className={styles.section}>
               <h2>{t("host_wallet_transactions")}</h2>
               {chargesEnabled && transactions.length ? (
@@ -246,7 +259,10 @@ export default function HostWalletPage() {
                   {transactions.map((tx) => (
                     <div key={tx._id} className={styles.txRow}>
                       <div>
-                        <div className={styles.txType}>{tx.type || "payment"}</div>
+                        <div className={styles.txType}>{getTransactionLabel(tx)}</div>
+                        {getTransactionStatusLabel(tx) ? (
+                          <div className={styles.txStatus}>{getTransactionStatusLabel(tx)}</div>
+                        ) : null}
                         <div className={styles.txDate}>
                           {tx.createdAt ? new Date(tx.createdAt).toLocaleString(lang === "en" ? "en-US" : "ro-RO") : ""}
                         </div>

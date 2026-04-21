@@ -975,12 +975,18 @@ const messages: Record<Lang, Messages> = {
     host_wallet_collect: "Colectează bani",
     host_wallet_status_empty: "Momentan nu ai bani disponibili pentru retragere",
     host_wallet_status_available: "Ai {{amount}} RON disponibili pentru retragere",
+    host_wallet_status_explainer:
+      "Banii intră mai întâi în balanța LIVADAI. Ei apar în Stripe doar după ce experiența este confirmată, au trecut 72h și nu există blocaje active.",
     host_wallet_internal_title: "Sold estimat LIVADAI",
+    host_wallet_internal_title_note:
+      "Aici vezi sumele încă ținute în platformă și când devin eligibile pentru release.",
     host_wallet_internal_note:
-      "Estimare bazată pe experiențe confirmate. Devine eligibil la 72h.",
+      "Estimare bazată pe experiențe confirmate. Devine eligibilă la 72h după confirmarea participării, dacă nu există report sau dispute.",
     host_wallet_stripe_title: "Bani reali (Stripe)",
+    host_wallet_stripe_title_note:
+      "Aici vezi doar fondurile deja transferate de LIVADAI către contul tău Stripe.",
     host_wallet_stripe_note:
-      "Aceștia sunt banii reali care pot fi retrași în contul tău bancar.",
+      "Aceștia sunt banii reali care pot fi retrași în contul tău bancar, în funcție de disponibilitatea Stripe.",
     host_wallet_collect_disabled: "Nu ai încă fonduri disponibile în Stripe.",
     host_wallet_stripe_available: "Disponibil Stripe",
     host_wallet_stripe_pending: "În așteptare Stripe",
@@ -999,6 +1005,12 @@ const messages: Record<Lang, Messages> = {
     host_wallet_connect_error: "Nu s-a putut iniția conectarea Stripe.",
     host_wallet_onboarding_error: "Nu s-a putut deschide onboarding-ul Stripe.",
     host_wallet_dashboard_error: "Nu s-a putut deschide dashboard-ul Stripe.",
+    host_wallet_tx_payment: "Plată booking",
+    host_wallet_tx_payout: "Transfer către Stripe",
+    host_wallet_tx_generic: "Tranzacție",
+    host_wallet_tx_status_confirmed: "Confirmată",
+    host_wallet_tx_status_transferred: "Transferată",
+    host_wallet_tx_status_refunded: "Refundată",
     host_profile_title: "Profilul meu de gazdă",
     host_profile_subtitle: "Completează profilul și crește încrederea exploratorilor.",
     host_profile_display_name: "Nume afișat",
@@ -2142,12 +2154,18 @@ const messages: Record<Lang, Messages> = {
     host_wallet_collect: "Withdraw funds",
     host_wallet_status_empty: "You don’t have funds available for withdrawal yet",
     host_wallet_status_available: "You have {{amount}} RON available for withdrawal",
+    host_wallet_status_explainer:
+      "Funds first stay in the LIVADAI balance. They appear in Stripe only after the experience is confirmed, 72h have passed, and no active blocks exist.",
     host_wallet_internal_title: "LIVADAI estimated balance",
+    host_wallet_internal_title_note:
+      "This shows amounts still held inside the platform and when they become eligible for release.",
     host_wallet_internal_note:
-      "Estimate based on confirmed experiences. Becomes eligible after 72h.",
+      "Estimated balance based on confirmed experiences. It becomes eligible 72h after attendance confirmation if there is no report or dispute.",
     host_wallet_stripe_title: "Real money (Stripe)",
+    host_wallet_stripe_title_note:
+      "This shows only funds already transferred by LIVADAI to your Stripe account.",
     host_wallet_stripe_note:
-      "These are the real funds that can be withdrawn to your bank account.",
+      "These are the real funds that can be withdrawn to your bank account depending on Stripe availability.",
     host_wallet_collect_disabled: "No funds available in Stripe yet.",
     host_wallet_stripe_available: "Stripe available",
     host_wallet_stripe_pending: "Stripe pending",
@@ -2166,6 +2184,12 @@ const messages: Record<Lang, Messages> = {
     host_wallet_connect_error: "Could not start Stripe connection.",
     host_wallet_onboarding_error: "Could not open Stripe onboarding.",
     host_wallet_dashboard_error: "Could not open Stripe dashboard.",
+    host_wallet_tx_payment: "Booking payment",
+    host_wallet_tx_payout: "Transfer to Stripe",
+    host_wallet_tx_generic: "Transaction",
+    host_wallet_tx_status_confirmed: "Confirmed",
+    host_wallet_tx_status_transferred: "Transferred",
+    host_wallet_tx_status_refunded: "Refunded",
     host_profile_title: "My host profile",
     host_profile_subtitle: "Complete your profile and build explorer trust.",
     host_profile_display_name: "Display name",

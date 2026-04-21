@@ -301,6 +301,7 @@ function CreateExperienceContent() {
   const [dragActive, setDragActive] = useState(false);
   const [recurrenceExcludedInput, setRecurrenceExcludedInput] = useState("");
   const pageTopRef = useRef<HTMLDivElement | null>(null);
+  const pendingStepRef = useRef<number | null>(null);
   const editId = searchParams?.get("edit");
   const isEdit = Boolean(editId);
   const [stripeGate, setStripeGate] = useState<StripeGateState>({
@@ -801,22 +802,33 @@ function CreateExperienceContent() {
     return true;
   }, [form, step, scheduleState, recurringState, isEdit, hasCreationMode, hasActivityType, hasEnvironment, hasLanguages]);
 
+  const scrollWizardToTop = () => {
+    if (typeof window === "undefined") return;
+    const target = pageTopRef.current;
+    if (!target) {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      return;
+    }
+
+    target.focus({ preventScroll: true });
+    const absoluteTop = target.getBoundingClientRect().top + window.scrollY - 24;
+    const top = Math.max(0, absoluteTop);
+    window.scrollTo({ top, left: 0, behavior: "auto" });
+    document.documentElement.scrollTop = top;
+    document.body.scrollTop = top;
+  };
+
   useLayoutEffect(() => {
     if (step <= 1) return;
-    const scrollTarget = () => {
-      const target = pageTopRef.current;
-      if (!target) return;
-      target.focus({ preventScroll: true });
-      target.scrollIntoView({ block: "start", inline: "nearest", behavior: "auto" });
-      const absoluteTop = target.getBoundingClientRect().top + window.scrollY - 24;
-      const top = Math.max(0, absoluteTop);
-      window.scrollTo({ top, left: 0, behavior: "auto" });
-      document.documentElement.scrollTop = top;
-      document.body.scrollTop = top;
-    };
-    scrollTarget();
-    const frame = window.requestAnimationFrame(scrollTarget);
-    const timeout = window.setTimeout(scrollTarget, 120);
+    if (pendingStepRef.current !== null && pendingStepRef.current !== step) return;
+    scrollWizardToTop();
+    const frame = window.requestAnimationFrame(scrollWizardToTop);
+    const timeout = window.setTimeout(() => {
+      scrollWizardToTop();
+      pendingStepRef.current = null;
+    }, 180);
     return () => {
       window.cancelAnimationFrame(frame);
       window.clearTimeout(timeout);
@@ -827,6 +839,8 @@ function CreateExperienceContent() {
     if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
+    pendingStepRef.current = nextStep;
+    scrollWizardToTop();
     setStep(nextStep);
   };
 

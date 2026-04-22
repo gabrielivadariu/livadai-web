@@ -7,6 +7,28 @@ import { useAuth } from "@/context/auth-context";
 import { useLang } from "@/context/lang-context";
 import styles from "./admin.module.css";
 
+const ADMIN_EXPERIENCE_LANGUAGES = [
+  { code: "ro", label: "Română" },
+  { code: "en", label: "English" },
+  { code: "fr", label: "Français" },
+  { code: "de", label: "Deutsch" },
+  { code: "es", label: "Español" },
+  { code: "it", label: "Italiano" },
+  { code: "pt", label: "Português" },
+  { code: "nl", label: "Nederlands" },
+  { code: "pl", label: "Polski" },
+  { code: "hu", label: "Magyar" },
+  { code: "el", label: "Ελληνικά" },
+  { code: "tr", label: "Türkçe" },
+  { code: "ru", label: "Русский" },
+  { code: "uk", label: "Українська" },
+] as const;
+
+const ADMIN_EXPERIENCE_ACTIVITY_TYPES = ["INDIVIDUAL", "GROUP"] as const;
+const ADMIN_EXPERIENCE_ENVIRONMENTS = ["INDOOR", "OUTDOOR", "BOTH"] as const;
+const ADMIN_EXPERIENCE_PRICING_MODES = ["PER_PERSON", "PER_GROUP"] as const;
+const ADMIN_EXPERIENCE_STATUSES = ["draft", "published", "cancelled", "DISABLED", "NO_BOOKINGS"] as const;
+
 type AdminDashboard = {
   generatedAt?: string;
   users?: {
@@ -241,10 +263,13 @@ type AdminExperienceDetails = AdminExperience & {
   shortDescription?: string;
   description?: string;
   category?: string;
+  pricingMode?: string;
+  groupPackageSize?: number | null;
   durationMinutes?: number;
   scheduleType?: string;
   currencyCode?: string;
   activityType?: string;
+  environment?: string;
   languages?: string[];
   address?: string;
   street?: string;
@@ -252,6 +277,12 @@ type AdminExperienceDetails = AdminExperience & {
   countryCode?: string;
   latitude?: number | null;
   longitude?: number | null;
+  mainImageUrl?: string;
+  coverImageUrl?: string;
+  coverFocusX?: number;
+  coverFocusY?: number;
+  images?: string[];
+  videos?: string[];
   reminderHostSent?: boolean;
   mediaCleanedAt?: string | null;
   host?: (AdminExperience["host"] & {
@@ -310,6 +341,40 @@ type AdminExperienceSeriesDisableResponse = {
   alreadyDisabledCount?: number;
   updatedExperienceIds?: string[];
   alreadyDisabledIds?: string[];
+};
+
+type AdminExperienceEditDraft = {
+  title: string;
+  shortDescription: string;
+  description: string;
+  category: string;
+  status: string;
+  isActive: boolean;
+  price: string;
+  pricingMode: string;
+  groupPackageSize: string;
+  durationMinutes: string;
+  currencyCode: string;
+  activityType: string;
+  maxParticipants: string;
+  environment: string;
+  startsAt: string;
+  endsAt: string;
+  country: string;
+  countryCode: string;
+  city: string;
+  street: string;
+  streetNumber: string;
+  address: string;
+  latitude: string;
+  longitude: string;
+  languages: string[];
+  mainImageUrl: string;
+  coverImageUrl: string;
+  coverFocusX: string;
+  coverFocusY: string;
+  imagesText: string;
+  videosText: string;
 };
 
 type AdminAuditLogItem = {
@@ -664,6 +729,59 @@ const formatDate = (value?: string | null) => {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(d);
+};
+
+const toDateTimeLocalValue = (value?: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+};
+
+const fromLines = (value?: string[] | null) => (Array.isArray(value) ? value.filter(Boolean).join("\n") : "");
+
+const toLines = (value: string) =>
+  value
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const createExperienceEditDraft = (experience?: AdminExperienceDetails | null): AdminExperienceEditDraft | null => {
+  if (!experience) return null;
+  return {
+    title: experience.title || "",
+    shortDescription: experience.shortDescription || "",
+    description: experience.description || "",
+    category: experience.category || "",
+    status: experience.status || "draft",
+    isActive: experience.isActive !== false,
+    price: String(Number(experience.price || 0)),
+    pricingMode: experience.pricingMode || "PER_PERSON",
+    groupPackageSize: experience.groupPackageSize ? String(Number(experience.groupPackageSize)) : "",
+    durationMinutes: experience.durationMinutes ? String(Number(experience.durationMinutes)) : "",
+    currencyCode: (experience.currencyCode || "RON").toUpperCase(),
+    activityType: experience.activityType || "GROUP",
+    maxParticipants: experience.maxParticipants ? String(Number(experience.maxParticipants)) : "",
+    environment: experience.environment || "OUTDOOR",
+    startsAt: toDateTimeLocalValue(experience.startsAt),
+    endsAt: toDateTimeLocalValue(experience.endsAt),
+    country: experience.country || "",
+    countryCode: experience.countryCode || "",
+    city: experience.city || "",
+    street: experience.street || "",
+    streetNumber: experience.streetNumber || "",
+    address: experience.address || "",
+    latitude: experience.latitude === null || experience.latitude === undefined ? "" : String(experience.latitude),
+    longitude: experience.longitude === null || experience.longitude === undefined ? "" : String(experience.longitude),
+    languages: Array.isArray(experience.languages) ? experience.languages : [],
+    mainImageUrl: experience.mainImageUrl || "",
+    coverImageUrl: experience.coverImageUrl || "",
+    coverFocusX: String(Number(experience.coverFocusX ?? 50)),
+    coverFocusY: String(Number(experience.coverFocusY ?? 50)),
+    imagesText: fromLines(experience.images),
+    videosText: fromLines(experience.videos),
+  };
 };
 
 const formatJson = (value: unknown) => {
@@ -1387,6 +1505,8 @@ export default function AdminPage() {
   const [experienceDetails, setExperienceDetails] = useState<AdminExperienceDetailsResponse | null>(null);
   const [experienceDetailsLoading, setExperienceDetailsLoading] = useState(false);
   const [experienceDetailsError, setExperienceDetailsError] = useState("");
+  const [experienceEditDraft, setExperienceEditDraft] = useState<AdminExperienceEditDraft | null>(null);
+  const [experienceEditSaving, setExperienceEditSaving] = useState(false);
 
   const [bookings, setBookings] = useState<AdminBookingsResponse | null>(null);
   const [bookingsLoading, setBookingsLoading] = useState(false);
@@ -1626,6 +1746,10 @@ export default function AdminPage() {
       setExperienceDetailsLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    setExperienceEditDraft(createExperienceEditDraft(experienceDetails?.experience || null));
+  }, [experienceDetails?.experience]);
 
   const loadBookings = useCallback(
     async (page = 1) => {
@@ -1880,6 +2004,77 @@ export default function AdminPage() {
     },
     [canWriteExperiences, loadExperiences, loadDashboard, loadExperienceDetails, loadRecentAdminActions, experiences?.page, selectedExperienceId]
   );
+
+  const updateExperienceDraft = useCallback(
+    <K extends keyof AdminExperienceEditDraft>(key: K, value: AdminExperienceEditDraft[K]) => {
+      setExperienceEditDraft((current) => (current ? { ...current, [key]: value } : current));
+    },
+    []
+  );
+
+  const toggleExperienceLanguage = useCallback((language: string) => {
+    setExperienceEditDraft((current) => {
+      if (!current) return current;
+      const exists = current.languages.includes(language);
+      return {
+        ...current,
+        languages: exists ? current.languages.filter((item) => item !== language) : [...current.languages, language],
+      };
+    });
+  }, []);
+
+  const saveExperienceDraft = useCallback(async () => {
+    if (!experienceEditDraft || !experienceDetails?.experience?.id) return;
+    setExperienceEditSaving(true);
+    setActionError("");
+    try {
+      const payload: Record<string, unknown> = {
+        title: experienceEditDraft.title.trim(),
+        shortDescription: experienceEditDraft.shortDescription.trim(),
+        description: experienceEditDraft.description.trim(),
+        category: experienceEditDraft.category.trim(),
+        status: experienceEditDraft.status,
+        isActive: experienceEditDraft.isActive,
+        price: Number(experienceEditDraft.price || 0),
+        pricingMode: experienceEditDraft.pricingMode,
+        durationMinutes: Number(experienceEditDraft.durationMinutes || 0),
+        currencyCode: experienceEditDraft.currencyCode.trim().toUpperCase(),
+        activityType: experienceEditDraft.activityType,
+        maxParticipants: Number(experienceEditDraft.maxParticipants || 0),
+        environment: experienceEditDraft.environment,
+        startsAt: experienceEditDraft.startsAt ? new Date(experienceEditDraft.startsAt).toISOString() : undefined,
+        endsAt: experienceEditDraft.endsAt ? new Date(experienceEditDraft.endsAt).toISOString() : undefined,
+        country: experienceEditDraft.country.trim(),
+        countryCode: experienceEditDraft.countryCode.trim().toUpperCase(),
+        city: experienceEditDraft.city.trim(),
+        street: experienceEditDraft.street.trim(),
+        streetNumber: experienceEditDraft.streetNumber.trim(),
+        address: experienceEditDraft.address.trim(),
+        languages: experienceEditDraft.languages,
+        mainImageUrl: experienceEditDraft.mainImageUrl.trim(),
+        coverImageUrl: experienceEditDraft.coverImageUrl.trim(),
+        images: toLines(experienceEditDraft.imagesText),
+        videos: toLines(experienceEditDraft.videosText),
+        coverFocusX: Number(experienceEditDraft.coverFocusX || 50),
+        coverFocusY: Number(experienceEditDraft.coverFocusY || 50),
+      };
+
+      if (experienceEditDraft.pricingMode === "PER_GROUP" && experienceEditDraft.groupPackageSize.trim()) {
+        payload.groupPackageSize = Number(experienceEditDraft.groupPackageSize);
+      } else if (experienceEditDraft.pricingMode === "PER_GROUP") {
+        payload.groupPackageSize = null;
+      }
+
+      if (experienceEditDraft.latitude.trim()) payload.latitude = Number(experienceEditDraft.latitude);
+      if (experienceEditDraft.longitude.trim()) payload.longitude = Number(experienceEditDraft.longitude);
+
+      await patchExperience(experienceDetails.experience.id, payload, "Experiența a fost salvată din admin.");
+    } catch (err) {
+      setActionError((err as Error)?.message || "Nu am putut salva experiența.");
+    } finally {
+      setExperienceEditSaving(false);
+    }
+  }, [experienceEditDraft, experienceDetails?.experience?.id, patchExperience]);
 
   const deleteExperienceByAdmin = useCallback(
     async (experience: AdminExperienceDetails, bookingsTotal = 0) => {
@@ -3273,6 +3468,211 @@ export default function AdminPage() {
                   <div><strong>Locație</strong><span>{[experienceDetails.experience.city, experienceDetails.experience.country].filter(Boolean).join(", ") || "—"}</span></div>
                   <div><strong>Adresă</strong><span>{experienceDetails.experience.address || "—"}</span></div>
                 </div>
+
+                {experienceEditDraft ? (
+                  <div className={styles.detailsSection}>
+                    <div className={styles.sectionTitleRow}>
+                      <div className={styles.panelTitle}>{tx("Editare completă", "Full edit")}</div>
+                      <span className="muted">{tx("Adminul poate corecta toate câmpurile importante.", "Admins can correct all major fields.")}</span>
+                    </div>
+
+                    <div className={styles.editSection}>
+                      <div className={styles.editSectionTitle}>{tx("Bază", "Basics")}</div>
+                      <div className={styles.editGrid}>
+                        <label className={styles.editField}>
+                          <span>{tx("Titlu", "Title")}</span>
+                          <input className="input" value={experienceEditDraft.title} maxLength={120} onChange={(e) => updateExperienceDraft("title", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("Descriere scurtă", "Short description")}</span>
+                          <input className="input" value={experienceEditDraft.shortDescription} maxLength={50} onChange={(e) => updateExperienceDraft("shortDescription", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("Categorie", "Category")}</span>
+                          <input className="input" value={experienceEditDraft.category} onChange={(e) => updateExperienceDraft("category", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("Status", "Status")}</span>
+                          <select className={styles.select} value={experienceEditDraft.status} onChange={(e) => updateExperienceDraft("status", e.target.value)}>
+                            {ADMIN_EXPERIENCE_STATUSES.map((option) => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className={styles.editToggle}>
+                          <input type="checkbox" checked={experienceEditDraft.isActive} onChange={(e) => updateExperienceDraft("isActive", e.target.checked)} />
+                          <span>{tx("Experiență activă", "Experience active")}</span>
+                        </label>
+                      </div>
+                      <label className={styles.editField}>
+                        <span>{tx("Descriere completă", "Full description")}</span>
+                        <textarea className={styles.editTextarea} value={experienceEditDraft.description} rows={6} onChange={(e) => updateExperienceDraft("description", e.target.value)} />
+                      </label>
+                    </div>
+
+                    <div className={styles.editSection}>
+                      <div className={styles.editSectionTitle}>{tx("Pricing și format", "Pricing and format")}</div>
+                      <div className={styles.editGrid}>
+                        <label className={styles.editField}>
+                          <span>{tx("Preț", "Price")}</span>
+                          <input className="input" type="number" min="0" step="1" value={experienceEditDraft.price} onChange={(e) => updateExperienceDraft("price", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("Monedă", "Currency")}</span>
+                          <input className="input" value={experienceEditDraft.currencyCode} maxLength={8} onChange={(e) => updateExperienceDraft("currencyCode", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("Pricing mode", "Pricing mode")}</span>
+                          <select className={styles.select} value={experienceEditDraft.pricingMode} onChange={(e) => updateExperienceDraft("pricingMode", e.target.value)}>
+                            {ADMIN_EXPERIENCE_PRICING_MODES.map((option) => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("Group size", "Group size")}</span>
+                          <input className="input" type="number" min="1" step="1" value={experienceEditDraft.groupPackageSize} onChange={(e) => updateExperienceDraft("groupPackageSize", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("Tip activitate", "Activity type")}</span>
+                          <select className={styles.select} value={experienceEditDraft.activityType} onChange={(e) => updateExperienceDraft("activityType", e.target.value)}>
+                            {ADMIN_EXPERIENCE_ACTIVITY_TYPES.map((option) => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("Mediu", "Environment")}</span>
+                          <select className={styles.select} value={experienceEditDraft.environment} onChange={(e) => updateExperienceDraft("environment", e.target.value)}>
+                            {ADMIN_EXPERIENCE_ENVIRONMENTS.map((option) => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("Participanți max", "Max participants")}</span>
+                          <input className="input" type="number" min="1" step="1" value={experienceEditDraft.maxParticipants} onChange={(e) => updateExperienceDraft("maxParticipants", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("Durată (minute)", "Duration (minutes)")}</span>
+                          <input className="input" type="number" min="1" step="1" value={experienceEditDraft.durationMinutes} onChange={(e) => updateExperienceDraft("durationMinutes", e.target.value)} />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className={styles.editSection}>
+                      <div className={styles.editSectionTitle}>{tx("Program și locație", "Schedule and location")}</div>
+                      <div className={styles.editGrid}>
+                        <label className={styles.editField}>
+                          <span>{tx("Start", "Start")}</span>
+                          <input className="input" type="datetime-local" value={experienceEditDraft.startsAt} onChange={(e) => updateExperienceDraft("startsAt", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("End", "End")}</span>
+                          <input className="input" type="datetime-local" value={experienceEditDraft.endsAt} onChange={(e) => updateExperienceDraft("endsAt", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("Țară", "Country")}</span>
+                          <input className="input" value={experienceEditDraft.country} onChange={(e) => updateExperienceDraft("country", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("Country code", "Country code")}</span>
+                          <input className="input" value={experienceEditDraft.countryCode} onChange={(e) => updateExperienceDraft("countryCode", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("Oraș", "City")}</span>
+                          <input className="input" value={experienceEditDraft.city} onChange={(e) => updateExperienceDraft("city", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("Stradă", "Street")}</span>
+                          <input className="input" value={experienceEditDraft.street} onChange={(e) => updateExperienceDraft("street", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("Număr", "Street number")}</span>
+                          <input className="input" value={experienceEditDraft.streetNumber} onChange={(e) => updateExperienceDraft("streetNumber", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("Adresă completă", "Full address")}</span>
+                          <input className="input" value={experienceEditDraft.address} onChange={(e) => updateExperienceDraft("address", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>Latitude</span>
+                          <input className="input" value={experienceEditDraft.latitude} onChange={(e) => updateExperienceDraft("latitude", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>Longitude</span>
+                          <input className="input" value={experienceEditDraft.longitude} onChange={(e) => updateExperienceDraft("longitude", e.target.value)} />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className={styles.editSection}>
+                      <div className={styles.editSectionTitle}>{tx("Limbi", "Languages")}</div>
+                      <div className={styles.languageChips}>
+                        {ADMIN_EXPERIENCE_LANGUAGES.map((language) => {
+                          const active = experienceEditDraft.languages.includes(language.label);
+                          return (
+                            <button
+                              key={language.code}
+                              type="button"
+                              className={active ? styles.languageChipActive : styles.languageChip}
+                              onClick={() => toggleExperienceLanguage(language.label)}
+                            >
+                              {language.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className={styles.editSection}>
+                      <div className={styles.editSectionTitle}>{tx("Media și cover", "Media and cover")}</div>
+                      <div className={styles.editGrid}>
+                        <label className={styles.editField}>
+                          <span>Main image URL</span>
+                          <input className="input" value={experienceEditDraft.mainImageUrl} onChange={(e) => updateExperienceDraft("mainImageUrl", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>Cover image URL</span>
+                          <input className="input" value={experienceEditDraft.coverImageUrl} onChange={(e) => updateExperienceDraft("coverImageUrl", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>Cover focus X</span>
+                          <input className="input" type="number" min="0" max="100" step="1" value={experienceEditDraft.coverFocusX} onChange={(e) => updateExperienceDraft("coverFocusX", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>Cover focus Y</span>
+                          <input className="input" type="number" min="0" max="100" step="1" value={experienceEditDraft.coverFocusY} onChange={(e) => updateExperienceDraft("coverFocusY", e.target.value)} />
+                        </label>
+                      </div>
+                      <div className={styles.editGrid}>
+                        <label className={styles.editField}>
+                          <span>{tx("Image URLs (una pe rând)", "Image URLs (one per line)")}</span>
+                          <textarea className={styles.editTextarea} rows={5} value={experienceEditDraft.imagesText} onChange={(e) => updateExperienceDraft("imagesText", e.target.value)} />
+                        </label>
+                        <label className={styles.editField}>
+                          <span>{tx("Video URLs (una pe rând)", "Video URLs (one per line)")}</span>
+                          <textarea className={styles.editTextarea} rows={5} value={experienceEditDraft.videosText} onChange={(e) => updateExperienceDraft("videosText", e.target.value)} />
+                        </label>
+                      </div>
+                      <div className="muted">{tx("Poți corecta coverul, focusul și listele de media direct din admin.", "You can correct cover, focus, and media lists directly from admin.")}</div>
+                    </div>
+
+                    <div className={styles.inlineActionRow}>
+                      <button type="button" className="button" disabled={!canWriteExperiences || experienceEditSaving} onClick={() => void saveExperienceDraft()}>
+                        {experienceEditSaving ? tx("Se salvează...", "Saving...") : tx("Salvează toate modificările", "Save all changes")}
+                      </button>
+                      <button
+                        type="button"
+                        className="button secondary"
+                        disabled={experienceEditSaving}
+                        onClick={() => setExperienceEditDraft(createExperienceEditDraft(experienceDetails.experience))}
+                      >
+                        {tx("Resetează formularul", "Reset form")}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className={styles.detailsSection}>
                   <div className={styles.panelTitle}>Admin actions</div>

@@ -861,6 +861,106 @@
   gap: 8px;
 }
 
+.editSection {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px;
+  background: linear-gradient(180deg, rgba(0, 188, 212, 0.04), rgba(255, 255, 255, 0.98));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.editSectionTitle {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0891b2;
+}
+
+.editGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.editField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.editField > span {
+  font-size: 12px;
+  font-weight: 800;
+  color: #334155;
+}
+
+.editTextarea {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 11px 12px;
+  resize: vertical;
+  min-height: 120px;
+  font-size: 14px;
+  color: #0f172a;
+  background: #fff;
+}
+
+.editToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.editToggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: #00bcd4;
+}
+
+.languageChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.languageChip,
+.languageChipActive {
+  width: auto;
+  min-width: 0;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid #dbe3ea;
+  background: #fff;
+  color: #475569;
+}
+
+.languageChipActive {
+  border-color: rgba(0, 188, 212, 0.45);
+  background: rgba(0, 188, 212, 0.1);
+  color: #0f172a;
+}
+
+.inlineActionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inlineActionRow > button {
+  width: auto;
+  min-width: 180px;
+}
+
 .stackSm {
   display: flex;
   flex-direction: column;
@@ -1037,6 +1137,10 @@
     grid-template-columns: 1fr;
   }
 
+  .editGrid {
+    grid-template-columns: 1fr;
+  }
+
   .mediaGrid {
     grid-template-columns: 1fr;
   }
@@ -1077,7 +1181,10 @@
   }
 
   .buttonRow > button,
-  .linkButton {
+  .linkButton,
+  .inlineActionRow > button,
+  .languageChip,
+  .languageChipActive {
     width: 100%;
     min-width: 0;
   }

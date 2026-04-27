@@ -631,6 +631,12 @@ type AdminPaymentsHealthResponse = {
     hostComplianceNameMismatches?: number;
     hostComplianceMissingBankReference?: number;
     hostComplianceNoSnapshot?: number;
+    livadaiFeesMinor?: number;
+    hostHoldMinor?: number;
+    hostTransferredMinor?: number;
+    hostReversedMinor?: number;
+    holdPaymentsCount?: number;
+    transferredPaymentsCount?: number;
   };
   refundFailedBookings?: AdminPaymentsHealthBooking[];
   stripeOnboardingIncompleteHosts?: AdminPaymentsHostIssue[];
@@ -4276,6 +4282,44 @@ export default function AdminPage() {
               value={paymentsHealth?.summary?.hostComplianceMissingBankReference}
               hint={`No snapshot: ${numberFmt(paymentsHealth?.summary?.hostComplianceNoSnapshot)}`}
             />
+          </div>
+
+          <div className={styles.overviewGrid}>
+            <div className={`${styles.card} ${styles.inboxCard}`}>
+              <div className={styles.panelTitle}>{tx("Separare bani platformă / host", "Platform vs host money split")}</div>
+              <div className={styles.detailGrid}>
+                <div>
+                  <strong>{tx("Fee LIVADAI", "LIVADAI fees")}</strong>
+                  <span>{formatMoney(paymentsHealth?.summary?.livadaiFeesMinor, "RON")}</span>
+                </div>
+                <div>
+                  <strong>{tx("Hold pentru host", "Host funds on hold")}</strong>
+                  <span>{formatMoney(paymentsHealth?.summary?.hostHoldMinor, "RON")}</span>
+                </div>
+                <div>
+                  <strong>{tx("Transferat la host", "Transferred to host")}</strong>
+                  <span>{formatMoney(paymentsHealth?.summary?.hostTransferredMinor, "RON")}</span>
+                </div>
+                <div>
+                  <strong>{tx("Transfer reversed", "Transfer reversed")}</strong>
+                  <span>{formatMoney(paymentsHealth?.summary?.hostReversedMinor, "RON")}</span>
+                </div>
+              </div>
+              <div className="muted">
+                {tx(
+                  "Fee LIVADAI = partea platformei. Hold pentru host = bani confirmați încă ținuți la platformă. Transferat la host = sume deja eliberate după regula de 72h.",
+                  "LIVADAI fees = platform share. Host funds on hold = confirmed money still retained by the platform. Transferred to host = funds already released after the 72h rule."
+                )}
+              </div>
+              <div className={styles.badgeRow}>
+                <span className={styles.badge}>
+                  {tx("Plăți în hold", "Payments on hold")}: {numberFmt(paymentsHealth?.summary?.holdPaymentsCount)}
+                </span>
+                <span className={styles.badge}>
+                  {tx("Plăți transferate", "Transferred payments")}: {numberFmt(paymentsHealth?.summary?.transferredPaymentsCount)}
+                </span>
+              </div>
+            </div>
           </div>
 
           <div className={styles.overviewGrid}>

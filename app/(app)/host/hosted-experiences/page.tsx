@@ -36,6 +36,35 @@ type HostExperience = {
   currencyCode?: string;
 };
 
+type SeriesSlot = {
+  _id: string;
+  title?: string;
+  startsAt?: string;
+  endsAt?: string;
+  bookedSpots?: number;
+  availableSpots?: number;
+  maxParticipants?: number;
+  status?: string;
+  canManage?: boolean;
+  canDelete?: boolean;
+  canCancel?: boolean;
+  hasBookings?: boolean;
+};
+
+type SeriesDay = {
+  dateKey: string;
+  startsAt?: string;
+  totalSlots: number;
+  bookedParticipants: number;
+  slots: SeriesSlot[];
+};
+
+type SeriesSlotsResponse = {
+  groupId: string;
+  totalSlots: number;
+  days: SeriesDay[];
+};
+
 export default function HostedExperiencesPage() {
   const { user } = useAuth();
   const { lang } = useLang();
@@ -44,6 +73,9 @@ export default function HostedExperiencesPage() {
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [openSeriesId, setOpenSeriesId] = useState<string | null>(null);
+  const [seriesSlots, setSeriesSlots] = useState<Record<string, SeriesSlotsResponse | undefined>>({});
+  const [seriesLoadingId, setSeriesLoadingId] = useState<string | null>(null);
 
   const loadActivities = async () => {
     if (!user?._id) {
@@ -114,6 +146,29 @@ export default function HostedExperiencesPage() {
     return parsed.toLocaleString(lang === "en" ? "en-US" : "ro-RO");
   };
 
+  const formatDateLabel = (value?: string) => {
+    if (!value) return "—";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleDateString(lang === "en" ? "en-US" : "ro-RO", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const formatTimeRange = (start?: string, end?: string) => {
+    const startDate = start ? new Date(start) : null;
+    const endDate = end ? new Date(end) : null;
+    if (!startDate || Number.isNaN(startDate.getTime())) return "—";
+    const locale = lang === "en" ? "en-US" : "ro-RO";
+    const startLabel = startDate.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+    if (!endDate || Number.isNaN(endDate.getTime())) return startLabel;
+    const endLabel = endDate.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+    return `${startLabel} – ${endLabel}`;
+  };
+
   const getParticipantsCount = (exp: HostExperience) => {
     if (typeof exp.bookedSpots === "number") return exp.bookedSpots;
     if (typeof exp.maxParticipants === "number" && typeof exp.availableSpots === "number") {
@@ -165,6 +220,97 @@ export default function HostedExperiencesPage() {
           .replace("{skipped}", String(response?.skippedWithBookings || 0)),
       });
       await loadActivities();
+    } catch (err) {
+      setFeedback({
+        type: "error",
+        text: (err as Error)?.message || t("hosted_experiences_delete_error"),
+      });
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const loadSeriesSlots = async (groupId: string) => {
+    setSeriesLoadingId(groupId);
+    try {
+      const response = await apiGet<SeriesSlotsResponse>(`/experiences/group/${groupId}/slots`);
+      setSeriesSlots((current) => ({ ...current, [groupId]: response }));
+      setOpenSeriesId(groupId);
+    } catch (err) {
+      setFeedback({
+        type: "error",
+        text: (err as Error)?.message || t("hosted_experiences_slots_load_error"),
+      });
+    } finally {
+      setSeriesLoadingId(null);
+    }
+  };
+
+  const toggleSeries = async (groupId: string) => {
+    if (openSeriesId === groupId) {
+      setOpenSeriesId(null);
+      return;
+    }
+    if (seriesSlots[groupId]) {
+      setOpenSeriesId(groupId);
+      return;
+    }
+    await loadSeriesSlots(groupId);
+  };
+
+  const onSeriesSlotAction = async (groupId: string, slot: SeriesSlot) => {
+    const hasBookings = !!slot.hasBookings || Number(slot.bookedSpots || 0) > 0;
+    const ok = window.confirm(
+      hasBookings ? t("hosted_experiences_cancel_confirm_experience") : t("hosted_experiences_delete_confirm_slot")
+    );
+    if (!ok) return;
+    const busyKey = `series-slot:${slot._id}`;
+    setBusyAction(busyKey);
+    setFeedback(null);
+    try {
+      const response = await apiPost<{ action?: "deleted" | "cancelled" }>(
+        `/experiences/group/${groupId}/slots/${slot._id}/process`,
+        {}
+      );
+      setFeedback({
+        type: "success",
+        text:
+          response?.action === "cancelled"
+            ? t("hosted_experiences_cancel_experience_success")
+            : t("hosted_experiences_delete_slot_success"),
+      });
+      await Promise.all([loadActivities(), loadSeriesSlots(groupId)]);
+    } catch (err) {
+      setFeedback({
+        type: "error",
+        text: (err as Error)?.message || t("hosted_experiences_delete_error"),
+      });
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const onSeriesDayAction = async (groupId: string, day: SeriesDay) => {
+    const hasBookings = Number(day.bookedParticipants || 0) > 0;
+    const ok = window.confirm(
+      hasBookings ? t("hosted_experiences_cancel_confirm_day") : t("hosted_experiences_delete_confirm_day")
+    );
+    if (!ok) return;
+    const busyKey = `series-day:${groupId}:${day.dateKey}`;
+    setBusyAction(busyKey);
+    setFeedback(null);
+    try {
+      const response = await apiPost<{ deletedCount?: number; cancelledCount?: number }>(
+        `/experiences/group/${groupId}/days/${day.dateKey}/process`,
+        {}
+      );
+      setFeedback({
+        type: "success",
+        text: t("hosted_experiences_day_process_success")
+          .replace("{deleted}", String(response?.deletedCount || 0))
+          .replace("{cancelled}", String(response?.cancelledCount || 0)),
+      });
+      await Promise.all([loadActivities(), loadSeriesSlots(groupId)]);
     } catch (err) {
       setFeedback({
         type: "error",
@@ -233,16 +379,32 @@ export default function HostedExperiencesPage() {
                       </div>
                       <div className={styles.actions}>
                         {isSeries ? (
-                          <button
-                            type="button"
-                            className={styles.actionBtn}
-                            disabled={seriesActionBusy || !seriesKey}
-                            onClick={() => {
-                              if (seriesKey) onDeleteSeries(seriesKey);
-                            }}
-                          >
-                            {seriesActionBusy ? t("common_loading") : t("hosted_experiences_delete_series")}
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              className={styles.actionBtn}
+                              disabled={seriesLoadingId === seriesKey || !seriesKey}
+                              onClick={() => {
+                                if (seriesKey) toggleSeries(seriesKey);
+                              }}
+                            >
+                              {seriesLoadingId === seriesKey
+                                ? t("common_loading")
+                                : openSeriesId === seriesKey
+                                  ? t("hosted_experiences_hide_slots")
+                                  : t("hosted_experiences_view_slots")}
+                            </button>
+                            <button
+                              type="button"
+                              className={`${styles.actionBtn} ${styles.deleteBtn}`}
+                              disabled={seriesActionBusy || !seriesKey}
+                              onClick={() => {
+                                if (seriesKey) onDeleteSeries(seriesKey);
+                              }}
+                            >
+                              {seriesActionBusy ? t("common_loading") : t("hosted_experiences_delete_series")}
+                            </button>
+                          </>
                         ) : (
                           <>
                             {canEdit ? (
@@ -267,6 +429,76 @@ export default function HostedExperiencesPage() {
                           </>
                         )}
                       </div>
+                      {isSeries && seriesKey && openSeriesId === seriesKey ? (
+                        <div className={styles.seriesPanel}>
+                          {seriesSlots[seriesKey]?.days?.length ? (
+                            <div className={styles.seriesDays}>
+                              {seriesSlots[seriesKey]?.days.map((day) => {
+                                const dayBusy = busyAction === `series-day:${seriesKey}:${day.dateKey}`;
+                                const hasBookings = Number(day.bookedParticipants || 0) > 0;
+                                return (
+                                  <div key={day.dateKey} className={styles.dayCard}>
+                                    <div className={styles.dayHeader}>
+                                      <div>
+                                        <div className={styles.dayTitle}>{formatDateLabel(day.startsAt)}</div>
+                                        <div className={styles.dayMeta}>
+                                          {t("hosted_experiences_slots_count").replace("{count}", String(day.totalSlots))} ·{" "}
+                                          {t("hosted_experiences_participants_label")} {day.bookedParticipants}
+                                        </div>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        className={`${styles.actionBtn} ${hasBookings ? styles.warnBtn : styles.deleteBtn}`}
+                                        disabled={dayBusy}
+                                        onClick={() => onSeriesDayAction(seriesKey, day)}
+                                      >
+                                        {dayBusy
+                                          ? t("common_loading")
+                                          : hasBookings
+                                            ? t("hosted_experiences_cancel_day")
+                                            : t("hosted_experiences_delete_day")}
+                                      </button>
+                                    </div>
+                                    <div className={styles.slotList}>
+                                      {day.slots.map((slot) => {
+                                        const slotBusy = busyAction === `series-slot:${slot._id}`;
+                                        const slotHasBookings = !!slot.hasBookings || Number(slot.bookedSpots || 0) > 0;
+                                        return (
+                                          <div key={slot._id} className={styles.slotRow}>
+                                            <div className={styles.slotMain}>
+                                              <div className={styles.slotTime}>{formatTimeRange(slot.startsAt, slot.endsAt)}</div>
+                                              <div className={styles.slotMeta}>
+                                                {t("hosted_experiences_participants_label")} {Number(slot.bookedSpots || 0)} ·{" "}
+                                                {lang === "en"
+                                                  ? `available ${Number(slot.availableSpots || 0)}`
+                                                  : `disponibile ${Number(slot.availableSpots || 0)}`}
+                                              </div>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              className={`${styles.actionBtn} ${slotHasBookings ? styles.warnBtn : styles.deleteBtn}`}
+                                              disabled={slotBusy || !slot.canManage}
+                                              onClick={() => onSeriesSlotAction(seriesKey, slot)}
+                                            >
+                                              {slotBusy
+                                                ? t("common_loading")
+                                                : slotHasBookings
+                                                  ? t("hosted_experiences_cancel_slot")
+                                                  : t("hosted_experiences_delete_slot")}
+                                            </button>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className={styles.emptyInline}>{t("hosted_experiences_slots_empty")}</div>
+                          )}
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}

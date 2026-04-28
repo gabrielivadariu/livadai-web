@@ -87,6 +87,12 @@
   color: #b91c1c;
 }
 
+.warnBtn {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
 .success {
   border: 1px solid #bbf7d0;
   background: #f0fdf4;
@@ -119,4 +125,89 @@
   border-radius: 14px;
   padding: 14px;
   border: 1px dashed #e6eff2;
+}
+
+.seriesPanel {
+  margin-top: 10px;
+  border-top: 1px solid #e6eff2;
+  padding-top: 14px;
+}
+
+.seriesDays {
+  display: grid;
+  gap: 12px;
+}
+
+.dayCard {
+  border: 1px solid #d8ecf1;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #f8feff 0%, #ffffff 100%);
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.dayHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dayTitle {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  text-transform: capitalize;
+}
+
+.dayMeta {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.slotList {
+  display: grid;
+  gap: 8px;
+}
+
+.slotRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #edf4f6;
+  border-radius: 14px;
+  padding: 12px 12px;
+  background: #fff;
+}
+
+.slotMain {
+  display: grid;
+  gap: 3px;
+}
+
+.slotTime {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.slotMeta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .dayHeader,
+  .slotRow {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .slotRow button,
+  .dayHeader button {
+    justify-self: start;
+  }
 }

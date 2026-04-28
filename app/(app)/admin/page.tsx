@@ -236,6 +236,8 @@ type AdminExperience = {
   soldOut?: boolean;
   participantsBooked?: number;
   createdAt?: string | null;
+  seriesSlotsCount?: number;
+  seriesAvailableSlots?: number;
   host?: {
     id?: string;
     name?: string;
@@ -297,6 +299,25 @@ type AdminExperienceDetails = AdminExperience & {
     seriesKey?: string;
     matchedCount?: number;
   } | null;
+  seriesDays?: Array<{
+    dateKey: string;
+    startsAt?: string | null;
+    totalSlots?: number;
+    participantsBooked?: number;
+    availableSpots?: number;
+    slots?: Array<{
+      id: string;
+      startsAt?: string | null;
+      endsAt?: string | null;
+      status?: string;
+      isActive?: boolean;
+      maxParticipants?: number;
+      remainingSpots?: number;
+      participantsBooked?: number;
+      bookingsTotal?: number;
+      hasBookings?: boolean;
+    }>;
+  }>;
 };
 
 type AdminExperienceDetailsResponse = {
@@ -1040,6 +1061,8 @@ function AdminExperienceRow({
 }) {
   const [statusValue, setStatusValue] = useState(String(item.status || ""));
   const isSeries = !!(item.isSeries || item.scheduleGroupId || item.seriesId);
+  const seriesSlotsCount = Number(item.seriesSlotsCount || 0);
+  const seriesAvailableSlots = Number(item.seriesAvailableSlots || 0);
 
   return (
     <div className={`${styles.card} ${styles.rowCard} ${selected ? styles.rowCardSelected : ""}`}>
@@ -1072,12 +1095,12 @@ function AdminExperienceRow({
       </div>
 
       <div className={styles.metaGrid}>
-        <div><strong>ID:</strong> {item.id}</div>
+        <div><strong>{isSeries ? "Serie ID:" : "ID:"}</strong> {isSeries ? (item.scheduleGroupId || item.seriesId || item.id) : item.id}</div>
         <div><strong>Locație:</strong> {[item.city, item.country].filter(Boolean).join(", ") || "—"}</div>
-        <div><strong>Start:</strong> {formatDate(item.startsAt)}</div>
+        <div><strong>{isSeries ? "Următorul slot:" : "Start:"}</strong> {formatDate(item.startsAt)}</div>
         <div><strong>Preț:</strong> {numberFmt(item.price)} RON</div>
-        <div><strong>Participanți:</strong> {numberFmt(item.participantsBooked)} / {numberFmt(item.maxParticipants)}</div>
-        <div><strong>Locuri rămase:</strong> {numberFmt(item.remainingSpots)}</div>
+        <div><strong>Participanți:</strong> {numberFmt(item.participantsBooked)}{isSeries ? "" : ` / ${numberFmt(item.maxParticipants)}`}</div>
+        <div><strong>{isSeries ? "Sloturi serie:" : "Locuri rămase:"}</strong> {isSeries ? `${numberFmt(seriesSlotsCount)} · disponibile acum ${numberFmt(seriesAvailableSlots)}` : numberFmt(item.remainingSpots)}</div>
       </div>
 
       <div className={styles.actionsGrid}>
@@ -2034,6 +2057,7 @@ export default function AdminPage() {
     setExperienceEditSaving(true);
     setActionError("");
     try {
+      const isSeriesExperience = !!(experienceDetails.experience.seriesControl?.isSeries || experienceDetails.experience.isSeries);
       const payload: Record<string, unknown> = {
         title: experienceEditDraft.title.trim(),
         shortDescription: experienceEditDraft.shortDescription.trim(),
@@ -2048,8 +2072,6 @@ export default function AdminPage() {
         activityType: experienceEditDraft.activityType,
         maxParticipants: Number(experienceEditDraft.maxParticipants || 0),
         environment: experienceEditDraft.environment,
-        startsAt: experienceEditDraft.startsAt ? new Date(experienceEditDraft.startsAt).toISOString() : undefined,
-        endsAt: experienceEditDraft.endsAt ? new Date(experienceEditDraft.endsAt).toISOString() : undefined,
         country: experienceEditDraft.country.trim(),
         countryCode: experienceEditDraft.countryCode.trim().toUpperCase(),
         city: experienceEditDraft.city.trim(),
@@ -2064,6 +2086,11 @@ export default function AdminPage() {
         coverFocusX: Number(experienceEditDraft.coverFocusX || 50),
         coverFocusY: Number(experienceEditDraft.coverFocusY || 50),
       };
+
+      if (!isSeriesExperience) {
+        payload.startsAt = experienceEditDraft.startsAt ? new Date(experienceEditDraft.startsAt).toISOString() : undefined;
+        payload.endsAt = experienceEditDraft.endsAt ? new Date(experienceEditDraft.endsAt).toISOString() : undefined;
+      }
 
       if (experienceEditDraft.pricingMode === "PER_GROUP" && experienceEditDraft.groupPackageSize.trim()) {
         payload.groupPackageSize = Number(experienceEditDraft.groupPackageSize);
@@ -3458,6 +3485,10 @@ export default function AdminPage() {
 
             {selectedExperienceId && !experienceDetailsLoading && !experienceDetailsError && experienceDetails?.experience ? (
               <>
+                {(() => {
+                  const isSeriesExperience = !!(experienceDetails.experience.seriesControl?.isSeries || experienceDetails.experience.isSeries);
+                  return (
+                    <>
                 <div className={styles.detailGrid}>
                   <div><strong>Titlu</strong><span>{experienceDetails.experience.title || "—"}</span></div>
                   <div><strong>Status</strong><span>{experienceDetails.experience.status || "—"}</span></div>
@@ -3469,17 +3500,61 @@ export default function AdminPage() {
                   <div><strong>Tip</strong><span>{experienceDetails.experience.activityType || "—"}</span></div>
                   <div><strong>Mediu</strong><span>{experienceDetails.experience.environment || "—"}</span></div>
                   <div><strong>Durată</strong><span>{numberFmt(experienceDetails.experience.durationMinutes)} min</span></div>
-                  <div><strong>Start</strong><span>{formatDate(experienceDetails.experience.startsAt)}</span></div>
-                  <div><strong>End</strong><span>{formatDate(experienceDetails.experience.endsAt)}</span></div>
+                  <div><strong>{isSeriesExperience ? "Următorul slot" : "Start"}</strong><span>{formatDate(experienceDetails.experience.startsAt)}</span></div>
+                  <div><strong>{isSeriesExperience ? "Număr sloturi" : "End"}</strong><span>{isSeriesExperience ? numberFmt(experienceDetails.experience.seriesDays?.reduce((sum, day) => sum + Number(day.totalSlots || 0), 0) || 0) : formatDate(experienceDetails.experience.endsAt)}</span></div>
                   <div><strong>Locație</strong><span>{[experienceDetails.experience.city, experienceDetails.experience.country].filter(Boolean).join(", ") || "—"}</span></div>
                   <div><strong>Adresă</strong><span>{experienceDetails.experience.address || "—"}</span></div>
                 </div>
+
+                {isSeriesExperience && (experienceDetails.experience.seriesDays || []).length ? (
+                  <div className={styles.detailsSection}>
+                    <div className={styles.sectionTitleRow}>
+                      <div className={styles.panelTitle}>{tx("Structură serie", "Series structure")}</div>
+                      <span className="muted">{tx("Adminul vede toate zilele și sloturile din activitate.", "Admins can inspect all days and slots in the activity.")}</span>
+                    </div>
+                    <div className={styles.seriesDaysList}>
+                      {(experienceDetails.experience.seriesDays || []).map((day) => (
+                        <div key={day.dateKey} className={styles.seriesDayCard}>
+                          <div className={styles.seriesDayHeader}>
+                            <div>
+                              <div className={styles.seriesDayTitle}>{formatDate(day.startsAt || null)}</div>
+                              <div className="muted">
+                                {numberFmt(day.totalSlots)} sloturi · {numberFmt(day.participantsBooked)} participanți · {numberFmt(day.availableSpots)} locuri disponibile
+                              </div>
+                            </div>
+                          </div>
+                          <div className={styles.seriesSlotsList}>
+                            {(day.slots || []).map((slot) => (
+                              <div key={slot.id} className={styles.seriesSlotRow}>
+                                <div>
+                                  <strong>{formatDate(slot.startsAt || null)}</strong>
+                                  <div className="muted">
+                                    #{slot.id.slice(-8)} · {slot.status || "—"} · {slot.isActive ? "ACTIVE" : "INACTIVE"}
+                                  </div>
+                                </div>
+                                <div className={styles.seriesSlotMeta}>
+                                  <span>{numberFmt(slot.participantsBooked)} / {numberFmt(slot.maxParticipants)} participanți</span>
+                                  <span>{numberFmt(slot.remainingSpots)} disponibile</span>
+                                  <span>{Number(slot.bookingsTotal || 0) > 0 ? "Cu booking-uri" : "Fără booking-uri"}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
 
                 {experienceEditDraft ? (
                   <div className={styles.detailsSection}>
                     <div className={styles.sectionTitleRow}>
                       <div className={styles.panelTitle}>{tx("Editare completă", "Full edit")}</div>
-                      <span className="muted">{tx("Adminul poate corecta toate câmpurile importante.", "Admins can correct all major fields.")}</span>
+                      <span className="muted">
+                        {isSeriesExperience
+                          ? tx("Editarea de aici se aplică tuturor sloturilor din serie, cu excepția programului pe ore/zile.", "These edits apply to every slot in the series, except the day/time schedule.")
+                          : tx("Adminul poate corecta toate câmpurile importante.", "Admins can correct all major fields.")}
+                      </span>
                     </div>
 
                     <div className={styles.editSection}>
@@ -3568,14 +3643,15 @@ export default function AdminPage() {
 
                     <div className={styles.editSection}>
                       <div className={styles.editSectionTitle}>{tx("Program și locație", "Schedule and location")}</div>
+                      {isSeriesExperience ? <div className="muted">{tx("Programul seriei se gestionează la nivel de slot/zi. Aici editezi doar datele comune.", "Series schedule is managed per slot/day. Edit only the shared fields here.")}</div> : null}
                       <div className={styles.editGrid}>
                         <label className={styles.editField}>
                           <span>{tx("Start", "Start")}</span>
-                          <input className="input" type="datetime-local" value={experienceEditDraft.startsAt} onChange={(e) => updateExperienceDraft("startsAt", e.target.value)} />
+                          <input className="input" type="datetime-local" value={experienceEditDraft.startsAt} disabled={isSeriesExperience} onChange={(e) => updateExperienceDraft("startsAt", e.target.value)} />
                         </label>
                         <label className={styles.editField}>
                           <span>{tx("End", "End")}</span>
-                          <input className="input" type="datetime-local" value={experienceEditDraft.endsAt} onChange={(e) => updateExperienceDraft("endsAt", e.target.value)} />
+                          <input className="input" type="datetime-local" value={experienceEditDraft.endsAt} disabled={isSeriesExperience} onChange={(e) => updateExperienceDraft("endsAt", e.target.value)} />
                         </label>
                         <label className={styles.editField}>
                           <span>{tx("Țară", "Country")}</span>
@@ -3866,6 +3942,9 @@ export default function AdminPage() {
                     </div>
                   )}
                 </div>
+                    </>
+                  );
+                })()}
               </>
             ) : null}
           </div>

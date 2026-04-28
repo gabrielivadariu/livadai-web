@@ -723,8 +723,8 @@
 
 .imageGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
   margin-top: 12px;
 }
 
@@ -753,36 +753,96 @@
 
 .imageThumb {
   position: relative;
-  border-radius: 12px;
+  display: grid;
+  gap: 12px;
+  border-radius: 22px;
   overflow: hidden;
   border: 1px solid #e2e8f0;
-  background: #f8fafc;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbfd 100%);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
+  padding: 12px;
+}
+
+.imageThumbMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.imageOrderBadge,
+.imageCoverBadge {
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.imageOrderBadge {
+  background: #0f172a;
+  color: #fff;
+}
+
+.imageCoverBadge {
+  background: rgba(var(--brand-rgb), 0.12);
+  color: var(--primary-dark);
 }
 
 .imageThumb img {
   width: 100%;
-  height: 110px;
+  height: 160px;
   object-fit: cover;
   display: block;
+  border-radius: 16px;
+  border: 1px solid #dce7ef;
 }
 
 .imageThumbActions {
-  position: absolute;
-  inset-inline: 8px;
-  bottom: 8px;
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.imageActionBtn,
+.removeImageBtn {
+  border: 1px solid #dce7ef;
+  border-radius: 999px;
+  background: #fff;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.imageActionBtn:hover,
+.removeImageBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+  border-color: rgba(var(--brand-rgb), 0.32);
+}
+
+.imageActionBtn:disabled,
+.removeImageBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .removeImageBtn {
-  border: none;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.82);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 6px 10px;
-  cursor: pointer;
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fff5f5;
 }
 
 .footer {

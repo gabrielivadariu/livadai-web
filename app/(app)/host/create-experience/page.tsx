@@ -685,6 +685,18 @@ function CreateExperienceContent() {
     });
   };
 
+  const moveUploadedImage = (url: string, direction: "left" | "right") => {
+    setImages((prev) => {
+      const index = prev.indexOf(url);
+      if (index === -1) return prev;
+      const targetIndex = direction === "left" ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+      return next;
+    });
+  };
+
   const scheduleState = useMemo(() => {
     const hasStart = !!form.startsAt;
     const hasEnd = !!form.endsAt;
@@ -1146,10 +1158,32 @@ function CreateExperienceContent() {
                   {uploading ? <div className="muted">{t("create_experience_uploading")}</div> : null}
                   {images.length ? (
                     <div className={styles.imageGrid}>
-                      {images.map((img) => (
+                      {images.map((img, index) => (
                         <div key={img} className={styles.imageThumb}>
+                          <div className={styles.imageThumbMeta}>
+                            <span className={styles.imageOrderBadge}>{index + 1}</span>
+                            {form.coverImageUrl === img ? (
+                              <span className={styles.imageCoverBadge}>{t("create_experience_cover_badge")}</span>
+                            ) : null}
+                          </div>
                           <img src={img} alt="upload" />
                           <div className={styles.imageThumbActions}>
+                            <button
+                              type="button"
+                              className={styles.imageActionBtn}
+                              onClick={() => moveUploadedImage(img, "left")}
+                              disabled={index === 0}
+                            >
+                              {t("create_experience_image_move_left")}
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.imageActionBtn}
+                              onClick={() => moveUploadedImage(img, "right")}
+                              disabled={index === images.length - 1}
+                            >
+                              {t("create_experience_image_move_right")}
+                            </button>
                             <button type="button" className={styles.removeImageBtn} onClick={() => removeUploadedImage(img)}>
                               {t("edit_experience_remove_image")}
                             </button>
@@ -1787,9 +1821,36 @@ function CreateExperienceContent() {
                 {uploading ? <div className="muted">{t("create_experience_uploading")}</div> : null}
                 {images.length ? (
                   <div className={styles.imageGrid}>
-                    {images.map((img) => (
+                    {images.map((img, index) => (
                       <div key={img} className={styles.imageThumb}>
+                        <div className={styles.imageThumbMeta}>
+                          <span className={styles.imageOrderBadge}>{index + 1}</span>
+                          {form.coverImageUrl === img ? (
+                            <span className={styles.imageCoverBadge}>{t("create_experience_cover_badge")}</span>
+                          ) : null}
+                        </div>
                         <img src={img} alt="upload" />
+                        <div className={styles.imageThumbActions}>
+                          <button
+                            type="button"
+                            className={styles.imageActionBtn}
+                            onClick={() => moveUploadedImage(img, "left")}
+                            disabled={index === 0}
+                          >
+                            {t("create_experience_image_move_left")}
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.imageActionBtn}
+                            onClick={() => moveUploadedImage(img, "right")}
+                            disabled={index === images.length - 1}
+                          >
+                            {t("create_experience_image_move_right")}
+                          </button>
+                          <button type="button" className={styles.removeImageBtn} onClick={() => removeUploadedImage(img)}>
+                            {t("edit_experience_remove_image")}
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

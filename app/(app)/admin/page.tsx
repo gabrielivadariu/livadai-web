@@ -676,6 +676,151 @@ type AdminPaymentsHealthResponse = {
   hostComplianceAttentionHosts?: AdminHostComplianceIssue[];
 };
 
+type AdminPaymentListItem = {
+  id: string;
+  paymentId: string;
+  bookingId?: string | null;
+  experience?: {
+    id?: string;
+    title?: string;
+    city?: string;
+    country?: string;
+    startsAt?: string | null;
+    endsAt?: string | null;
+    status?: string;
+    isActive?: boolean;
+  } | null;
+  explorer?: {
+    id?: string;
+    name?: string;
+    email?: string;
+  } | null;
+  host?: {
+    id?: string;
+    name?: string;
+    email?: string;
+    stripeAccountId?: string | null;
+    isStripeChargesEnabled?: boolean;
+    isStripePayoutsEnabled?: boolean;
+    isStripeDetailsSubmitted?: boolean;
+  } | null;
+  totalPaid?: number;
+  amount?: number;
+  currency?: string;
+  platformFee?: number;
+  transferAmount?: number;
+  hostNetAmount?: number;
+  estimatedStripeFee?: number;
+  realStripeFee?: number | null;
+  chargeModel?: string;
+  paymentStatus?: string;
+  transferStatus?: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  stripeCheckoutSessionId?: string | null;
+  stripePaymentIntentId?: string | null;
+  stripeChargeId?: string | null;
+  stripeTransferId?: string | null;
+  stripeTransferReversalId?: string | null;
+  booking?: {
+    id?: string;
+    status?: string;
+    quantity?: number;
+    attendanceStatus?: string;
+    attendanceConfirmed?: boolean;
+    completedAt?: string | null;
+    payoutEligibleAt?: string | null;
+    refundedAt?: string | null;
+    cancelledAt?: string | null;
+    disputedAt?: string | null;
+    disputeResolvedAt?: string | null;
+    lastRefundAttemptAt?: string | null;
+  } | null;
+  payoutEligibility?: {
+    completedAt?: string | null;
+    endsAt?: string | null;
+    payoutEligibleAt?: string | null;
+    hoursUntilEligible?: number | null;
+    hoursSinceEligible?: number | null;
+    isEligibleNow?: boolean;
+    shouldJobProcess?: boolean;
+    blockingReports?: number;
+  } | null;
+  transfer?: {
+    transferReadyAt?: string | null;
+    transferredAt?: string | null;
+    transferFailureCode?: string;
+    transferFailureMessage?: string;
+    transferBlockedReason?: string;
+    transferRetryCount?: number;
+    lastTransferAttemptAt?: string | null;
+    nextTransferRetryAt?: string | null;
+  } | null;
+  timeline?: Array<{
+    key: string;
+    label: string;
+    at?: string | null;
+    status?: string;
+  }>;
+};
+
+type AdminPaymentsSummaryResponse = {
+  totalPaymentsCollectedMinor?: number;
+  totalPlatformFeeMinor?: number;
+  totalHostMoneyInHoldMinor?: number;
+  totalTransferredToHostsMinor?: number;
+  totalBlockedMinor?: number;
+  totalFailedMinor?: number;
+  totalRefundedMinor?: number;
+  totalPendingTransferMinor?: number;
+  totalReadyForTransferMinor?: number;
+  paymentsCount?: number;
+  holdPaymentsCount?: number;
+  transferredPaymentsCount?: number;
+  blockedPaymentsCount?: number;
+  failedPaymentsCount?: number;
+  refundedPaymentsCount?: number;
+  readyPaymentsCount?: number;
+};
+
+type AdminHostPayoutSummary = {
+  id: string;
+  name?: string;
+  email?: string;
+  stripeAccountId?: string | null;
+  isStripeChargesEnabled?: boolean;
+  isStripePayoutsEnabled?: boolean;
+  isStripeDetailsSubmitted?: boolean;
+  totalEarnedMinor?: number;
+  totalInHoldMinor?: number;
+  totalReadyMinor?: number;
+  totalTransferredMinor?: number;
+  totalBlockedMinor?: number;
+  totalFailedMinor?: number;
+  paymentsCount?: number;
+};
+
+type AdminPaymentsListResponse = {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+  generatedAt?: string | null;
+  filters?: {
+    q?: string;
+    state?: string;
+    hostId?: string;
+    bookingId?: string;
+    experienceId?: string;
+    transferStatus?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  };
+  summary?: AdminPaymentsSummaryResponse;
+  hostSummaries?: AdminHostPayoutSummary[];
+  items: AdminPaymentListItem[];
+};
+
 type AdminSystemHealthResponse = {
   generatedAt?: string;
   runtime?: {
@@ -770,6 +915,48 @@ const formatTransferStatus = (value?: string) => {
     NEEDS_MANUAL_REVIEW: "NEEDS_MANUAL_REVIEW",
   };
   return labels[normalized] || normalized;
+};
+
+const formatPaymentStatus = (value?: string) => {
+  const normalized = String(value || "").trim().toUpperCase();
+  if (!normalized) return "—";
+  const labels: Record<string, string> = {
+    INITIATED: "INITIATED",
+    CONFIRMED: "CONFIRMED",
+    FAILED: "FAILED",
+    REFUNDED: "REFUNDED",
+    DISPUTED: "DISPUTED",
+    DISPUTE_WON: "DISPUTE_WON",
+    DISPUTE_LOST: "DISPUTE_LOST",
+  };
+  return labels[normalized] || normalized;
+};
+
+const getTransferStatusBadgeClass = (value?: string) => {
+  const normalized = String(value || "").trim().toUpperCase();
+  if (normalized === "TRANSFERRED" || normalized === "READY") return styles.badgeOk;
+  if (normalized === "BLOCKED" || normalized === "NEEDS_MANUAL_REVIEW") return styles.badgeWarn;
+  if (normalized === "FAILED" || normalized === "REVERSED") return styles.badgeDanger;
+  return styles.badge;
+};
+
+const getPaymentStatusBadgeClass = (value?: string) => {
+  const normalized = String(value || "").trim().toUpperCase();
+  if (normalized === "CONFIRMED" || normalized === "DISPUTE_WON") return styles.badgeOk;
+  if (normalized === "DISPUTED") return styles.badgeWarn;
+  if (normalized === "FAILED" || normalized === "REFUNDED" || normalized === "DISPUTE_LOST") return styles.badgeDanger;
+  return styles.badge;
+};
+
+const formatEligibilityHint = (item?: AdminPaymentListItem | null) => {
+  const eligibility = item?.payoutEligibility;
+  if (!eligibility?.payoutEligibleAt) return "No payoutEligibleAt";
+  if (eligibility.isEligibleNow) {
+    if (eligibility.shouldJobProcess) return "Eligible now · waiting for transfer job";
+    return "Eligible now";
+  }
+  const hours = Number(eligibility.hoursUntilEligible ?? 0);
+  return `In ${Math.abs(hours)}h`;
 };
 
 const formatDate = (value?: string | null) => {
@@ -1580,6 +1767,18 @@ export default function AdminPage() {
   const [paymentsHealth, setPaymentsHealth] = useState<AdminPaymentsHealthResponse | null>(null);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [paymentsError, setPaymentsError] = useState("");
+  const [paymentsList, setPaymentsList] = useState<AdminPaymentsListResponse | null>(null);
+  const [paymentsListLoading, setPaymentsListLoading] = useState(false);
+  const [paymentsListError, setPaymentsListError] = useState("");
+  const [paymentsQuery, setPaymentsQuery] = useState("");
+  const [paymentsStateFilter, setPaymentsStateFilter] = useState("all");
+  const [paymentsTransferStatusFilter, setPaymentsTransferStatusFilter] = useState("all");
+  const [paymentsHostFilter, setPaymentsHostFilter] = useState("");
+  const [paymentsBookingFilter, setPaymentsBookingFilter] = useState("");
+  const [paymentsExperienceFilter, setPaymentsExperienceFilter] = useState("");
+  const [paymentsDateFrom, setPaymentsDateFrom] = useState("");
+  const [paymentsDateTo, setPaymentsDateTo] = useState("");
+  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
 
   const [auditLogs, setAuditLogs] = useState<AdminAuditLogsResponse | null>(null);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -1862,6 +2061,42 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadPaymentsList = useCallback(
+    async (page = 1) => {
+      setPaymentsListLoading(true);
+      setPaymentsListError("");
+      try {
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("limit", "20");
+        if (paymentsQuery.trim()) params.set("q", paymentsQuery.trim());
+        if (paymentsStateFilter !== "all") params.set("state", paymentsStateFilter);
+        if (paymentsTransferStatusFilter !== "all") params.set("transferStatus", paymentsTransferStatusFilter);
+        if (paymentsHostFilter.trim()) params.set("hostId", paymentsHostFilter.trim());
+        if (paymentsBookingFilter.trim()) params.set("bookingId", paymentsBookingFilter.trim());
+        if (paymentsExperienceFilter.trim()) params.set("experienceId", paymentsExperienceFilter.trim());
+        if (paymentsDateFrom) params.set("dateFrom", paymentsDateFrom);
+        if (paymentsDateTo) params.set("dateTo", paymentsDateTo);
+        const data = await apiGet<AdminPaymentsListResponse>(`/admin/payments?${params.toString()}`);
+        setPaymentsList(data || null);
+      } catch (err) {
+        setPaymentsListError((err as Error)?.message || "Nu am putut încărca lista de plăți.");
+      } finally {
+        setPaymentsListLoading(false);
+      }
+    },
+    [
+      paymentsQuery,
+      paymentsStateFilter,
+      paymentsTransferStatusFilter,
+      paymentsHostFilter,
+      paymentsBookingFilter,
+      paymentsExperienceFilter,
+      paymentsDateFrom,
+      paymentsDateTo,
+    ]
+  );
+
   const loadAuditLogs = useCallback(
     async (page = 1) => {
       setAuditLoading(true);
@@ -1949,12 +2184,13 @@ export default function AdminPage() {
       loadBookings(bookings?.page || 1),
       loadReports(reports?.page || 1),
       loadPaymentsHealth(),
+      loadPaymentsList(paymentsList?.page || 1),
       loadAuditLogs(auditLogs?.page || 1),
       loadMessages(messagesData?.page || 1),
       ...(isOwnerAdmin ? [loadSystemHealth()] : []),
       loadRecentAdminActions(),
     ]);
-  }, [isOwnerAdmin, loadAdminPermissions, loadDashboard, loadUsers, loadHosts, loadExperiences, loadBookings, loadReports, loadPaymentsHealth, loadAuditLogs, loadMessages, loadSystemHealth, loadRecentAdminActions, users?.page, hosts?.page, experiences?.page, bookings?.page, reports?.page, auditLogs?.page, messagesData?.page]);
+  }, [isOwnerAdmin, loadAdminPermissions, loadDashboard, loadUsers, loadHosts, loadExperiences, loadBookings, loadReports, loadPaymentsHealth, loadPaymentsList, loadAuditLogs, loadMessages, loadSystemHealth, loadRecentAdminActions, users?.page, hosts?.page, experiences?.page, bookings?.page, reports?.page, paymentsList?.page, auditLogs?.page, messagesData?.page]);
 
   useEffect(() => {
     if (authLoading || !token || !isAdmin) return;
@@ -1962,6 +2198,20 @@ export default function AdminPage() {
     setBootstrapped(true);
     void refreshAll();
   }, [authLoading, token, isAdmin, bootstrapped, refreshAll]);
+
+  const selectedPayment = useMemo(
+    () => (paymentsList?.items || []).find((item) => item.id === selectedPaymentId) || (paymentsList?.items || [])[0] || null,
+    [paymentsList?.items, selectedPaymentId]
+  );
+
+  useEffect(() => {
+    if (!paymentsList?.items?.length) {
+      setSelectedPaymentId(null);
+      return;
+    }
+    if (selectedPaymentId && paymentsList.items.some((item) => item.id === selectedPaymentId)) return;
+    setSelectedPaymentId(paymentsList.items[0].id);
+  }, [paymentsList?.items, selectedPaymentId]);
 
   const runAction = useCallback(
     async (key: string, action: () => Promise<void>) => {
@@ -2713,6 +2963,11 @@ export default function AdminPage() {
   const onReportsSubmit = (e: FormEvent) => {
     e.preventDefault();
     void loadReports(1);
+  };
+
+  const onPaymentsSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    void loadPaymentsList(1);
   };
 
   const onAuditSubmit = (e: FormEvent) => {
@@ -4658,6 +4913,355 @@ export default function AdminPage() {
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.overviewGrid}>
+            <div className={`${styles.card} ${styles.inboxCard}`}>
+              <div className={styles.panelTitle}>{tx("Sumar financiar operabil", "Operational finance summary")}</div>
+              <div className={styles.detailGrid}>
+                <div>
+                  <strong>{tx("Total plăți colectate", "Total payments collected")}</strong>
+                  <span>{formatMoney(paymentsList?.summary?.totalPaymentsCollectedMinor, "RON")}</span>
+                </div>
+                <div>
+                  <strong>{tx("Total fee LIVADAI", "Total LIVADAI fee")}</strong>
+                  <span>{formatMoney(paymentsList?.summary?.totalPlatformFeeMinor, "RON")}</span>
+                </div>
+                <div>
+                  <strong>{tx("Total host în hold", "Total host in hold")}</strong>
+                  <span>{formatMoney(paymentsList?.summary?.totalHostMoneyInHoldMinor, "RON")}</span>
+                </div>
+                <div>
+                  <strong>{tx("Total transferat la host", "Total transferred to host")}</strong>
+                  <span>{formatMoney(paymentsList?.summary?.totalTransferredToHostsMinor, "RON")}</span>
+                </div>
+                <div>
+                  <strong>{tx("Total blocat", "Total blocked")}</strong>
+                  <span>{formatMoney(paymentsList?.summary?.totalBlockedMinor, "RON")}</span>
+                </div>
+                <div>
+                  <strong>{tx("Total failed", "Total failed")}</strong>
+                  <span>{formatMoney(paymentsList?.summary?.totalFailedMinor, "RON")}</span>
+                </div>
+                <div>
+                  <strong>{tx("Total refunded", "Total refunded")}</strong>
+                  <span>{formatMoney(paymentsList?.summary?.totalRefundedMinor, "RON")}</span>
+                </div>
+                <div>
+                  <strong>{tx("Ready for transfer", "Ready for transfer")}</strong>
+                  <span>{formatMoney(paymentsList?.summary?.totalReadyForTransferMinor, "RON")}</span>
+                </div>
+              </div>
+              <div className={styles.badgeRow}>
+                <span className={styles.badge}>{tx("Plăți", "Payments")}: {numberFmt(paymentsList?.summary?.paymentsCount)}</span>
+                <span className={styles.badge}>{tx("În hold", "In hold")}: {numberFmt(paymentsList?.summary?.holdPaymentsCount)}</span>
+                <span className={styles.badge}>{tx("READY", "READY")}: {numberFmt(paymentsList?.summary?.readyPaymentsCount)}</span>
+                <span className={styles.badge}>{tx("TRANSFERRED", "TRANSFERRED")}: {numberFmt(paymentsList?.summary?.transferredPaymentsCount)}</span>
+                <span className={`${styles.badge} ${styles.badgeWarn}`}>{tx("BLOCKED", "BLOCKED")}: {numberFmt(paymentsList?.summary?.blockedPaymentsCount)}</span>
+                <span className={`${styles.badge} ${styles.badgeDanger}`}>{tx("FAILED", "FAILED")}: {numberFmt(paymentsList?.summary?.failedPaymentsCount)}</span>
+              </div>
+            </div>
+
+            <div className={`${styles.card} ${styles.inboxCard}`}>
+              <div className={styles.panelTitle}>{tx("Host summary (din DB)", "Host summary (from DB)")}</div>
+              {!paymentsList?.hostSummaries?.length ? (
+                <div className="muted">{tx("Nu există host summary pentru filtrul curent.", "No host summary for the current filter.")}</div>
+              ) : (
+                <div className={styles.stackSm}>
+                  {(paymentsList.hostSummaries || []).slice(0, 8).map((host) => (
+                    <div key={host.id} className={styles.miniItem}>
+                      <div>
+                        <strong>{host.email || host.name || "Host"}</strong>
+                      </div>
+                      <div className="muted">
+                        Hold: {formatMoney(host.totalInHoldMinor, "RON")} · Ready: {formatMoney(host.totalReadyMinor, "RON")} · Transferred:{" "}
+                        {formatMoney(host.totalTransferredMinor, "RON")}
+                      </div>
+                      <div className="muted">
+                        Blocked/failed: {formatMoney((host.totalBlockedMinor || 0) + (host.totalFailedMinor || 0), "RON")} · Payments:{" "}
+                        {numberFmt(host.paymentsCount)}
+                      </div>
+                      <div className={styles.badgeRow}>
+                        <span className={styles.badge}>{host.stripeAccountId ? "Stripe linked" : "No Stripe"}</span>
+                        <span className={host.isStripeDetailsSubmitted ? `${styles.badge} ${styles.badgeOk}` : `${styles.badge} ${styles.badgeWarn}`}>details_submitted</span>
+                        <span className={host.isStripeChargesEnabled ? `${styles.badge} ${styles.badgeOk}` : `${styles.badge} ${styles.badgeWarn}`}>charges_enabled</span>
+                        <span className={host.isStripePayoutsEnabled ? `${styles.badge} ${styles.badgeOk}` : `${styles.badge} ${styles.badgeWarn}`}>payouts_enabled</span>
+                      </div>
+                      <div className={styles.buttonRow}>
+                        <button type="button" className="button secondary" onClick={() => openHostRegistry(host.id, host.email || host.id)}>
+                          {tx("Vezi host în Hosts", "Open host in Hosts")}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <form className={`${styles.card} ${styles.filtersCard}`} onSubmit={onPaymentsSubmit}>
+            <div className={styles.panelTitle}>{tx("Listă detaliată plăți / transferuri", "Detailed payments / transfers list")}</div>
+            <div className={styles.filtersGrid}>
+              <input
+                className="input"
+                placeholder={tx("Caută după payment, booking, Stripe ids, host, explorer, experiență", "Search by payment, booking, Stripe ids, host, explorer, experience")}
+                value={paymentsQuery}
+                onChange={(e) => setPaymentsQuery(e.target.value)}
+              />
+              <select className={styles.select} value={paymentsStateFilter} onChange={(e) => setPaymentsStateFilter(e.target.value)}>
+                <option value="all">All</option>
+                <option value="confirmed">Paid / Confirmed</option>
+                <option value="in_hold">In Hold</option>
+                <option value="ready">Ready for Transfer</option>
+                <option value="transferred">Transferred</option>
+                <option value="blocked">Blocked</option>
+                <option value="failed">Failed</option>
+                <option value="refunded">Refunded</option>
+                <option value="disputed">Disputed</option>
+              </select>
+              <select className={styles.select} value={paymentsTransferStatusFilter} onChange={(e) => setPaymentsTransferStatusFilter(e.target.value)}>
+                <option value="all">All transferStatus</option>
+                <option value="NOT_READY">NOT_READY</option>
+                <option value="READY">READY</option>
+                <option value="BLOCKED">BLOCKED</option>
+                <option value="FAILED">FAILED</option>
+                <option value="NEEDS_MANUAL_REVIEW">NEEDS_MANUAL_REVIEW</option>
+                <option value="TRANSFERRED">TRANSFERRED</option>
+                <option value="REVERSED">REVERSED</option>
+              </select>
+            </div>
+            <div className={styles.filtersGrid}>
+              <input className="input" placeholder="Host id" value={paymentsHostFilter} onChange={(e) => setPaymentsHostFilter(e.target.value)} />
+              <input className="input" placeholder="Booking id" value={paymentsBookingFilter} onChange={(e) => setPaymentsBookingFilter(e.target.value)} />
+              <input className="input" placeholder="Experience id" value={paymentsExperienceFilter} onChange={(e) => setPaymentsExperienceFilter(e.target.value)} />
+            </div>
+            <div className={styles.filtersGrid}>
+              <input className="input" type="date" value={paymentsDateFrom} onChange={(e) => setPaymentsDateFrom(e.target.value)} />
+              <input className="input" type="date" value={paymentsDateTo} onChange={(e) => setPaymentsDateTo(e.target.value)} />
+              <div className={styles.filtersActions}>
+                <button type="button" className="button secondary" onClick={() => {
+                  setPaymentsQuery("");
+                  setPaymentsStateFilter("all");
+                  setPaymentsTransferStatusFilter("all");
+                  setPaymentsHostFilter("");
+                  setPaymentsBookingFilter("");
+                  setPaymentsExperienceFilter("");
+                  setPaymentsDateFrom("");
+                  setPaymentsDateTo("");
+                  void loadPaymentsList(1);
+                }}>
+                  {tx("Reset", "Reset")}
+                </button>
+                <button type="submit" className="button" disabled={paymentsListLoading}>
+                  {paymentsListLoading ? tx("Se caută...", "Searching...") : tx("Aplică filtre", "Apply filters")}
+                </button>
+              </div>
+            </div>
+          </form>
+
+          {paymentsListError ? <div className={`${styles.card} ${styles.errorCard}`}>{paymentsListError}</div> : null}
+          {paymentsListLoading ? <div className={`${styles.card} ${styles.emptyCard}`}>{tx("Se încarcă lista de payments...", "Loading payments list...")}</div> : null}
+
+          <div className={styles.splitGrid}>
+            <div className={`${styles.card} ${styles.tableCard}`}>
+              <div className={styles.tableWrap}>
+                <table className={styles.dataTable}>
+                  <thead>
+                    <tr>
+                      <th>Payment</th>
+                      <th>Experience</th>
+                      <th>Explorer</th>
+                      <th>Host</th>
+                      <th>Total</th>
+                      <th>Fee</th>
+                      <th>Transfer</th>
+                      <th>Statuses</th>
+                      <th>Eligible</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(paymentsList?.items || []).map((item) => (
+                      <tr
+                        key={item.id}
+                        className={selectedPayment?.id === item.id ? styles.tableRowSelected : undefined}
+                        onClick={() => setSelectedPaymentId(item.id)}
+                      >
+                        <td>
+                          <div className={styles.tableCode}>#{item.id.slice(-6)}</div>
+                          <div className="muted">{formatDate(item.createdAt)}</div>
+                        </td>
+                        <td>
+                          <div><strong>{item.experience?.title || "—"}</strong></div>
+                          <div className="muted">{item.bookingId ? `Booking #${item.bookingId.slice(-6)}` : "No booking"}</div>
+                        </td>
+                        <td>
+                          <div>{item.explorer?.email || item.explorer?.name || "—"}</div>
+                        </td>
+                        <td>
+                          <div>{item.host?.email || item.host?.name || "—"}</div>
+                        </td>
+                        <td>{formatMoney(item.totalPaid, item.currency)}</td>
+                        <td>{formatMoney(item.platformFee, item.currency)}</td>
+                        <td>{formatMoney(item.transferAmount, item.currency)}</td>
+                        <td>
+                          <div className={styles.badgeRowCompact}>
+                            <span className={`${styles.badge} ${getPaymentStatusBadgeClass(item.paymentStatus)}`}>{formatPaymentStatus(item.paymentStatus)}</span>
+                            <span className={`${styles.badge} ${getTransferStatusBadgeClass(item.transferStatus)}`}>{formatTransferStatus(item.transferStatus)}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div>{formatEligibilityHint(item)}</div>
+                          <div className="muted">{item.payoutEligibility?.blockingReports ? `${item.payoutEligibility.blockingReports} blocking reports` : "—"}</div>
+                        </td>
+                      </tr>
+                    ))}
+                    {!paymentsListLoading && !(paymentsList?.items || []).length ? (
+                      <tr>
+                        <td colSpan={9} className="muted">
+                          {tx("Nu există plăți pentru filtrul curent.", "No payments for the current filter.")}
+                        </td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+              <div className={styles.pagination}>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={!paymentsList || (paymentsList.page || 1) <= 1 || paymentsListLoading}
+                  onClick={() => void loadPaymentsList((paymentsList?.page || 1) - 1)}
+                >
+                  Înapoi
+                </button>
+                <span className="muted">
+                  Pagina {paymentsList?.page || 1} / {paymentsList?.pages || 1} · {numberFmt(paymentsList?.total)} payments
+                </span>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={!paymentsList || (paymentsList.page || 1) >= (paymentsList.pages || 1) || paymentsListLoading}
+                  onClick={() => void loadPaymentsList((paymentsList?.page || 1) + 1)}
+                >
+                  Înainte
+                </button>
+              </div>
+            </div>
+
+            <div className={`${styles.card} ${styles.detailsCard}`}>
+              <h3 className={styles.detailsTitle}>{tx("Payment details", "Payment details")}</h3>
+              {!selectedPayment ? (
+                <div className="muted">{tx("Selectează un payment din listă.", "Select a payment from the list.")}</div>
+              ) : (
+                <>
+                  <div className={styles.badgeRow}>
+                    <span className={`${styles.badge} ${getPaymentStatusBadgeClass(selectedPayment.paymentStatus)}`}>{formatPaymentStatus(selectedPayment.paymentStatus)}</span>
+                    <span className={`${styles.badge} ${getTransferStatusBadgeClass(selectedPayment.transferStatus)}`}>{formatTransferStatus(selectedPayment.transferStatus)}</span>
+                  </div>
+
+                  <div className={styles.detailGrid}>
+                    <div><strong>Payment id</strong><span className={styles.codeBlock}>{selectedPayment.id}</span></div>
+                    <div><strong>Booking id</strong><span className={styles.codeBlock}>{selectedPayment.bookingId || "—"}</span></div>
+                    <div><strong>Experience</strong><span>{selectedPayment.experience?.title || "—"}</span></div>
+                    <div><strong>Currency</strong><span>{String(selectedPayment.currency || "RON").toUpperCase()}</span></div>
+                    <div><strong>Total paid</strong><span>{formatMoney(selectedPayment.totalPaid, selectedPayment.currency)}</span></div>
+                    <div><strong>platformFee</strong><span>{formatMoney(selectedPayment.platformFee, selectedPayment.currency)}</span></div>
+                    <div><strong>transferAmount</strong><span>{formatMoney(selectedPayment.transferAmount, selectedPayment.currency)}</span></div>
+                    <div><strong>hostNetAmount</strong><span>{formatMoney(selectedPayment.hostNetAmount, selectedPayment.currency)}</span></div>
+                    <div><strong>estimatedStripeFee</strong><span>{formatMoney(selectedPayment.estimatedStripeFee, selectedPayment.currency)}</span></div>
+                    <div><strong>chargeModel</strong><span>{selectedPayment.chargeModel || "—"}</span></div>
+                    <div><strong>Checkout session</strong><span className={styles.codeBlock}>{selectedPayment.stripeCheckoutSessionId || "—"}</span></div>
+                    <div><strong>Payment intent</strong><span className={styles.codeBlock}>{selectedPayment.stripePaymentIntentId || "—"}</span></div>
+                    <div><strong>Charge id</strong><span className={styles.codeBlock}>{selectedPayment.stripeChargeId || "—"}</span></div>
+                    <div><strong>Transfer id</strong><span className={styles.codeBlock}>{selectedPayment.stripeTransferId || "—"}</span></div>
+                  </div>
+
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>{tx("Payout eligibility", "Payout eligibility")}</div>
+                    <div className={styles.detailGrid}>
+                      <div><strong>booking.status</strong><span>{selectedPayment.booking?.status || "—"}</span></div>
+                      <div><strong>completedAt</strong><span>{formatDate(selectedPayment.booking?.completedAt)}</span></div>
+                      <div><strong>endDate / endTime</strong><span>{formatDate(selectedPayment.payoutEligibility?.endsAt)}</span></div>
+                      <div><strong>payoutEligibleAt</strong><span>{formatDate(selectedPayment.payoutEligibility?.payoutEligibleAt)}</span></div>
+                      <div><strong>Hours until eligible</strong><span>{selectedPayment.payoutEligibility?.hoursUntilEligible ?? "—"}</span></div>
+                      <div><strong>72h passed</strong><span>{selectedPayment.payoutEligibility?.isEligibleNow ? "Da" : "Nu"}</span></div>
+                      <div><strong>Should job process</strong><span>{selectedPayment.payoutEligibility?.shouldJobProcess ? "Da" : "Nu"}</span></div>
+                      <div><strong>Blocking reports</strong><span>{numberFmt(selectedPayment.payoutEligibility?.blockingReports)}</span></div>
+                    </div>
+                  </div>
+
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>{tx("Transfer diagnostics", "Transfer diagnostics")}</div>
+                    <div className={styles.detailGrid}>
+                      <div><strong>transferRetryCount</strong><span>{numberFmt(selectedPayment.transfer?.transferRetryCount)}</span></div>
+                      <div><strong>lastTransferAttemptAt</strong><span>{formatDate(selectedPayment.transfer?.lastTransferAttemptAt)}</span></div>
+                      <div><strong>nextTransferRetryAt</strong><span>{formatDate(selectedPayment.transfer?.nextTransferRetryAt)}</span></div>
+                      <div><strong>transferFailureCode</strong><span>{selectedPayment.transfer?.transferFailureCode || "—"}</span></div>
+                      <div><strong>transferFailureMessage</strong><span>{selectedPayment.transfer?.transferFailureMessage || "—"}</span></div>
+                      <div><strong>transferBlockedReason</strong><span>{selectedPayment.transfer?.transferBlockedReason || "—"}</span></div>
+                    </div>
+                  </div>
+
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>{tx("Host Stripe status", "Host Stripe status")}</div>
+                    <div className={styles.badgeRow}>
+                      <span className={selectedPayment.host?.stripeAccountId ? `${styles.badge} ${styles.badgeOk}` : `${styles.badge} ${styles.badgeWarn}`}>{selectedPayment.host?.stripeAccountId ? "stripeAccountId" : "missing stripeAccountId"}</span>
+                      <span className={selectedPayment.host?.isStripeDetailsSubmitted ? `${styles.badge} ${styles.badgeOk}` : `${styles.badge} ${styles.badgeWarn}`}>details_submitted</span>
+                      <span className={selectedPayment.host?.isStripeChargesEnabled ? `${styles.badge} ${styles.badgeOk}` : `${styles.badge} ${styles.badgeWarn}`}>charges_enabled</span>
+                      <span className={selectedPayment.host?.isStripePayoutsEnabled ? `${styles.badge} ${styles.badgeOk}` : `${styles.badge} ${styles.badgeWarn}`}>payouts_enabled</span>
+                    </div>
+                  </div>
+
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>{tx("Timeline", "Timeline")}</div>
+                    <div className={styles.timelineList}>
+                      {(selectedPayment.timeline || []).map((step) => (
+                        <div key={step.key} className={styles.timelineItem}>
+                          <span
+                            className={`${styles.timelineDot} ${
+                              step.status === "done"
+                                ? styles.timelineDone
+                                : step.status === "blocked"
+                                  ? styles.timelineBlocked
+                                  : step.status === "failed"
+                                    ? styles.timelineFailed
+                                    : styles.timelinePending
+                            }`}
+                          />
+                          <div className={styles.timelineContent}>
+                            <strong>{step.label}</strong>
+                            <span>{formatDate(step.at || null)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className={styles.buttonRow}>
+                    {selectedPayment.bookingId ? (
+                      <button
+                        type="button"
+                        className="button secondary"
+                        onClick={() => {
+                          setActiveSection("bookings");
+                          setBookingQuery(selectedPayment.bookingId || "");
+                          void loadBookings(1);
+                        }}
+                      >
+                        {tx("Deschide booking", "Open booking")}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="button secondary"
+                      onClick={() => openHostRegistry(selectedPayment.host?.id, selectedPayment.host?.email || selectedPayment.host?.id || "")}
+                    >
+                      {tx("Vezi host în Hosts", "Open host in Hosts")}
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>

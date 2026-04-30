@@ -584,6 +584,16 @@ type AdminPaymentsHealthBooking = {
     currency?: string;
     hasStripePaymentIntent?: boolean;
     stripeSessionId?: string | null;
+    platformFee?: number;
+    transferAmount?: number;
+    hostNetAmount?: number;
+    transferStatus?: string;
+    transferFailureCode?: string;
+    transferFailureMessage?: string;
+    transferRetryCount?: number;
+    nextTransferRetryAt?: string | null;
+    lastTransferAttemptAt?: string | null;
+    transferBlockedReason?: string;
   } | null;
 };
 
@@ -747,6 +757,20 @@ type CriticalActionDialogConfig = {
 const numberFmt = (value?: number) => new Intl.NumberFormat("ro-RO").format(Number(value || 0));
 const formatMoney = (value?: number, currency?: string) =>
   `${numberFmt(value)} ${String(currency || "RON").toUpperCase()}`;
+const formatTransferStatus = (value?: string) => {
+  const normalized = String(value || "").trim().toUpperCase();
+  if (!normalized) return "—";
+  const labels: Record<string, string> = {
+    NOT_READY: "NOT_READY",
+    READY: "READY",
+    TRANSFERRED: "TRANSFERRED",
+    BLOCKED: "BLOCKED",
+    FAILED: "FAILED",
+    REVERSED: "REVERSED",
+    NEEDS_MANUAL_REVIEW: "NEEDS_MANUAL_REVIEW",
+  };
+  return labels[normalized] || normalized;
+};
 
 const formatDate = (value?: string | null) => {
   if (!value) return "—";
@@ -4419,6 +4443,24 @@ export default function AdminPage() {
                       <div className="muted">
                         {formatMoney(row.payment?.amount ?? row.amount, row.payment?.currency || row.currency)} · Last try: {formatDate(row.lastRefundAttemptAt)}
                       </div>
+                      <div className="muted">
+                        Platform fee: {formatMoney(row.payment?.platformFee, row.payment?.currency || row.currency)} · Transfer amount:{" "}
+                        {formatMoney(row.payment?.transferAmount, row.payment?.currency || row.currency)}
+                      </div>
+                      <div className="muted">
+                        Host net: {formatMoney(row.payment?.hostNetAmount, row.payment?.currency || row.currency)} · Transfer status:{" "}
+                        {formatTransferStatus(row.payment?.transferStatus)}
+                      </div>
+                      {row.payment?.transferFailureCode || row.payment?.transferFailureMessage ? (
+                        <div className="muted">
+                          Failure: {row.payment?.transferFailureCode || "—"} · {row.payment?.transferFailureMessage || "—"}
+                        </div>
+                      ) : null}
+                      {row.payment?.transferRetryCount || row.payment?.nextTransferRetryAt ? (
+                        <div className="muted">
+                          Retry count: {numberFmt(row.payment?.transferRetryCount)} · Next retry: {formatDate(row.payment?.nextTransferRetryAt || null)}
+                        </div>
+                      ) : null}
                       <div className={styles.buttonRow}>
                         <button
                           type="button"
@@ -4530,6 +4572,24 @@ export default function AdminPage() {
                       <div className="muted">
                         Payout eligible: {formatDate(row.payoutEligibleAt)} · Host: {row.host?.email || row.host?.name || "—"}
                       </div>
+                      <div className="muted">
+                        Platform fee: {formatMoney(row.payment?.platformFee, row.payment?.currency || row.currency)} · Transfer amount:{" "}
+                        {formatMoney(row.payment?.transferAmount, row.payment?.currency || row.currency)}
+                      </div>
+                      <div className="muted">
+                        Host net: {formatMoney(row.payment?.hostNetAmount, row.payment?.currency || row.currency)} · Transfer status:{" "}
+                        {formatTransferStatus(row.payment?.transferStatus)}
+                      </div>
+                      {row.payment?.transferFailureCode || row.payment?.transferFailureMessage ? (
+                        <div className="muted">
+                          Failure: {row.payment?.transferFailureCode || "—"} · {row.payment?.transferFailureMessage || "—"}
+                        </div>
+                      ) : null}
+                      {row.payment?.transferRetryCount || row.payment?.nextTransferRetryAt ? (
+                        <div className="muted">
+                          Retry count: {numberFmt(row.payment?.transferRetryCount)} · Next retry: {formatDate(row.payment?.nextTransferRetryAt || null)}
+                        </div>
+                      ) : null}
                       <div className={styles.badgeRow}>
                         {String(row.issueReason || "").split(",").filter(Boolean).map((issue) => (
                           <span key={`${row.id}-${issue}`} className={`${styles.badge} ${styles.badgeWarn}`}>{issue}</span>

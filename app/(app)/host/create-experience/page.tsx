@@ -233,30 +233,24 @@ const formatPreviewEnvironment = (environment: FormState["environment"], lang: s
   return "";
 };
 
-const formatPreviewPrice = (form: FormState, lang: string) => {
-  if (form.useTicketCategories) {
-    const activePaidPrices = form.ticketTypes
-      .filter((item) => item.active && !item.isFree && Number(item.price) > 0)
-      .map((item) => Number(item.price))
-      .filter((value) => Number.isFinite(value));
-    if (!activePaidPrices.length) return lang === "en" ? "Free" : "Gratuit";
-    const minPrice = Math.min(...activePaidPrices);
-    return lang === "en" ? `From ${minPrice} ${form.currencyCode}` : `De la ${minPrice} ${form.currencyCode}`;
-  }
-  const isFree = !form.price || Number(form.price) <= 0;
-  if (isFree) return lang === "en" ? "Free" : "Gratuit";
-  if (form.activityType === "GROUP" && form.pricingMode === "PER_GROUP") {
-    const packageSize = Math.max(1, Number(form.groupPackageSize) || Number(form.maxParticipants) || 1);
-    return lang === "en"
-      ? `${form.price} ${form.currencyCode} / group (${packageSize})`
-      : `${form.price} ${form.currencyCode} / grup (${packageSize})`;
-  }
-  return `${form.price} ${form.currencyCode}`;
-};
-
 const formatTicketTypePriceLabel = (ticket: TicketTypeForm, currencyCode: string, lang: string) => {
   if (ticket.isFree || Number(ticket.price) <= 0) return lang === "en" ? "Free" : "Gratuit";
   return `${ticket.price} ${currencyCode}`;
+};
+
+const getTicketTypeHint = (ticketKey: string, lang: string) => {
+  switch (ticketKey) {
+    case "adult":
+      return lang === "en" ? "Main ticket for adult participants." : "Biletul principal pentru participanții adulți.";
+    case "child_8_plus":
+      return lang === "en" ? "Reduced ticket for children aged 8 and above." : "Bilet redus pentru copiii de 8 ani și peste.";
+    case "child_under_8":
+      return lang === "en"
+        ? "Free companion ticket for children under 8."
+        : "Bilet gratuit de însoțitor pentru copiii sub 8 ani.";
+    default:
+      return lang === "en" ? "Set the name and rules for this ticket." : "Setează numele și regulile pentru acest bilet.";
+  }
 };
 
 type CoverFocusEditorProps = {
@@ -1187,14 +1181,6 @@ function CreateExperienceContent() {
   const coverFocus = resolveCoverFocus(form);
   const goToWallet = () => router.push("/host/wallet");
   const previewCoverImage = form.coverImageUrl || images[0] || "";
-  const previewTitle = form.title.trim() || (lang === "en" ? "Your experience title" : "Titlul experienței tale");
-  const previewShortDescription =
-    form.shortDescription.trim() || (lang === "en" ? "Short description shown in cards." : "Descrierea scurtă afișată pe carduri.");
-  const previewLocation = [form.city.trim(), form.country.trim() || "Romania"].filter(Boolean).join(" ");
-  const previewLanguages = form.languages.slice(0, 2).join(" · ") || (lang === "en" ? "Languages" : "Limbi");
-  const previewEnvironment = formatPreviewEnvironment(form.environment, lang) || (lang === "en" ? "Environment" : "Mediu");
-  const previewSeats = `${Math.max(0, Number(form.maxParticipants) || 0)}/${Math.max(1, Number(form.maxParticipants) || 1)}`;
-  const previewPrice = formatPreviewPrice(form, lang);
   const isFreePrice = !form.price || Number(form.price) <= 0;
   const activeTicketTypePreview = form.ticketTypes.filter((ticket) => ticket.active && ticket.label.trim());
   const selectedTicketRuleCount = activeTicketTypePreview.length;
@@ -1917,53 +1903,64 @@ function CreateExperienceContent() {
                         <div className={styles.ticketTypesList}>
                           {form.ticketTypes.map((ticket, index) => (
                             <div key={ticket.key} className={styles.ticketTypeRow}>
-                              <label className={styles.ticketTypeToggle}>
+                              <div className={styles.ticketTypeIdentity}>
+                                <div className={styles.ticketTypeTitleRow}>
+                                  <strong>{ticket.label || (lang === "en" ? "Ticket category" : "Categorie bilet")}</strong>
+                                  <label className={styles.ticketTypeToggle}>
+                                    <input
+                                      type="checkbox"
+                                      checked={ticket.active}
+                                      onChange={(e) => onTicketTypeChange(index, { active: e.target.checked })}
+                                    />
+                                    <span>{lang === "en" ? "Active" : "Activ"}</span>
+                                  </label>
+                                </div>
+                                <p>{getTicketTypeHint(ticket.key, lang)}</p>
                                 <input
-                                  type="checkbox"
-                                  checked={ticket.active}
-                                  onChange={(e) => onTicketTypeChange(index, { active: e.target.checked })}
-                                />
-                                <span>{lang === "en" ? "Active" : "Activ"}</span>
-                              </label>
-                              <input
-                                className="input"
-                                value={ticket.label}
-                                onChange={(e) => onTicketTypeChange(index, { label: e.target.value })}
-                                placeholder={lang === "en" ? "Label" : "Denumire"}
-                                disabled={!ticket.active}
-                              />
-                              <input
-                                className="input"
-                                type="number"
-                                min={0}
-                                value={ticket.isFree ? "" : ticket.price}
-                                onChange={(e) => onTicketTypeChange(index, { price: e.target.value })}
-                                placeholder={ticket.isFree ? (lang === "en" ? "Free" : "Gratuit") : "0"}
-                                disabled={!ticket.active || ticket.isFree}
-                              />
-                              <label className={styles.ticketTypeToggle}>
-                                <input
-                                  type="checkbox"
-                                  checked={ticket.isFree}
+                                  className="input"
+                                  value={ticket.label}
+                                  onChange={(e) => onTicketTypeChange(index, { label: e.target.value })}
+                                  placeholder={lang === "en" ? "Ticket label" : "Denumire bilet"}
                                   disabled={!ticket.active}
-                                  onChange={(e) =>
-                                    onTicketTypeChange(index, {
-                                      isFree: e.target.checked,
-                                      price: e.target.checked ? "0" : ticket.price && Number(ticket.price) > 0 ? ticket.price : "20",
-                                    })
-                                  }
                                 />
-                                <span>{lang === "en" ? "Free ticket" : "Bilet gratuit"}</span>
-                              </label>
-                              <label className={styles.ticketTypeToggle}>
+                              </div>
+                              <div className={styles.ticketTypeField}>
+                                <span>{lang === "en" ? "Price" : "Preț"}</span>
                                 <input
-                                  type="checkbox"
-                                  checked={ticket.countsTowardCapacity}
-                                  disabled={!ticket.active}
-                                  onChange={(e) => onTicketTypeChange(index, { countsTowardCapacity: e.target.checked })}
+                                  className="input"
+                                  type="number"
+                                  min={0}
+                                  value={ticket.isFree ? "" : ticket.price}
+                                  onChange={(e) => onTicketTypeChange(index, { price: e.target.value })}
+                                  placeholder={ticket.isFree ? (lang === "en" ? "Free" : "Gratuit") : "0"}
+                                  disabled={!ticket.active || ticket.isFree}
                                 />
-                                <span>{lang === "en" ? "Counts toward capacity" : "Consumă loc"}</span>
-                              </label>
+                              </div>
+                              <div className={styles.ticketTypeOptions}>
+                                <label className={styles.ticketTypeToggle}>
+                                  <input
+                                    type="checkbox"
+                                    checked={ticket.isFree}
+                                    disabled={!ticket.active}
+                                    onChange={(e) =>
+                                      onTicketTypeChange(index, {
+                                        isFree: e.target.checked,
+                                        price: e.target.checked ? "0" : ticket.price && Number(ticket.price) > 0 ? ticket.price : "20",
+                                      })
+                                    }
+                                  />
+                                  <span>{lang === "en" ? "Free ticket" : "Bilet gratuit"}</span>
+                                </label>
+                                <label className={styles.ticketTypeToggle}>
+                                  <input
+                                    type="checkbox"
+                                    checked={ticket.countsTowardCapacity}
+                                    disabled={!ticket.active}
+                                    onChange={(e) => onTicketTypeChange(index, { countsTowardCapacity: e.target.checked })}
+                                  />
+                                  <span>{lang === "en" ? "Counts toward capacity" : "Consumă loc"}</span>
+                                </label>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -2135,6 +2132,17 @@ function CreateExperienceContent() {
                     )}
                   </div>
                 </div>
+                <CoverFocusEditor
+                  imageUrl={previewCoverImage}
+                  focusX={coverFocus.x}
+                  focusY={coverFocus.y}
+                  title={t("create_experience_cover_focus_title")}
+                  hint={t("create_experience_cover_focus_hint")}
+                  resetLabel={t("create_experience_cover_focus_reset")}
+                  emptyLabel={t("create_experience_cover_empty")}
+                  onChange={setCoverFocus}
+                  onReset={resetCoverFocus}
+                />
               </section>
 
               <section className={styles.stepSection}>
@@ -2210,52 +2218,6 @@ function CreateExperienceContent() {
               </section>
             </div>
 
-            <aside className={styles.stepThreeAside}>
-              <div className={styles.homeCardPreview}>
-                <div className={styles.homeCardPreviewLabel}>
-                  {lang === "en" ? "Homepage card preview" : "Preview card homepage"}
-                </div>
-                <div className={styles.homePreviewCard}>
-                  {previewCoverImage ? (
-                    <img
-                      src={previewCoverImage}
-                      alt={previewTitle}
-                      className={styles.homePreviewCover}
-                      style={buildCoverObjectPosition(form)}
-                    />
-                  ) : (
-                    <div className={styles.homePreviewCoverPlaceholder}>{t("create_experience_cover_empty")}</div>
-                  )}
-                  <div className={styles.homePreviewBody}>
-                    <div className={styles.homePreviewTop}>
-                      <div>
-                        <div className={styles.homePreviewTitle}>{previewTitle}</div>
-                        <div className={styles.homePreviewLocation}>{previewLocation || "Romania"}</div>
-                        <div className={styles.homePreviewDescription}>{previewShortDescription}</div>
-                      </div>
-                      <div className={styles.homePreviewPrice}>{previewPrice}</div>
-                    </div>
-                    <div className={styles.homePreviewMeta}>
-                      <span className={styles.homePreviewPill}>🍃 {previewEnvironment}</span>
-                      <span className={styles.homePreviewPill}>👥 {previewSeats}</span>
-                      <span className={styles.homePreviewPill}>🗣 {previewLanguages}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <CoverFocusEditor
-                imageUrl={previewCoverImage}
-                focusX={coverFocus.x}
-                focusY={coverFocus.y}
-                title={t("create_experience_cover_focus_title")}
-                hint={t("create_experience_cover_focus_hint")}
-                resetLabel={t("create_experience_cover_focus_reset")}
-                emptyLabel={t("create_experience_cover_empty")}
-                onChange={setCoverFocus}
-                onReset={resetCoverFocus}
-              />
-            </aside>
           </div>
         </div>
       ) : null}

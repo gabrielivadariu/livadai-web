@@ -426,6 +426,18 @@ type AdminBooking = {
   status?: string;
   attendanceStatus?: string;
   quantity?: number;
+  participantsCount?: number;
+  capacityUsed?: number;
+  ticketSelection?: Array<{
+    key?: string;
+    label?: string;
+    quantity?: number;
+    unitPrice?: number;
+    lineTotal?: number;
+    currency?: string;
+    isFree?: boolean;
+    countsTowardCapacity?: boolean;
+  }>;
   amount?: number;
   currency?: string;
   createdAt?: string;
@@ -454,6 +466,13 @@ type AdminBooking = {
     currency?: string;
     hasStripePaymentIntent?: boolean;
     stripeSessionId?: string | null;
+    stripeChargeId?: string | null;
+    stripeTransferId?: string | null;
+    platformFee?: number;
+    transferAmount?: number;
+    hostNetAmount?: number;
+    estimatedStripeFee?: number;
+    transferStatus?: string;
   } | null;
   reportsCount?: number;
   messagesCount?: number;
@@ -722,10 +741,22 @@ type AdminPaymentListItem = {
   stripeChargeId?: string | null;
   stripeTransferId?: string | null;
   stripeTransferReversalId?: string | null;
+  ticketSelectionSnapshot?: Array<{
+    key?: string;
+    label?: string;
+    quantity?: number;
+    unitPrice?: number;
+    lineTotal?: number;
+    currency?: string;
+    isFree?: boolean;
+    countsTowardCapacity?: boolean;
+  }>;
   booking?: {
     id?: string;
     status?: string;
     quantity?: number;
+    participantsCount?: number;
+    capacityUsed?: number;
     attendanceStatus?: string;
     attendanceConfirmed?: boolean;
     completedAt?: string | null;
@@ -735,6 +766,16 @@ type AdminPaymentListItem = {
     disputedAt?: string | null;
     disputeResolvedAt?: string | null;
     lastRefundAttemptAt?: string | null;
+    ticketSelection?: Array<{
+      key?: string;
+      label?: string;
+      quantity?: number;
+      unitPrice?: number;
+      lineTotal?: number;
+      currency?: string;
+      isFree?: boolean;
+      countsTowardCapacity?: boolean;
+    }>;
   } | null;
   payoutEligibility?: {
     completedAt?: string | null;
@@ -957,6 +998,12 @@ const formatEligibilityHint = (item?: AdminPaymentListItem | null) => {
   }
   const hours = Number(eligibility.hoursUntilEligible ?? 0);
   return `In ${Math.abs(hours)}h`;
+};
+
+const getAdminTicketBreakdown = (item?: AdminPaymentListItem | null) => {
+  const snapshot = Array.isArray(item?.ticketSelectionSnapshot) ? item.ticketSelectionSnapshot : [];
+  if (snapshot.length) return snapshot;
+  return Array.isArray(item?.booking?.ticketSelection) ? item.booking.ticketSelection : [];
 };
 
 const formatDate = (value?: string | null) => {
@@ -1460,6 +1507,33 @@ function AdminBookingExperienceRow({
       .sort((a, b) => b.latestAt - a.latestAt);
   }, [group.bookings]);
 
+  const formatBookingTicketSelection = (booking: AdminBooking) => {
+    if (!Array.isArray(booking.ticketSelection) || !booking.ticketSelection.length) {
+      return null;
+    }
+    return booking.ticketSelection.map((row, index) => (
+      <div key={`${booking.id}-${row.key || row.label || "ticket"}-${index}`} className={styles.ticketBreakdownRow}>
+        <div className={styles.ticketBreakdownMain}>
+          <strong>{row.label || row.key || "Bilet"}</strong>
+          <span>
+            {numberFmt(row.quantity)} × {formatMoney(row.unitPrice, row.currency || booking.currency)}
+          </span>
+        </div>
+        <div className={styles.ticketBreakdownMeta}>
+          <span>{formatMoney(row.lineTotal, row.currency || booking.currency)}</span>
+          <div className={styles.badgeRowCompact}>
+            <span className={`${styles.badge} ${row.isFree ? styles.badgeWarn : styles.badgeOk}`}>
+              {row.isFree ? "Gratis" : "Plătit"}
+            </span>
+            <span className={`${styles.badge} ${row.countsTowardCapacity ? styles.badgeOk : styles.badgeWarn}`}>
+              {row.countsTowardCapacity ? "Consumă loc" : "Nu consumă loc"}
+            </span>
+          </div>
+        </div>
+      </div>
+    ));
+  };
+
   return (
     <div className={`${styles.card} ${styles.rowCard} ${styles.bookingGroupCard}`}>
       <div className={styles.rowTop}>
@@ -1516,14 +1590,33 @@ function AdminBookingExperienceRow({
                     <div key={item.id} className={styles.bookingParticipantRow}>
                       <div className={styles.bookingParticipantMain}>
                         <div className={styles.rowSub}>
-                          #{item.id.slice(-8)} · Creat {formatDate(item.createdAt)} · Status {item.status || "—"} · Attendance {item.attendanceStatus || "—"}
+                          #{item.id.slice(-8)} · Creat {formatDate(item.createdAt)} · Status {item.status || "—"}
                         </div>
                         <div className={styles.rowSub}>
-                          Locuri {numberFmt(item.quantity)} · Booking {formatMoney(item.amount, item.currency)} · Plată {item.payment ? formatMoney(item.payment.amount, item.payment.currency) : "—"} · Pay {item.payment?.status || "—"}
+                          Locuri rezervate {numberFmt(item.quantity)} · Participanți {numberFmt(item.participantsCount)} · Capacitate folosită {numberFmt(item.capacityUsed)}
+                        </div>
+                        <div className={styles.rowSub}>
+                          Booking {formatMoney(item.amount, item.currency)} · Plată {item.payment ? formatMoney(item.payment.amount, item.payment.currency) : "—"} · Pay {item.payment?.status || "—"}
+                          {item.payment?.transferStatus ? ` · Transfer ${formatTransferStatus(item.payment.transferStatus)}` : ""}
                         </div>
                         <div className={styles.rowSub}>
                           Refundat {formatDate(item.refundedAt || null)} · Anulat {formatDate(item.cancelledAt || null)}
                         </div>
+                        {item.payment ? (
+                          <div className={styles.rowSub}>
+                            Platform fee {formatMoney(item.payment.platformFee, item.payment.currency || item.currency)} · Transfer amount{" "}
+                            {formatMoney(item.payment.transferAmount, item.payment.currency || item.currency)} · Host net{" "}
+                            {formatMoney(item.payment.hostNetAmount, item.payment.currency || item.currency)}
+                          </div>
+                        ) : null}
+                        {item.payment?.estimatedStripeFee ? (
+                          <div className={styles.rowSub}>
+                            Estimated Stripe fee {formatMoney(item.payment.estimatedStripeFee, item.payment.currency || item.currency)}
+                          </div>
+                        ) : null}
+                        {Array.isArray(item.ticketSelection) && item.ticketSelection.length ? (
+                          <div className={styles.ticketBreakdownList}>{formatBookingTicketSelection(item)}</div>
+                        ) : null}
                       </div>
                       <div className={styles.bookingParticipantActions}>
                         <button type="button" className="button secondary" disabled={busy} onClick={() => void onCancel(item.id)}>
@@ -2875,7 +2968,6 @@ export default function AdminPage() {
     const rows = items.map((b) => [
       b.id,
       b.status || "",
-      b.attendanceStatus || "",
       b.experience?.title || "",
       b.host?.email || "",
       b.explorer?.email || "",
@@ -2892,7 +2984,7 @@ export default function AdminPage() {
       b.cancelledAt || "",
     ]);
     downloadCsv(`livadai-admin-bookings-${new Date().toISOString().slice(0, 10)}.csv`, csvFromRows(
-      ["id", "status", "attendanceStatus", "experienceTitle", "hostEmail", "explorerEmail", "quantity", "amount", "currency", "paymentStatus", "paymentType", "paymentAmount", "reportsCount", "messagesCount", "createdAt", "refundedAt", "cancelledAt"],
+      ["id", "status", "experienceTitle", "hostEmail", "explorerEmail", "quantity", "amount", "currency", "paymentStatus", "paymentType", "paymentAmount", "reportsCount", "messagesCount", "createdAt", "refundedAt", "cancelledAt"],
       rows
     ));
     setActionInfo(`Export CSV bookings: ${numberFmt(items.length)} rânduri.`);
@@ -4251,7 +4343,6 @@ export default function AdminPage() {
               <option value="PENDING">PENDING</option>
               <option value="PAID">PAID</option>
               <option value="DEPOSIT_PAID">DEPOSIT_PAID</option>
-              <option value="PENDING_ATTENDANCE">PENDING_ATTENDANCE</option>
               <option value="DISPUTED">DISPUTED</option>
               <option value="COMPLETED">COMPLETED</option>
               <option value="AUTO_COMPLETED">AUTO_COMPLETED</option>
@@ -5176,6 +5267,41 @@ export default function AdminPage() {
                     <div><strong>Payment intent</strong><span className={styles.codeBlock}>{selectedPayment.stripePaymentIntentId || "—"}</span></div>
                     <div><strong>Charge id</strong><span className={styles.codeBlock}>{selectedPayment.stripeChargeId || "—"}</span></div>
                     <div><strong>Transfer id</strong><span className={styles.codeBlock}>{selectedPayment.stripeTransferId || "—"}</span></div>
+                  </div>
+
+                  <div className={styles.detailsSection}>
+                    <div className={styles.panelTitle}>{tx("Ticket breakdown", "Ticket breakdown")}</div>
+                    <div className={styles.detailGrid}>
+                      <div><strong>participantsCount</strong><span>{numberFmt(selectedPayment.booking?.participantsCount)}</span></div>
+                      <div><strong>capacityUsed</strong><span>{numberFmt(selectedPayment.booking?.capacityUsed)}</span></div>
+                    </div>
+                    {getAdminTicketBreakdown(selectedPayment).length ? (
+                      <div className={styles.ticketBreakdownList}>
+                        {getAdminTicketBreakdown(selectedPayment).map((row, index) => (
+                          <div key={`${row.key || row.label || "ticket"}-${index}`} className={styles.ticketBreakdownRow}>
+                            <div className={styles.ticketBreakdownMain}>
+                              <strong>{row.label || row.key || tx("Bilet", "Ticket")}</strong>
+                              <span>
+                                {numberFmt(row.quantity)} × {formatMoney(row.unitPrice, row.currency || selectedPayment.currency)}
+                              </span>
+                            </div>
+                            <div className={styles.ticketBreakdownMeta}>
+                              <span>{formatMoney(row.lineTotal, row.currency || selectedPayment.currency)}</span>
+                              <div className={styles.badgeRowCompact}>
+                                <span className={`${styles.badge} ${row.isFree ? styles.badgeWarn : styles.badgeOk}`}>
+                                  {row.isFree ? tx("Gratis", "Free") : tx("Plătit", "Paid")}
+                                </span>
+                                <span className={`${styles.badge} ${row.countsTowardCapacity ? styles.badgeOk : styles.badgeWarn}`}>
+                                  {row.countsTowardCapacity ? tx("Consumă loc", "Uses capacity") : tx("Nu consumă loc", "No capacity")}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="muted">{tx("Experiență cu preț unic, fără categorii de bilete.", "Single-price experience, no ticket categories.")}</div>
+                    )}
                   </div>
 
                   <div className={styles.detailsSection}>

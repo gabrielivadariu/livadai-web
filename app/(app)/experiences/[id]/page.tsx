@@ -31,6 +31,16 @@ type Experience = {
     formattedAddress?: string;
   };
   price?: number;
+  ticketTypes?: Array<{
+    key?: string;
+    label?: string;
+    price?: number;
+    currency?: string;
+    isFree?: boolean;
+    countsTowardCapacity?: boolean;
+    active?: boolean;
+    order?: number;
+  }>;
   currencyCode?: string;
   rating_avg?: number;
   coverImageUrl?: string;
@@ -79,6 +89,14 @@ const trimUrlEdgePunctuation = (value: string) => {
   }
   return { url, trailing };
 };
+
+const getActiveTicketTypes = (experience?: Experience | null) =>
+  Array.isArray(experience?.ticketTypes)
+    ? experience.ticketTypes
+        .filter((item) => item && item.active !== false)
+        .slice()
+        .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+    : [];
 
 const renderParagraphWithLinks = (paragraph: string) => {
   const matches = Array.from(paragraph.matchAll(URL_PATTERN));
@@ -200,6 +218,7 @@ function ExperienceDetailPageContent() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [ticketQuantities, setTicketQuantities] = useState<Record<string, number>>({});
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string>("");
@@ -240,6 +259,23 @@ function ExperienceDetailPageContent() {
       },
     });
   }, [item?._id, item?.city, item?.host?._id, item?.location?.city, item?.price, item?.title]);
+
+  useEffect(() => {
+    const activeTicketTypes = getActiveTicketTypes(item);
+    if (!activeTicketTypes.length) {
+      setTicketQuantities({});
+      return;
+    }
+    setTicketQuantities((current) => {
+      const next: Record<string, number> = {};
+      for (const ticketType of activeTicketTypes) {
+        const key = String(ticketType.key || "");
+        if (!key) continue;
+        next[key] = Math.max(0, Number(current[key] || 0));
+      }
+      return next;
+    });
+  }, [item?.ticketTypes]);
 
   useEffect(() => {
     let active = true;
@@ -503,6 +539,19 @@ function ExperienceDetailPageContent() {
     Number(item?.groupPackageSize) || Number(item?.maxParticipants) || Number(activeExperience?.maxParticipants) || 1
   );
   const totalSeats = activeExperience?.maxParticipants ?? item?.maxParticipants ?? 0;
+  const activeTicketTypes = getActiveTicketTypes(item);
+  const usesTicketCategories = activeTicketTypes.length > 0;
+  const ticketSelection = activeTicketTypes
+    .map((ticketType) => ({
+      ...ticketType,
+      quantity: Math.max(0, Number(ticketQuantities[String(ticketType.key || "")] || 0)),
+    }))
+    .filter((ticketType) => ticketType.quantity > 0);
+  const ticketCapacityUsed = ticketSelection.reduce(
+    (sum, ticketType) => sum + (ticketType.countsTowardCapacity !== false ? Number(ticketType.quantity || 0) : 0),
+    0
+  );
+  const ticketTotal = ticketSelection.reduce((sum, ticketType) => sum + Number(ticketType.price || 0) * Number(ticketType.quantity || 0), 0);
   const availableSeats =
     typeof activeExperience?.availableSpots === "number"
       ? activeExperience.availableSpots
@@ -510,7 +559,7 @@ function ExperienceDetailPageContent() {
         ? activeExperience.remainingSpots
         : totalSeats;
   const maxQuantity =
-    item?.activityType === "GROUP" && pricingMode !== "PER_GROUP"
+    item?.activityType === "GROUP" && pricingMode !== "PER_GROUP" && !usesTicketCategories
       ? Math.max(1, availableSeats || totalSeats || 1)
       : 1;
 
@@ -519,12 +568,12 @@ function ExperienceDetailPageContent() {
       setQuantity(1);
       return;
     }
-    if (pricingMode === "PER_GROUP") {
+    if (pricingMode === "PER_GROUP" || usesTicketCategories) {
       setQuantity(1);
       return;
     }
     setQuantity((prev) => Math.min(Math.max(prev, 1), maxQuantity));
-  }, [item?.activityType, maxQuantity, pricingMode]);
+  }, [item?.activityType, maxQuantity, pricingMode, usesTicketCategories]);
 
   useEffect(() => {
     if (!lightboxOpen) return;
@@ -563,7 +612,18 @@ function ExperienceDetailPageContent() {
     setError("");
     try {
       const targetExperienceId = selectedSlot?._id || item._id;
-      const seatCount = item.activityType === "GROUP" ? (pricingMode === "PER_GROUP" ? groupPackageSize : quantity) : 1;
+      const seatCount = usesTicketCategories
+        ? ticketCapacityUsed
+        : item.activityType === "GROUP"
+          ? pricingMode === "PER_GROUP"
+            ? groupPackageSize
+            : quantity
+          : 1;
+      if (usesTicketCategories && ticketSelection.length === 0) {
+        setError(lang === "en" ? "Select at least one ticket." : "Selectează cel puțin un bilet.");
+        setBooking(false);
+        return;
+      }
       trackEvent({
         eventName: "booking_started",
         experienceId: targetExperienceId,
@@ -572,11 +632,18 @@ function ExperienceDetailPageContent() {
           title: item.title,
           quantity: seatCount,
           pricingMode,
+          ticketCategories: usesTicketCategories,
         },
       });
       const res = await apiPost<{ checkoutUrl?: string; bookingId?: string }>("/payments/create-checkout", {
         experienceId: targetExperienceId,
         quantity: seatCount,
+        ticketSelection: usesTicketCategories
+          ? ticketSelection.map((ticketType) => ({
+              key: ticketType.key,
+              quantity: ticketType.quantity,
+            }))
+          : undefined,
       });
       if (res?.checkoutUrl) {
         if (res.bookingId) {
@@ -707,8 +774,17 @@ function ExperienceDetailPageContent() {
   });
   const startLabel = start ? dateFormatter.format(new Date(start)) : "";
   const endLabel = end ? dateFormatter.format(new Date(end)) : "";
-  const isFree = !item.price || Number(item.price) <= 0;
-  const priceText = isFree
+  const isFree = usesTicketCategories ? ticketTotal <= 0 : !item.price || Number(item.price) <= 0;
+  const priceText = usesTicketCategories
+    ? (() => {
+        const paidPrices = activeTicketTypes
+          .filter((ticketType) => Number(ticketType.price || 0) > 0)
+          .map((ticketType) => Number(ticketType.price || 0));
+        if (!paidPrices.length) return t("experience_free_label");
+        const minPrice = Math.min(...paidPrices);
+        return lang === "en" ? `From ${minPrice} ${item.currencyCode || "RON"}` : `De la ${minPrice} ${item.currencyCode || "RON"}`;
+      })()
+    : isFree
     ? pricingMode === "PER_GROUP"
       ? lang === "en"
         ? `${t("experience_free_label")} / group`
@@ -719,14 +795,25 @@ function ExperienceDetailPageContent() {
         ? `${item.price} ${item.currencyCode || "RON"} / group (${groupPackageSize})`
         : `${item.price} ${item.currencyCode || "RON"} / grup (${groupPackageSize})`
       : `${item.price} ${item.currencyCode || "RON"}`;
-  const payableSeats = item.activityType === "GROUP" ? (pricingMode === "PER_GROUP" ? groupPackageSize : quantity) : 1;
+  const payableSeats = usesTicketCategories
+    ? ticketCapacityUsed
+    : item.activityType === "GROUP"
+      ? pricingMode === "PER_GROUP"
+        ? groupPackageSize
+        : quantity
+      : 1;
   const serviceFeeTotal = payableSeats * 2;
   const serviceFeeTotalLabel = t("experience_service_fee_total").replace("{{amount}}", String(serviceFeeTotal));
+  const selectedParticipants = ticketSelection.reduce((sum, ticketType) => sum + Number(ticketType.quantity || 0), 0);
+  const hasNonCapacityTicketTypes = activeTicketTypes.some((ticketType) => ticketType.countsTowardCapacity === false);
   const bookingDisabled =
     booking ||
     (item.isSeries && (!!selectedSlot && !selectedSlot.bookable)) ||
+    (usesTicketCategories && ticketSelection.length === 0) ||
     (item.activityType === "GROUP" &&
-      (availableSeats <= 0 || (pricingMode === "PER_GROUP" && availableSeats < groupPackageSize)));
+      (availableSeats <= 0 ||
+        (usesTicketCategories && availableSeats < ticketCapacityUsed) ||
+        (pricingMode === "PER_GROUP" && availableSeats < groupPackageSize)));
   const chatRequiresAuth = !user;
   const chatDisabledReason = chatRequiresAuth
     ? t("chat_login_prompt")
@@ -979,7 +1066,103 @@ function ExperienceDetailPageContent() {
               <strong>{serviceFeeTotalLabel}</strong>
             </div>
           ) : null}
-          {item.activityType === "GROUP" && pricingMode !== "PER_GROUP" ? (
+          {usesTicketCategories ? (
+            <div className={styles.ticketPicker}>
+              <div className={styles.ticketPickerIntro}>
+                <div className={styles.ticketPickerIntroHeader}>
+                  <strong>{lang === "en" ? "Available tickets" : "Bilete disponibile"}</strong>
+                  <span>
+                    {lang === "en"
+                      ? "Choose how many tickets you want from each category."
+                      : "Alege câte bilete vrei din fiecare categorie."}
+                  </span>
+                </div>
+                {hasNonCapacityTicketTypes ? (
+                  <p className={styles.ticketPickerNote}>
+                    {lang === "en"
+                      ? "Some categories do not consume capacity. They still appear in the booking summary, but they do not reduce the remaining seats."
+                      : "Unele categorii nu consumă loc. Ele apar în rezumatul rezervării, dar nu reduc locurile rămase."}
+                  </p>
+                ) : null}
+              </div>
+              {activeTicketTypes.map((ticketType) => {
+                const key = String(ticketType.key || "");
+                const qty = Math.max(0, Number(ticketQuantities[key] || 0));
+                const maxForType =
+                  ticketType.countsTowardCapacity === false
+                    ? 20
+                    : Math.max(0, Number(availableSeats || totalSeats || 0) - (ticketCapacityUsed - qty));
+                return (
+                  <div key={key} className={styles.ticketPickerRow}>
+                    <div>
+                      <div className={styles.ticketPickerLabel}>{ticketType.label}</div>
+                      <div className={styles.ticketPickerMeta}>
+                        {Number(ticketType.price || 0) > 0
+                          ? `${ticketType.price} ${item.currencyCode || "RON"}`
+                          : lang === "en"
+                            ? "Free"
+                            : "Gratuit"}
+                        {ticketType.countsTowardCapacity === false
+                          ? lang === "en"
+                            ? " · does not use capacity"
+                            : " · nu consumă loc"
+                          : ""}
+                      </div>
+                    </div>
+                    <div className={styles.quantityControls}>
+                      <button
+                        className={styles.qtyButton}
+                        type="button"
+                        onClick={() =>
+                          setTicketQuantities((current) => ({
+                            ...current,
+                            [key]: Math.max(0, Number(current[key] || 0) - 1),
+                          }))
+                        }
+                        disabled={qty <= 0}
+                      >
+                        -
+                      </button>
+                      <span className={styles.qtyValue}>{qty}</span>
+                      <button
+                        className={styles.qtyButton}
+                        type="button"
+                        onClick={() =>
+                          setTicketQuantities((current) => ({
+                            ...current,
+                            [key]: Math.min(maxForType, Number(current[key] || 0) + 1),
+                          }))
+                        }
+                        disabled={maxForType <= qty}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              <div className={styles.ticketPickerSummary}>
+                <div className={styles.ticketPickerSummaryMeta}>
+                  <span>
+                    {lang === "en"
+                      ? `Participants selected: ${selectedParticipants}`
+                      : `Participanți selectați: ${selectedParticipants}`}
+                  </span>
+                  <span>
+                    {lang === "en"
+                      ? `Capacity used: ${ticketCapacityUsed}`
+                      : `Locuri consumate: ${ticketCapacityUsed}`}
+                  </span>
+                </div>
+                <strong>
+                  {lang === "en"
+                    ? `Total: ${ticketTotal} ${item.currencyCode || "RON"}`
+                    : `Total: ${ticketTotal} ${item.currencyCode || "RON"}`}
+                </strong>
+              </div>
+            </div>
+          ) : null}
+          {item.activityType === "GROUP" && pricingMode !== "PER_GROUP" && !usesTicketCategories ? (
             <div className={styles.quantityRow}>
               <span>{lang === "en" ? "Seats" : "Locuri"}</span>
               <div className={styles.quantityControls}>

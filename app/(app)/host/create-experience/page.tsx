@@ -12,6 +12,8 @@ import styles from "./create-experience.module.css";
 const EXPERIENCE_CREATED_KEY = "livadai-experience-created";
 const TITLE_MAX_LENGTH = 30;
 const SHORT_DESCRIPTION_MAX_LENGTH = 50;
+const MAX_EXPERIENCE_IMAGES = 5;
+const MAX_IMAGE_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 const languages = [
   { code: "ro", label: "Română" },
@@ -74,6 +76,16 @@ type EditableExperienceResponse = Partial<FormState> & {
   description?: string;
   longDescription?: string;
   price?: number;
+  ticketTypes?: Array<{
+    key?: string;
+    label?: string;
+    price?: number;
+    currency?: string;
+    isFree?: boolean;
+    countsTowardCapacity?: boolean;
+    active?: boolean;
+    order?: number;
+  }>;
   groupPackageSize?: number;
   maxParticipants?: number;
   durationMinutes?: number;
@@ -101,12 +113,24 @@ type StripeGateState = {
   actionLabel: string;
 };
 
+type TicketTypeForm = {
+  key: string;
+  label: string;
+  price: string;
+  isFree: boolean;
+  countsTowardCapacity: boolean;
+  active: boolean;
+  order?: number;
+};
+
 type FormState = {
   creationMode: "" | "ONE_TIME" | "LONG_TERM";
   title: string;
   shortDescription: string;
   longDescription: string;
   price: string;
+  useTicketCategories: boolean;
+  ticketTypes: TicketTypeForm[];
   pricingMode: "PER_PERSON" | "PER_GROUP";
   groupPackageSize: string;
   currencyCode: string;
@@ -144,6 +168,12 @@ const initialForm: FormState = {
   shortDescription: "",
   longDescription: "",
   price: "",
+  useTicketCategories: false,
+  ticketTypes: [
+    { key: "adult", label: "Adult", price: "40", isFree: false, countsTowardCapacity: true, active: true },
+    { key: "child_8_plus", label: "Copil 8+", price: "20", isFree: false, countsTowardCapacity: true, active: false },
+    { key: "child_under_8", label: "Sub 8 ani", price: "0", isFree: true, countsTowardCapacity: false, active: false },
+  ],
   pricingMode: "PER_PERSON",
   groupPackageSize: "1",
   currencyCode: "RON",
@@ -204,6 +234,15 @@ const formatPreviewEnvironment = (environment: FormState["environment"], lang: s
 };
 
 const formatPreviewPrice = (form: FormState, lang: string) => {
+  if (form.useTicketCategories) {
+    const activePaidPrices = form.ticketTypes
+      .filter((item) => item.active && !item.isFree && Number(item.price) > 0)
+      .map((item) => Number(item.price))
+      .filter((value) => Number.isFinite(value));
+    if (!activePaidPrices.length) return lang === "en" ? "Free" : "Gratuit";
+    const minPrice = Math.min(...activePaidPrices);
+    return lang === "en" ? `From ${minPrice} ${form.currencyCode}` : `De la ${minPrice} ${form.currencyCode}`;
+  }
   const isFree = !form.price || Number(form.price) <= 0;
   if (isFree) return lang === "en" ? "Free" : "Gratuit";
   if (form.activityType === "GROUP" && form.pricingMode === "PER_GROUP") {
@@ -213,6 +252,11 @@ const formatPreviewPrice = (form: FormState, lang: string) => {
       : `${form.price} ${form.currencyCode} / grup (${packageSize})`;
   }
   return `${form.price} ${form.currencyCode}`;
+};
+
+const formatTicketTypePriceLabel = (ticket: TicketTypeForm, currencyCode: string, lang: string) => {
+  if (ticket.isFree || Number(ticket.price) <= 0) return lang === "en" ? "Free" : "Gratuit";
+  return `${ticket.price} ${currencyCode}`;
 };
 
 type CoverFocusEditorProps = {
@@ -313,6 +357,14 @@ function CreateExperienceContent() {
     actionLabel: "",
   });
 
+  const interpolate = (key: string, values: Record<string, string | number>) => {
+    let message = t(key);
+    for (const [token, value] of Object.entries(values)) {
+      message = message.replaceAll(`{{${token}}}`, String(value));
+    }
+    return message;
+  };
+
   const buildStripeGateState = (status?: StripeHostStatus | null): StripeGateState => {
     const stripeAccountId = String(status?.stripeAccountId || "").trim();
     const chargesEnabled =
@@ -406,12 +458,28 @@ function CreateExperienceContent() {
         const endsAt = exp.endsAt || exp.endDate;
         const focus = resolveCoverFocus(exp);
         const toInput = (value?: string) => (value ? new Date(value).toISOString().slice(0, 16) : "");
+        const normalizedTicketTypes =
+          Array.isArray(exp.ticketTypes) && exp.ticketTypes.length
+            ? exp.ticketTypes
+                .slice()
+                .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+                .map((item, index) => ({
+                  key: item.key || `ticket_${index + 1}`,
+                  label: item.label || "",
+                  price: item.price !== undefined ? String(item.price) : "0",
+                  isFree: item.isFree === true || Number(item.price || 0) <= 0,
+                  countsTowardCapacity: item.countsTowardCapacity !== false,
+                  active: item.active !== false,
+                }))
+            : initialForm.ticketTypes;
         setForm({
           creationMode: "ONE_TIME",
           title: exp.title || "",
           shortDescription: exp.shortDescription || "",
           longDescription: exp.description || exp.longDescription || "",
           price: exp.price ? String(exp.price) : "",
+          useTicketCategories: Array.isArray(exp.ticketTypes) && exp.ticketTypes.length > 0,
+          ticketTypes: normalizedTicketTypes,
           pricingMode: exp.pricingMode === "PER_GROUP" ? "PER_GROUP" : "PER_PERSON",
           groupPackageSize: exp.groupPackageSize ? String(exp.groupPackageSize) : String(exp.maxParticipants || 1),
           currencyCode: exp.currencyCode || "RON",
@@ -464,6 +532,19 @@ function CreateExperienceContent() {
 
   const onChange = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  const onTicketTypeChange = (index: number, patch: Partial<TicketTypeForm>) =>
+    setForm((current) => ({
+      ...current,
+      ticketTypes: current.ticketTypes.map((item, itemIndex) =>
+        itemIndex === index
+          ? {
+              ...item,
+              ...patch,
+            }
+          : item
+      ),
+    }));
 
   const setCoverFocus = (coverFocusX: number, coverFocusY: number) =>
     setForm((f) => ({
@@ -620,18 +701,48 @@ function CreateExperienceContent() {
       body: formData,
       credentials: "include",
     });
-    if (!res.ok) throw new Error("Upload failed");
+    if (!res.ok) {
+      let message = t("create_experience_upload_error");
+      try {
+        const data = await res.json();
+        if (data?.message) message = data.message;
+      } catch {}
+      throw new Error(message);
+    }
     const data = await res.json();
     return data.url;
   };
 
+  const validateImageFiles = (files: File[]) => {
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) {
+        return t("create_experience_upload_type_error");
+      }
+      if (file.size > MAX_IMAGE_FILE_SIZE_BYTES) {
+        return interpolate("create_experience_upload_size_error", { maxMb: 10 });
+      }
+    }
+    return "";
+  };
+
   const onPickImages = async (files: File[]) => {
     if (!files?.length) return;
+    const remainingSlots = MAX_EXPERIENCE_IMAGES - images.length;
+    if (remainingSlots <= 0) {
+      setError(interpolate("create_experience_upload_limit_error", { max: MAX_EXPERIENCE_IMAGES }));
+      return;
+    }
+    const validationError = validateImageFiles(files);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    const acceptedFiles = files.slice(0, remainingSlots);
     setUploading(true);
     setError("");
     try {
       const uploaded: string[] = [];
-      for (const file of files) {
+      for (const file of acceptedFiles) {
         const url = await uploadFile(file);
         if (url) uploaded.push(url);
       }
@@ -644,8 +755,11 @@ function CreateExperienceContent() {
           coverFocusY: DEFAULT_COVER_FOCUS,
         }));
       }
-    } catch {
-      setError(t("create_experience_upload_error"));
+      if (acceptedFiles.length < files.length) {
+        setError(interpolate("create_experience_upload_limit_partial", { max: MAX_EXPERIENCE_IMAGES }));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("create_experience_upload_error"));
     } finally {
       setUploading(false);
     }
@@ -653,9 +767,18 @@ function CreateExperienceContent() {
 
   const onPickCoverImage = async (file?: File | null) => {
     if (!file) return;
+    if (file.type && !file.type.startsWith("image/")) {
+      setError(t("create_experience_upload_type_error"));
+      return;
+    }
+    if (file.size > MAX_IMAGE_FILE_SIZE_BYTES) {
+      setError(interpolate("create_experience_upload_size_error", { maxMb: 10 }));
+      return;
+    }
     setUploading(true);
     setError("");
     try {
+      const previousCoverUrl = form.coverImageUrl;
       const url = await uploadFile(file);
       if (!url) return;
       setForm((f) => ({
@@ -664,9 +787,13 @@ function CreateExperienceContent() {
         coverFocusX: DEFAULT_COVER_FOCUS,
         coverFocusY: DEFAULT_COVER_FOCUS,
       }));
-      setImages((prev) => (prev.includes(url) ? prev : [url, ...prev]));
-    } catch {
-      setError(t("create_experience_upload_error"));
+      setImages((prev) => {
+        if (prev.includes(url)) return prev;
+        const withoutPreviousCover = previousCoverUrl ? prev.filter((img) => img !== previousCoverUrl) : prev;
+        return [url, ...withoutPreviousCover].slice(0, MAX_EXPERIENCE_IMAGES);
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("create_experience_upload_error"));
     } finally {
       setUploading(false);
     }
@@ -938,19 +1065,63 @@ function CreateExperienceContent() {
       const selectedCreationMode = form.creationMode;
       const selectedActivityType = form.activityType;
       const selectedEnvironment = form.environment;
+      const normalizedTicketTypes = form.useTicketCategories
+        ? form.ticketTypes
+            .filter((item) => item.active)
+            .map((item, index) => ({
+              key: item.key,
+              label: item.label.trim(),
+              price: item.isFree ? 0 : Math.max(0, Number(item.price) || 0),
+              currency: form.currencyCode,
+              isFree: item.isFree,
+              countsTowardCapacity: item.countsTowardCapacity,
+              active: true,
+              order: index,
+            }))
+        : [];
+      if (form.useTicketCategories) {
+        if (selectedActivityType !== "GROUP") {
+          setError(
+            lang === "en"
+              ? "Ticket categories are available only for group experiences."
+              : "Categoriile de bilete sunt disponibile doar pentru experiențele de grup."
+          );
+          setLoading(false);
+          return;
+        }
+        if (!normalizedTicketTypes.length || normalizedTicketTypes.some((item) => !item.label)) {
+          setError(
+            lang === "en"
+              ? "Fill in all active ticket category labels."
+              : "Completează toate denumirile pentru categoriile de bilete active."
+          );
+          setLoading(false);
+          return;
+        }
+        if (!normalizedTicketTypes.some((item) => !item.isFree && item.price > 0)) {
+          setError(
+            lang === "en"
+              ? "At least one paid ticket category is required."
+              : "Este necesară cel puțin o categorie de bilet plătit."
+          );
+          setLoading(false);
+          return;
+        }
+      }
       const isFree = !form.price || Number(form.price) <= 0;
       const coverFocus = resolveCoverFocus(form);
       const basePayload = {
         title: form.title,
         shortDescription: form.shortDescription,
         description: form.longDescription,
-        price: isFree ? 0 : Number(form.price),
+        price: form.useTicketCategories ? 0 : isFree ? 0 : Number(form.price),
+        ticketTypes: normalizedTicketTypes,
         currencyCode: form.currencyCode,
         activityType: selectedActivityType,
         maxParticipants: selectedActivityType === "GROUP" ? Number(form.maxParticipants) || 1 : 1,
-        pricingMode: selectedActivityType === "GROUP" ? form.pricingMode : "PER_PERSON",
+        pricingMode: form.useTicketCategories ? "PER_PERSON" : selectedActivityType === "GROUP" ? form.pricingMode : "PER_PERSON",
         groupPackageSize:
-          selectedActivityType === "GROUP" && form.pricingMode === "PER_GROUP"
+          !form.useTicketCategories && selectedActivityType === "GROUP" && form.pricingMode === "PER_GROUP"
             ? Math.max(1, Number(form.groupPackageSize) || Number(form.maxParticipants) || 1)
             : null,
         environment: selectedEnvironment,
@@ -1025,6 +1196,8 @@ function CreateExperienceContent() {
   const previewSeats = `${Math.max(0, Number(form.maxParticipants) || 0)}/${Math.max(1, Number(form.maxParticipants) || 1)}`;
   const previewPrice = formatPreviewPrice(form, lang);
   const isFreePrice = !form.price || Number(form.price) <= 0;
+  const activeTicketTypePreview = form.ticketTypes.filter((ticket) => ticket.active && ticket.label.trim());
+  const selectedTicketRuleCount = activeTicketTypePreview.length;
   const handleNextStep = () => {
     if (stripeGate.blocked) {
       setError(stripeGate.message);
@@ -1129,6 +1302,12 @@ function CreateExperienceContent() {
 
                 <div className={styles.full}>
                   <label>{t("create_experience_upload_images")}</label>
+                  <div className="muted" style={{ marginBottom: 8 }}>
+                    {interpolate("create_experience_images_limit_hint", { max: MAX_EXPERIENCE_IMAGES })}
+                  </div>
+                  <div className="muted" style={{ marginBottom: 12 }}>
+                    {interpolate("create_experience_images_count", { count: images.length, max: MAX_EXPERIENCE_IMAGES })}
+                  </div>
                   <div
                     className={`${styles.dropzone} ${dragActive ? styles.dropzoneActive : ""}`}
                     onDragOver={(e) => {
@@ -1674,51 +1853,224 @@ function CreateExperienceContent() {
                 </div>
                 <div className={styles.grid}>
                   <div className={styles.full}>
-                    <label>{lang === "en" ? "Access type" : "Tip acces"}</label>
-                    <div className={styles.chips}>
+                    <label>{lang === "en" ? "Pricing setup" : "Structura prețului"}</label>
+                    <div className={styles.pricingChoiceGrid}>
                       <button
                         type="button"
-                        className={`${styles.chip} ${isFreePrice ? styles.chipActive : ""}`}
-                        onClick={() => onChange("price", "0")}
+                        className={`${styles.pricingChoiceCard} ${!form.useTicketCategories ? styles.pricingChoiceCardActive : ""}`}
+                        onClick={() => onChange("useTicketCategories", false)}
                       >
-                        {lang === "en" ? "Free" : "Gratis"}
+                        <strong>{lang === "en" ? "Single price" : "Preț unic"}</strong>
+                        <span>
+                          {lang === "en"
+                            ? "Use one simple price for everyone or one fixed group package."
+                            : "Folosește un singur preț pentru toți sau un pachet fix de grup."}
+                        </span>
                       </button>
-                      <button
-                        type="button"
-                        className={`${styles.chip} ${!isFreePrice ? styles.chipActive : ""}`}
-                        onClick={() => onChange("price", form.price && Number(form.price) > 0 ? form.price : "50")}
-                      >
-                        {lang === "en" ? "Paid" : "Cu preț"}
-                      </button>
+                      {form.activityType === "GROUP" ? (
+                        <button
+                          type="button"
+                          className={`${styles.pricingChoiceCard} ${form.useTicketCategories ? styles.pricingChoiceCardActive : ""}`}
+                          onClick={() => onChange("useTicketCategories", true)}
+                        >
+                          <strong>{lang === "en" ? "Ticket categories" : "Categorii bilete"}</strong>
+                          <span>
+                            {lang === "en"
+                              ? "Set different prices for adults, children or free companions."
+                              : "Setează prețuri diferite pentru adulți, copii sau însoțitori gratuiți."}
+                          </span>
+                        </button>
+                      ) : null}
                     </div>
                   </div>
-                  <div className={styles.priceFieldShell}>
-                    <label>{t("create_experience_price")}</label>
-                    <input
-                      className="input"
-                      type="number"
-                      min={0}
-                      disabled={isFreePrice}
-                      value={isFreePrice ? "" : form.price}
-                      placeholder={isFreePrice ? (lang === "en" ? "Free experience" : "Experiență gratuită") : "0"}
-                      onChange={(e) => onChange("price", e.target.value)}
-                    />
-                    <p className={styles.inlineHint}>
-                      {isFreePrice
-                        ? lang === "en"
-                          ? "The homepage card and booking flow will show this experience as free."
-                          : "Cardul din homepage și flow-ul de booking vor arăta această experiență ca gratuită."
-                        : lang === "en"
-                          ? "Set the participant price in RON."
-                          : "Setează prețul per participant în RON."}
-                    </p>
-                  </div>
+                  {form.useTicketCategories ? (
+                    <div className={styles.full}>
+                      <div className={styles.ticketTypesCard}>
+                        <div className={styles.ticketTypesHeader}>
+                          <div>
+                            <h4>{lang === "en" ? "Ticket categories" : "Categorii de bilete"}</h4>
+                            <p>
+                              {lang === "en"
+                                ? "Configure up to 3 categories. Buyers will choose quantities for each ticket type before paying."
+                                : "Configurează până la 3 categorii. Cumpărătorii vor alege cantități pentru fiecare tip de bilet înainte de plată."}
+                            </p>
+                          </div>
+                        </div>
+                        <div className={styles.ticketRulesGrid}>
+                          <div className={styles.ticketRuleCard}>
+                            <strong>{lang === "en" ? "What the buyer sees" : "Ce vede cumpărătorul"}</strong>
+                            <p>
+                              {lang === "en"
+                                ? "Each active ticket appears separately with its own price, quantity selector and total."
+                                : "Fiecare bilet activ apare separat, cu propriul preț, selector de cantitate și total."}
+                            </p>
+                          </div>
+                          <div className={styles.ticketRuleCard}>
+                            <strong>{lang === "en" ? "Capacity rule" : "Regula de capacitate"}</strong>
+                            <p>
+                              {lang === "en"
+                                ? "Turn off “Counts toward capacity” only for children or companions that should not consume seats."
+                                : "Dezactivează „Consumă loc” doar pentru copii sau însoțitori care nu trebuie să ocupe locuri."}
+                            </p>
+                          </div>
+                        </div>
+                        <div className={styles.ticketTypesList}>
+                          {form.ticketTypes.map((ticket, index) => (
+                            <div key={ticket.key} className={styles.ticketTypeRow}>
+                              <label className={styles.ticketTypeToggle}>
+                                <input
+                                  type="checkbox"
+                                  checked={ticket.active}
+                                  onChange={(e) => onTicketTypeChange(index, { active: e.target.checked })}
+                                />
+                                <span>{lang === "en" ? "Active" : "Activ"}</span>
+                              </label>
+                              <input
+                                className="input"
+                                value={ticket.label}
+                                onChange={(e) => onTicketTypeChange(index, { label: e.target.value })}
+                                placeholder={lang === "en" ? "Label" : "Denumire"}
+                                disabled={!ticket.active}
+                              />
+                              <input
+                                className="input"
+                                type="number"
+                                min={0}
+                                value={ticket.isFree ? "" : ticket.price}
+                                onChange={(e) => onTicketTypeChange(index, { price: e.target.value })}
+                                placeholder={ticket.isFree ? (lang === "en" ? "Free" : "Gratuit") : "0"}
+                                disabled={!ticket.active || ticket.isFree}
+                              />
+                              <label className={styles.ticketTypeToggle}>
+                                <input
+                                  type="checkbox"
+                                  checked={ticket.isFree}
+                                  disabled={!ticket.active}
+                                  onChange={(e) =>
+                                    onTicketTypeChange(index, {
+                                      isFree: e.target.checked,
+                                      price: e.target.checked ? "0" : ticket.price && Number(ticket.price) > 0 ? ticket.price : "20",
+                                    })
+                                  }
+                                />
+                                <span>{lang === "en" ? "Free ticket" : "Bilet gratuit"}</span>
+                              </label>
+                              <label className={styles.ticketTypeToggle}>
+                                <input
+                                  type="checkbox"
+                                  checked={ticket.countsTowardCapacity}
+                                  disabled={!ticket.active}
+                                  onChange={(e) => onTicketTypeChange(index, { countsTowardCapacity: e.target.checked })}
+                                />
+                                <span>{lang === "en" ? "Counts toward capacity" : "Consumă loc"}</span>
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                        <div className={styles.ticketExamplePanel}>
+                          <div className={styles.ticketExampleHeader}>
+                            <strong>{lang === "en" ? "Current ticket setup" : "Structura curentă de bilete"}</strong>
+                            <span>
+                              {lang === "en"
+                                ? `${selectedTicketRuleCount} active categories`
+                                : `${selectedTicketRuleCount} categorii active`}
+                            </span>
+                          </div>
+                          {activeTicketTypePreview.length ? (
+                            <div className={styles.ticketExampleList}>
+                              {activeTicketTypePreview.map((ticket) => (
+                                <div key={ticket.key} className={styles.ticketExampleItem}>
+                                  <div>
+                                    <strong>{ticket.label}</strong>
+                                    <span>{formatTicketTypePriceLabel(ticket, form.currencyCode, lang)}</span>
+                                  </div>
+                                  <span className={styles.ticketRulePill}>
+                                    {ticket.countsTowardCapacity
+                                      ? lang === "en"
+                                        ? "Uses capacity"
+                                        : "Consumă loc"
+                                      : lang === "en"
+                                        ? "Does not use capacity"
+                                        : "Nu consumă loc"}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className={styles.ticketExampleEmpty}>
+                              {lang === "en"
+                                ? "Activate at least one ticket type so buyers can understand the options."
+                                : "Activează cel puțin un tip de bilet pentru ca oamenii să înțeleagă opțiunile."}
+                            </p>
+                          )}
+                          <p className={styles.ticketExampleNote}>
+                            {lang === "en"
+                              ? "Example: 2 adults + 1 child 8+ + 1 child under 8 can pay different amounts, while only the tickets marked to use capacity reduce available seats."
+                              : "Exemplu: 2 adulți + 1 copil 8+ + 1 copil sub 8 ani pot plăti sume diferite, iar doar biletele marcate să consume loc scad locurile disponibile."}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className={styles.full}>
+                        <div className={styles.simplePricingNote}>
+                          <strong>{lang === "en" ? "Simple pricing" : "Preț simplu"}</strong>
+                          <p>
+                            {lang === "en"
+                              ? "Use this when every participant pays the same amount or when the whole group buys one fixed package."
+                              : "Folosește această variantă când fiecare participant plătește același preț sau când întregul grup cumpără un pachet fix."}
+                          </p>
+                        </div>
+                      </div>
+                      <div className={styles.full}>
+                        <label>{lang === "en" ? "Access type" : "Tip acces"}</label>
+                        <div className={styles.chips}>
+                          <button
+                            type="button"
+                            className={`${styles.chip} ${isFreePrice ? styles.chipActive : ""}`}
+                            onClick={() => onChange("price", "0")}
+                          >
+                            {lang === "en" ? "Free" : "Gratis"}
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.chip} ${!isFreePrice ? styles.chipActive : ""}`}
+                            onClick={() => onChange("price", form.price && Number(form.price) > 0 ? form.price : "50")}
+                          >
+                            {lang === "en" ? "Paid" : "Cu preț"}
+                          </button>
+                        </div>
+                      </div>
+                      <div className={styles.priceFieldShell}>
+                        <label>{t("create_experience_price")}</label>
+                        <input
+                          className="input"
+                          type="number"
+                          min={0}
+                          disabled={isFreePrice}
+                          value={isFreePrice ? "" : form.price}
+                          placeholder={isFreePrice ? (lang === "en" ? "Free experience" : "Experiență gratuită") : "0"}
+                          onChange={(e) => onChange("price", e.target.value)}
+                        />
+                        <p className={styles.inlineHint}>
+                          {isFreePrice
+                            ? lang === "en"
+                              ? "The homepage card and booking flow will show this experience as free."
+                              : "Cardul din homepage și flow-ul de booking vor arăta această experiență ca gratuită."
+                            : lang === "en"
+                              ? "Set the participant price in RON."
+                              : "Setează prețul per participant în RON."}
+                        </p>
+                      </div>
+                    </>
+                  )}
                   <div>
                     <label>{t("create_experience_cover_url")}</label>
                     <input className="input" value={form.coverImageUrl} onChange={(e) => onChange("coverImageUrl", e.target.value)} />
                   </div>
                 </div>
-                {form.activityType === "GROUP" ? (
+                {form.activityType === "GROUP" && !form.useTicketCategories ? (
                   <div className={styles.grid}>
                     <div className={styles.full}>
                       <label>{lang === "en" ? "How is the group price charged?" : "Cum se aplică prețul pentru grup?"}</label>

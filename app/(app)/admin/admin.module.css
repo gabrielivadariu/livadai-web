@@ -867,6 +867,53 @@
   gap: 8px;
 }
 
+.ticketBreakdownList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ticketBreakdownRow {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.ticketBreakdownMain {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ticketBreakdownMain strong {
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.ticketBreakdownMain span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.ticketBreakdownMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.ticketBreakdownMeta > span {
+  color: #0f172a;
+  font-weight: 800;
+  font-size: 13px;
+}
+
 .editSection {
   border: 1px solid #e5e7eb;
   border-radius: 14px;

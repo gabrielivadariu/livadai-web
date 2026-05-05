@@ -261,12 +261,25 @@ type AdminExperienceMediaItem = {
   resourceType?: string;
 };
 
+type AdminTicketTypeDraft = {
+  key: string;
+  label: string;
+  price: string;
+  currency: string;
+  isFree: boolean;
+  countsTowardCapacity: boolean;
+  active: boolean;
+  order: number;
+  hint?: string;
+};
+
 type AdminExperienceDetails = AdminExperience & {
   shortDescription?: string;
   description?: string;
   category?: string;
   pricingMode?: string;
   groupPackageSize?: number | null;
+  ticketTypes?: AdminTicketTypeDraft[];
   durationMinutes?: number;
   scheduleType?: string;
   currencyCode?: string;
@@ -372,8 +385,10 @@ type AdminExperienceEditDraft = {
   status: string;
   isActive: boolean;
   price: string;
+  pricingStructure: "SINGLE" | "TICKETS";
   pricingMode: string;
   groupPackageSize: string;
+  ticketTypes: AdminTicketTypeDraft[];
   durationMinutes: string;
   currencyCode: string;
   activityType: string;
@@ -1032,8 +1047,74 @@ const toLines = (value: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const createDefaultAdminTicketTypes = (currencyCode = "RON"): AdminTicketTypeDraft[] => [
+  {
+    key: "adult",
+    label: "Adult",
+    price: "40",
+    currency: currencyCode,
+    isFree: false,
+    countsTowardCapacity: true,
+    active: true,
+    order: 0,
+    hint: "Bilet standard pentru adulți.",
+  },
+  {
+    key: "child_8_plus",
+    label: "Copil 8+",
+    price: "20",
+    currency: currencyCode,
+    isFree: false,
+    countsTowardCapacity: true,
+    active: true,
+    order: 1,
+    hint: "Pentru copii peste 8 ani care participă normal.",
+  },
+  {
+    key: "child_under_8",
+    label: "Sub 8 ani",
+    price: "0",
+    currency: currencyCode,
+    isFree: true,
+    countsTowardCapacity: false,
+    active: true,
+    order: 2,
+    hint: "Însoțitor gratuit, fără consum de loc dacă regula rămâne dezactivată.",
+  },
+];
+
+const mergeAdminTicketTypes = (ticketTypes?: AdminExperienceDetails["ticketTypes"], currencyCode = "RON"): AdminTicketTypeDraft[] => {
+  const defaults = createDefaultAdminTicketTypes(currencyCode);
+  const byKey = new Map(
+    (Array.isArray(ticketTypes) ? ticketTypes : []).map((item) => [
+      String(item?.key || ""),
+      {
+        key: String(item?.key || ""),
+        label: String(item?.label || ""),
+        price: String(Number(item?.price || 0)),
+        currency: String(item?.currency || currencyCode || "RON").toUpperCase(),
+        isFree: item?.isFree === true || Number(item?.price || 0) <= 0,
+        countsTowardCapacity: item?.countsTowardCapacity !== false,
+        active: item?.active !== false,
+        order: Number.isFinite(Number(item?.order)) ? Number(item?.order) : 0,
+      },
+    ])
+  );
+
+  return defaults.map((fallback, index) => {
+    const current = byKey.get(fallback.key);
+    if (!current) return fallback;
+    return {
+      ...fallback,
+      ...current,
+      order: Number.isFinite(Number(current.order)) ? Number(current.order) : index,
+    };
+  });
+};
+
 const createExperienceEditDraft = (experience?: AdminExperienceDetails | null): AdminExperienceEditDraft | null => {
   if (!experience) return null;
+  const mergedTicketTypes = mergeAdminTicketTypes(experience.ticketTypes, (experience.currencyCode || "RON").toUpperCase());
   return {
     title: experience.title || "",
     shortDescription: experience.shortDescription || "",
@@ -1042,8 +1123,10 @@ const createExperienceEditDraft = (experience?: AdminExperienceDetails | null): 
     status: experience.status || "draft",
     isActive: experience.isActive !== false,
     price: String(Number(experience.price || 0)),
+    pricingStructure: Array.isArray(experience.ticketTypes) && experience.ticketTypes.length ? "TICKETS" : "SINGLE",
     pricingMode: experience.pricingMode || "PER_PERSON",
     groupPackageSize: experience.groupPackageSize ? String(Number(experience.groupPackageSize)) : "",
+    ticketTypes: mergedTicketTypes,
     durationMinutes: experience.durationMinutes ? String(Number(experience.durationMinutes)) : "",
     currencyCode: (experience.currencyCode || "RON").toUpperCase(),
     activityType: experience.activityType || "GROUP",
@@ -2419,6 +2502,24 @@ export default function AdminPage() {
     });
   }, []);
 
+  const updateExperienceTicketType = useCallback(
+    (index: number, patch: Partial<AdminTicketTypeDraft>) => {
+      setExperienceEditDraft((current) => {
+        if (!current) return current;
+        const nextTicketTypes = current.ticketTypes.map((item, itemIndex) => {
+          if (itemIndex !== index) return item;
+          const next = { ...item, ...patch };
+          if (patch.isFree === true) {
+            next.price = "0";
+          }
+          return next;
+        });
+        return { ...current, ticketTypes: nextTicketTypes };
+      });
+    },
+    []
+  );
+
   const saveExperienceDraft = useCallback(async () => {
     if (!experienceEditDraft || !experienceDetails?.experience?.id) return;
     setExperienceEditSaving(true);
@@ -2453,6 +2554,21 @@ export default function AdminPage() {
         coverFocusX: Number(experienceEditDraft.coverFocusX || 50),
         coverFocusY: Number(experienceEditDraft.coverFocusY || 50),
       };
+
+      if (experienceEditDraft.pricingStructure === "TICKETS") {
+        payload.ticketTypes = experienceEditDraft.ticketTypes.map((item, index) => ({
+          key: item.key,
+          label: item.label.trim(),
+          price: item.isFree ? 0 : Number(item.price || 0),
+          currency: (item.currency || experienceEditDraft.currencyCode || "RON").trim().toUpperCase(),
+          isFree: item.isFree,
+          countsTowardCapacity: item.countsTowardCapacity,
+          active: item.active,
+          order: index,
+        }));
+      } else {
+        payload.ticketTypes = [];
+      }
 
       if (!isSeriesExperience) {
         payload.startsAt = experienceEditDraft.startsAt ? new Date(experienceEditDraft.startsAt).toISOString() : undefined;
@@ -3964,10 +4080,99 @@ export default function AdminPage() {
 
                     <div className={styles.editSection}>
                       <div className={styles.editSectionTitle}>{tx("Pricing și format", "Pricing and format")}</div>
+                      <div className={styles.ticketModeGrid}>
+                        <button
+                          type="button"
+                          className={experienceEditDraft.pricingStructure === "SINGLE" ? styles.ticketModeCardActive : styles.ticketModeCard}
+                          onClick={() => updateExperienceDraft("pricingStructure", "SINGLE")}
+                        >
+                          <strong>{tx("Preț unic", "Single price")}</strong>
+                          <span>{tx("Un singur preț pentru toți sau pachet fix de grup.", "One price for everyone or a fixed group package.")}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={experienceEditDraft.pricingStructure === "TICKETS" ? styles.ticketModeCardActive : styles.ticketModeCard}
+                          onClick={() => updateExperienceDraft("pricingStructure", "TICKETS")}
+                        >
+                          <strong>{tx("Categorii bilete", "Ticket categories")}</strong>
+                          <span>{tx("Adult, copil sau însoțitor gratuit, fiecare cu prețul lui.", "Adult, child or free companion, each with its own price.")}</span>
+                        </button>
+                      </div>
+                      {experienceEditDraft.pricingStructure === "TICKETS" ? (
+                        <div className={styles.ticketTypesEditor}>
+                          <div className="muted">
+                            {tx(
+                              "Modificarea se aplică experienței live și tuturor sloturilor din serie. Cumpărătorul va vedea separat biletele Adult, Copil 8+ și Sub 8 ani.",
+                              "This change applies to the live experience and all series slots. Buyers will see separate Adult, Child 8+ and Under 8 ticket options."
+                            )}
+                          </div>
+                          {experienceEditDraft.ticketTypes.map((ticketType, index) => (
+                            <div key={ticketType.key} className={styles.ticketTypeCard}>
+                              <div className={styles.ticketTypeHeader}>
+                                <div>
+                                  <strong>{ticketType.label || tx("Categorie bilet", "Ticket category")}</strong>
+                                  <div className="muted">{ticketType.hint || ""}</div>
+                                </div>
+                                <label className={styles.editToggle}>
+                                  <input
+                                    type="checkbox"
+                                    checked={ticketType.active}
+                                    onChange={(e) => updateExperienceTicketType(index, { active: e.target.checked })}
+                                  />
+                                  <span>{tx("Activ", "Active")}</span>
+                                </label>
+                              </div>
+                              <div className={styles.editGrid}>
+                                <label className={styles.editField}>
+                                  <span>{tx("Nume bilet", "Ticket name")}</span>
+                                  <input
+                                    className="input"
+                                    value={ticketType.label}
+                                    onChange={(e) => updateExperienceTicketType(index, { label: e.target.value })}
+                                  />
+                                </label>
+                                <label className={styles.editField}>
+                                  <span>{tx("Preț", "Price")}</span>
+                                  <input
+                                    className="input"
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={ticketType.isFree ? "0" : ticketType.price}
+                                    disabled={ticketType.isFree}
+                                    onChange={(e) => updateExperienceTicketType(index, { price: e.target.value })}
+                                  />
+                                </label>
+                                <label className={styles.editToggle}>
+                                  <input
+                                    type="checkbox"
+                                    checked={ticketType.isFree}
+                                    onChange={(e) =>
+                                      updateExperienceTicketType(index, {
+                                        isFree: e.target.checked,
+                                        price: e.target.checked ? "0" : ticketType.price === "0" ? "" : ticketType.price,
+                                      })
+                                    }
+                                  />
+                                  <span>{tx("Bilet gratuit", "Free ticket")}</span>
+                                </label>
+                                <label className={styles.editToggle}>
+                                  <input
+                                    type="checkbox"
+                                    checked={ticketType.countsTowardCapacity}
+                                    onChange={(e) => updateExperienceTicketType(index, { countsTowardCapacity: e.target.checked })}
+                                  />
+                                  <span>{tx("Consumă loc", "Counts toward capacity")}</span>
+                                </label>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
                       <div className={styles.editGrid}>
                         <label className={styles.editField}>
                           <span>{tx("Preț", "Price")}</span>
-                          <input className="input" type="number" min="0" step="1" value={experienceEditDraft.price} onChange={(e) => updateExperienceDraft("price", e.target.value)} />
+                          <input className="input" type="number" min="0" step="1" value={experienceEditDraft.price} disabled={experienceEditDraft.pricingStructure === "TICKETS"} onChange={(e) => updateExperienceDraft("price", e.target.value)} />
                         </label>
                         <label className={styles.editField}>
                           <span>{tx("Monedă", "Currency")}</span>
@@ -3975,7 +4180,7 @@ export default function AdminPage() {
                         </label>
                         <label className={styles.editField}>
                           <span>{tx("Pricing mode", "Pricing mode")}</span>
-                          <select className={styles.select} value={experienceEditDraft.pricingMode} onChange={(e) => updateExperienceDraft("pricingMode", e.target.value)}>
+                          <select className={styles.select} value={experienceEditDraft.pricingMode} disabled={experienceEditDraft.pricingStructure === "TICKETS"} onChange={(e) => updateExperienceDraft("pricingMode", e.target.value)}>
                             {ADMIN_EXPERIENCE_PRICING_MODES.map((option) => (
                               <option key={option} value={option}>{option}</option>
                             ))}
@@ -3983,7 +4188,7 @@ export default function AdminPage() {
                         </label>
                         <label className={styles.editField}>
                           <span>{tx("Group size", "Group size")}</span>
-                          <input className="input" type="number" min="1" step="1" value={experienceEditDraft.groupPackageSize} onChange={(e) => updateExperienceDraft("groupPackageSize", e.target.value)} />
+                          <input className="input" type="number" min="1" step="1" value={experienceEditDraft.groupPackageSize} disabled={experienceEditDraft.pricingStructure === "TICKETS"} onChange={(e) => updateExperienceDraft("groupPackageSize", e.target.value)} />
                         </label>
                         <label className={styles.editField}>
                           <span>{tx("Tip activitate", "Activity type")}</span>

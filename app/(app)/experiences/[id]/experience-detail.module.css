@@ -209,6 +209,7 @@
   flex-direction: column;
   min-width: 0;
   min-height: 100%;
+  gap: 16px;
 }
 
 .summary h1 {
@@ -336,7 +337,19 @@
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 0;
+}
+
+.bookingPanel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid #e3eef2;
+  background:
+    radial-gradient(circle at top right, rgba(var(--brand-rgb), 0.08), transparent 42%),
+    linear-gradient(180deg, #ffffff 0%, #f7fbfd 100%);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.05);
 }
 
 .serviceFee {
@@ -391,7 +404,7 @@
 .ticketPickerRow {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
   padding: 14px 16px;
   border-radius: 18px;
@@ -399,13 +412,24 @@
   background: linear-gradient(180deg, #fbfdff 0%, #f7fbfd 100%);
 }
 
+.ticketPickerCopy {
+  display: grid;
+  gap: 4px;
+}
+
 .ticketPickerLabel {
   color: var(--text);
   font-weight: 700;
 }
 
+.ticketPickerHint {
+  color: var(--primary-dark);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 .ticketPickerMeta {
-  margin-top: 4px;
   color: var(--muted);
   font-size: 13px;
 }
@@ -777,7 +801,6 @@
 }
 
 .supportTray {
-  margin-top: auto;
   padding: 14px;
   border-radius: 22px;
   border: 1px solid #d8edf1;
@@ -918,6 +941,10 @@
   .quantityRow {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .bookingPanel {
+    padding: 16px;
   }
 
   .contentGrid {

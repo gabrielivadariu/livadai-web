@@ -140,6 +140,20 @@ const renderParagraphWithLinks = (paragraph: string) => {
   return nodes;
 };
 
+const getTicketAudienceHint = (ticketType: { key?: string; label?: string }, lang: string) => {
+  const raw = `${ticketType.key || ""} ${ticketType.label || ""}`.toLowerCase();
+  if (raw.includes("under_8") || raw.includes("sub 8") || raw.includes("sub8")) {
+    return lang === "en" ? "For children under 8 years old." : "Pentru copiii sub 8 ani.";
+  }
+  if (raw.includes("8_plus") || raw.includes("8+") || raw.includes("copil")) {
+    return lang === "en" ? "For children aged 8 and above." : "Pentru copiii de 8 ani și peste.";
+  }
+  if (raw.includes("adult")) {
+    return lang === "en" ? "Standard ticket for adults." : "Bilet standard pentru adulți.";
+  }
+  return lang === "en" ? "Ticket category configured by the host." : "Categorie de bilet configurată de gazdă.";
+};
+
 const formatDuration = (minutes: number | undefined, lang: string) => {
   const total = Number(minutes);
   if (!total || Number.isNaN(total)) return "";
@@ -1056,151 +1070,154 @@ function ExperienceDetailPageContent() {
               </strong>
             </div>
           </div>
-          <div className={styles.priceRow}>
-            <div className={styles.price}>{priceText}</div>
-            {item.rating_avg ? <div className={styles.rating}>⭐ {Number(item.rating_avg).toFixed(1)}</div> : null}
-          </div>
-          {isFree ? (
-            <div className={styles.serviceFee}>
-              <span>{t("experience_service_fee_per_participant")}</span>
-              <strong>{serviceFeeTotalLabel}</strong>
+          <div className={styles.bookingPanel}>
+            <div className={styles.priceRow}>
+              <div className={styles.price}>{priceText}</div>
+              {item.rating_avg ? <div className={styles.rating}>⭐ {Number(item.rating_avg).toFixed(1)}</div> : null}
             </div>
-          ) : null}
-          {usesTicketCategories ? (
-            <div className={styles.ticketPicker}>
-              <div className={styles.ticketPickerIntro}>
-                <div className={styles.ticketPickerIntroHeader}>
-                  <strong>{lang === "en" ? "Available tickets" : "Bilete disponibile"}</strong>
-                  <span>
-                    {lang === "en"
-                      ? "Choose how many tickets you want from each category."
-                      : "Alege câte bilete vrei din fiecare categorie."}
-                  </span>
-                </div>
-                {hasNonCapacityTicketTypes ? (
-                  <p className={styles.ticketPickerNote}>
-                    {lang === "en"
-                      ? "Some categories do not consume capacity. They still appear in the booking summary, but they do not reduce the remaining seats."
-                      : "Unele categorii nu consumă loc. Ele apar în rezumatul rezervării, dar nu reduc locurile rămase."}
-                  </p>
-                ) : null}
+            {isFree ? (
+              <div className={styles.serviceFee}>
+                <span>{t("experience_service_fee_per_participant")}</span>
+                <strong>{serviceFeeTotalLabel}</strong>
               </div>
-              {activeTicketTypes.map((ticketType) => {
-                const key = String(ticketType.key || "");
-                const qty = Math.max(0, Number(ticketQuantities[key] || 0));
-                const maxForType =
-                  ticketType.countsTowardCapacity === false
-                    ? 20
-                    : Math.max(0, Number(availableSeats || totalSeats || 0) - (ticketCapacityUsed - qty));
-                return (
-                  <div key={key} className={styles.ticketPickerRow}>
-                    <div>
-                      <div className={styles.ticketPickerLabel}>{ticketType.label}</div>
-                      <div className={styles.ticketPickerMeta}>
-                        {Number(ticketType.price || 0) > 0
-                          ? `${ticketType.price} ${item.currencyCode || "RON"}`
-                          : lang === "en"
-                            ? "Free"
-                            : "Gratuit"}
-                        {ticketType.countsTowardCapacity === false
-                          ? lang === "en"
-                            ? " · does not use capacity"
-                            : " · nu consumă loc"
-                          : ""}
+            ) : null}
+            {usesTicketCategories ? (
+              <div className={styles.ticketPicker}>
+                <div className={styles.ticketPickerIntro}>
+                  <div className={styles.ticketPickerIntroHeader}>
+                    <strong>{lang === "en" ? "Available tickets" : "Bilete disponibile"}</strong>
+                    <span>
+                      {lang === "en"
+                        ? "Choose how many tickets you want from each category."
+                        : "Alege câte bilete vrei din fiecare categorie."}
+                    </span>
+                  </div>
+                  {hasNonCapacityTicketTypes ? (
+                    <p className={styles.ticketPickerNote}>
+                      {lang === "en"
+                        ? "Some categories do not consume capacity. They still appear in the booking summary, but they do not reduce the remaining seats."
+                        : "Unele categorii nu consumă loc. Ele apar în rezumatul rezervării, dar nu reduc locurile rămase."}
+                    </p>
+                  ) : null}
+                </div>
+                {activeTicketTypes.map((ticketType) => {
+                  const key = String(ticketType.key || "");
+                  const qty = Math.max(0, Number(ticketQuantities[key] || 0));
+                  const maxForType =
+                    ticketType.countsTowardCapacity === false
+                      ? 20
+                      : Math.max(0, Number(availableSeats || totalSeats || 0) - (ticketCapacityUsed - qty));
+                  return (
+                    <div key={key} className={styles.ticketPickerRow}>
+                      <div className={styles.ticketPickerCopy}>
+                        <div className={styles.ticketPickerLabel}>{ticketType.label}</div>
+                        <div className={styles.ticketPickerHint}>{getTicketAudienceHint(ticketType, lang)}</div>
+                        <div className={styles.ticketPickerMeta}>
+                          {Number(ticketType.price || 0) > 0
+                            ? `${ticketType.price} ${item.currencyCode || "RON"}`
+                            : lang === "en"
+                              ? "Free"
+                              : "Gratuit"}
+                          {ticketType.countsTowardCapacity === false
+                            ? lang === "en"
+                              ? " · does not use capacity"
+                              : " · nu consumă loc"
+                            : ""}
+                        </div>
+                      </div>
+                      <div className={styles.quantityControls}>
+                        <button
+                          className={styles.qtyButton}
+                          type="button"
+                          onClick={() =>
+                            setTicketQuantities((current) => ({
+                              ...current,
+                              [key]: Math.max(0, Number(current[key] || 0) - 1),
+                            }))
+                          }
+                          disabled={qty <= 0}
+                        >
+                          -
+                        </button>
+                        <span className={styles.qtyValue}>{qty}</span>
+                        <button
+                          className={styles.qtyButton}
+                          type="button"
+                          onClick={() =>
+                            setTicketQuantities((current) => ({
+                              ...current,
+                              [key]: Math.min(maxForType, Number(current[key] || 0) + 1),
+                            }))
+                          }
+                          disabled={maxForType <= qty}
+                        >
+                          +
+                        </button>
                       </div>
                     </div>
-                    <div className={styles.quantityControls}>
-                      <button
-                        className={styles.qtyButton}
-                        type="button"
-                        onClick={() =>
-                          setTicketQuantities((current) => ({
-                            ...current,
-                            [key]: Math.max(0, Number(current[key] || 0) - 1),
-                          }))
-                        }
-                        disabled={qty <= 0}
-                      >
-                        -
-                      </button>
-                      <span className={styles.qtyValue}>{qty}</span>
-                      <button
-                        className={styles.qtyButton}
-                        type="button"
-                        onClick={() =>
-                          setTicketQuantities((current) => ({
-                            ...current,
-                            [key]: Math.min(maxForType, Number(current[key] || 0) + 1),
-                          }))
-                        }
-                        disabled={maxForType <= qty}
-                      >
-                        +
-                      </button>
-                    </div>
+                  );
+                })}
+                <div className={styles.ticketPickerSummary}>
+                  <div className={styles.ticketPickerSummaryMeta}>
+                    <span>
+                      {lang === "en"
+                        ? `Participants selected: ${selectedParticipants}`
+                        : `Participanți selectați: ${selectedParticipants}`}
+                    </span>
+                    <span>
+                      {lang === "en"
+                        ? `Capacity used: ${ticketCapacityUsed}`
+                        : `Locuri consumate: ${ticketCapacityUsed}`}
+                    </span>
                   </div>
-                );
-              })}
-              <div className={styles.ticketPickerSummary}>
-                <div className={styles.ticketPickerSummaryMeta}>
-                  <span>
+                  <strong>
                     {lang === "en"
-                      ? `Participants selected: ${selectedParticipants}`
-                      : `Participanți selectați: ${selectedParticipants}`}
-                  </span>
-                  <span>
-                    {lang === "en"
-                      ? `Capacity used: ${ticketCapacityUsed}`
-                      : `Locuri consumate: ${ticketCapacityUsed}`}
-                  </span>
+                      ? `Total: ${ticketTotal} ${item.currencyCode || "RON"}`
+                      : `Total: ${ticketTotal} ${item.currencyCode || "RON"}`}
+                  </strong>
                 </div>
-                <strong>
-                  {lang === "en"
-                    ? `Total: ${ticketTotal} ${item.currencyCode || "RON"}`
-                    : `Total: ${ticketTotal} ${item.currencyCode || "RON"}`}
-                </strong>
               </div>
-            </div>
-          ) : null}
-          {item.activityType === "GROUP" && pricingMode !== "PER_GROUP" && !usesTicketCategories ? (
-            <div className={styles.quantityRow}>
-              <span>{lang === "en" ? "Seats" : "Locuri"}</span>
-              <div className={styles.quantityControls}>
-                <button
-                  className={styles.qtyButton}
-                  type="button"
-                  onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                  disabled={quantity <= 1}
-                  aria-label={lang === "en" ? "Decrease seats" : "Scade locuri"}
-                >
-                  -
-                </button>
-                <span className={styles.qtyValue}>{quantity}</span>
-                <button
-                  className={styles.qtyButton}
-                  type="button"
-                  onClick={() => setQuantity((prev) => Math.min(maxQuantity, prev + 1))}
-                  disabled={quantity >= maxQuantity}
-                  aria-label={lang === "en" ? "Increase seats" : "Creste locuri"}
-                >
-                  +
-                </button>
+            ) : null}
+            {item.activityType === "GROUP" && pricingMode !== "PER_GROUP" && !usesTicketCategories ? (
+              <div className={styles.quantityRow}>
+                <span>{lang === "en" ? "Seats" : "Locuri"}</span>
+                <div className={styles.quantityControls}>
+                  <button
+                    className={styles.qtyButton}
+                    type="button"
+                    onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                    disabled={quantity <= 1}
+                    aria-label={lang === "en" ? "Decrease seats" : "Scade locuri"}
+                  >
+                    -
+                  </button>
+                  <span className={styles.qtyValue}>{quantity}</span>
+                  <button
+                    className={styles.qtyButton}
+                    type="button"
+                    onClick={() => setQuantity((prev) => Math.min(maxQuantity, prev + 1))}
+                    disabled={quantity >= maxQuantity}
+                    aria-label={lang === "en" ? "Increase seats" : "Creste locuri"}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-            </div>
-          ) : null}
-          {item.activityType === "GROUP" && pricingMode === "PER_GROUP" ? (
-            <div className={styles.seriesHint}>
-              {lang === "en"
-                ? `This booking reserves a fixed group package of ${groupPackageSize} participants.`
-                : `Această rezervare ocupă un pachet fix de grup de ${groupPackageSize} participanți.`}
-            </div>
-          ) : null}
-          {error ? <div className={styles.error}>{error}</div> : null}
-          <div className={styles.refundNotice}>{t("refund_policy_notice")}</div>
-          <button className="button" type="button" onClick={onBook} disabled={bookingDisabled}>
-            {booking ? t("experience_booking") : t("experience_book")}
-          </button>
-          {!user ? <div className={styles.guestReserveHint}>{t("guest_reserve_hint")}</div> : null}
+            ) : null}
+            {item.activityType === "GROUP" && pricingMode === "PER_GROUP" ? (
+              <div className={styles.seriesHint}>
+                {lang === "en"
+                  ? `This booking reserves a fixed group package of ${groupPackageSize} participants.`
+                  : `Această rezervare ocupă un pachet fix de grup de ${groupPackageSize} participanți.`}
+              </div>
+            ) : null}
+            {error ? <div className={styles.error}>{error}</div> : null}
+            <div className={styles.refundNotice}>{t("refund_policy_notice")}</div>
+            <button className="button" type="button" onClick={onBook} disabled={bookingDisabled}>
+              {booking ? t("experience_booking") : t("experience_book")}
+            </button>
+            {!user ? <div className={styles.guestReserveHint}>{t("guest_reserve_hint")}</div> : null}
+          </div>
           <div className={styles.supportTray}>
             <div className={styles.supportIntro}>
               <div className={styles.supportKicker}>{t("experience_support_kicker")}</div>

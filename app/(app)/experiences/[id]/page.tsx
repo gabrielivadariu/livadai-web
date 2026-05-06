@@ -1011,7 +1011,96 @@ function ExperienceDetailPageContent() {
               </strong>
             </div>
           </div>
+          {!usesTicketCategories ? (
+            <div className={styles.summaryBooking}>
+              <div className={`${styles.bookingPanel} ${styles.bookingPanelSimple}`}>
+                <div className={styles.priceRow}>
+                  <div className={styles.price}>{priceText}</div>
+                  {item.rating_avg ? <div className={styles.rating}>⭐ {Number(item.rating_avg).toFixed(1)}</div> : null}
+                </div>
+                {isFree ? (
+                  <div className={styles.serviceFee}>
+                    <span>{t("experience_service_fee_per_participant")}</span>
+                    <strong>{serviceFeeTotalLabel}</strong>
+                  </div>
+                ) : null}
+                {item.activityType === "GROUP" && pricingMode !== "PER_GROUP" ? (
+                  <div className={styles.quantityRow}>
+                    <span>{lang === "en" ? "Seats" : "Locuri"}</span>
+                    <div className={styles.quantityControls}>
+                      <button
+                        className={styles.qtyButton}
+                        type="button"
+                        onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                        disabled={quantity <= 1}
+                        aria-label={lang === "en" ? "Decrease seats" : "Scade locuri"}
+                      >
+                        -
+                      </button>
+                      <span className={styles.qtyValue}>{quantity}</span>
+                      <button
+                        className={styles.qtyButton}
+                        type="button"
+                        onClick={() => setQuantity((prev) => Math.min(maxQuantity, prev + 1))}
+                        disabled={quantity >= maxQuantity}
+                        aria-label={lang === "en" ? "Increase seats" : "Creste locuri"}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+                {item.activityType === "GROUP" && pricingMode === "PER_GROUP" ? (
+                  <div className={styles.seriesHint}>
+                    {lang === "en"
+                      ? `This booking reserves a fixed group package of ${groupPackageSize} participants.`
+                      : `Această rezervare ocupă un pachet fix de grup de ${groupPackageSize} participanți.`}
+                  </div>
+                ) : null}
+                {error ? <div className={styles.error}>{error}</div> : null}
+                <div className={styles.refundNotice}>{t("refund_policy_notice")}</div>
+                <button className="button" type="button" onClick={onBook} disabled={bookingDisabled}>
+                  {booking ? t("experience_booking") : t("experience_book")}
+                </button>
+                {!user ? <div className={styles.guestReserveHint}>{t("guest_reserve_hint")}</div> : null}
+                <div className={styles.supportActions}>
+                  <button
+                    className={`${styles.supportCard} ${!chatRequiresAuth && (!chatAllowed || bookingLoading) ? styles.supportCardMuted : ""}`}
+                    type="button"
+                    onClick={() => {
+                      trackEvent({
+                        eventName: "cta_clicked",
+                        ctaName: "chat_with_host",
+                        experienceId: item?._id,
+                        hostId: item.host?._id,
+                        properties: {
+                          chatAllowed,
+                          requiresAuth: chatRequiresAuth,
+                        },
+                      });
+                      if (chatRequiresAuth) {
+                        router.replace(`/login?reason=auth&next=${encodeURIComponent(`/experiences/${item?._id}`)}`);
+                        return;
+                      }
+                      if (bookingInfo?._id && chatAllowed && !bookingLoading) router.push(`/messages/${bookingInfo._id}`);
+                    }}
+                    disabled={!chatRequiresAuth && (!chatAllowed || bookingLoading)}
+                  >
+                    <span className={styles.supportCardLabel}>{t("chat_open")}</span>
+                  </button>
+                  <button
+                    className={`${styles.supportCard} ${shareNotice ? styles.supportCardSuccess : ""}`}
+                    type="button"
+                    onClick={handleShare}
+                  >
+                    <span className={styles.supportCardLabel}>{t("share_experience")}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
+        {usesTicketCategories ? (
         <div className={styles.heroActions}>
           <div className={`${styles.bookingPanel} ${!usesTicketCategories ? styles.bookingPanelSimple : ""}`}>
             <div className={styles.priceRow}>
@@ -1188,6 +1277,7 @@ function ExperienceDetailPageContent() {
             </div>
           </div>
         </div>
+        ) : null}
       </div>
 
       <div className={styles.contentGrid}>

@@ -1044,6 +1044,8 @@ function ExperienceDetailPageContent() {
               </strong>
             </div>
           </div>
+        </div>
+        <div className={styles.heroActions}>
           <div className={styles.bookingPanel}>
             <div className={styles.priceRow}>
               <div className={styles.price}>{priceText}</div>

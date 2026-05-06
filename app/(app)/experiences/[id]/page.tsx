@@ -822,7 +822,7 @@ function ExperienceDetailPageContent() {
   const chatRequiresAuth = !user;
   return (
     <div className={styles.page}>
-      <div className={styles.hero}>
+      <div className={`${styles.hero} ${!usesTicketCategories ? styles.heroSimple : ""}`}>
         <div className={styles.media}>
           <div className={styles.carousel}>
             <div

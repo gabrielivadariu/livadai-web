@@ -767,14 +767,9 @@ function ExperienceDetailPageContent() {
   const start = activeExperience?.startsAt || activeExperience?.startDate || item.seriesNextStartsAt || item.startsAt || item.startDate;
   const end = activeExperience?.endsAt || activeExperience?.endDate || item.endsAt;
   const location = item.location || {};
-  const formattedAddress = location.formattedAddress || item.address || "";
-  const streetLine = [location.street, location.streetNumber].filter(Boolean).join(" ").trim();
   const cityLine = location.city || item.city;
   const countryLine = location.country || item.country;
   const locationLabel = [cityLine, countryLine].filter(Boolean).join(", ");
-  const addressLines = formattedAddress
-    ? [formattedAddress]
-    : ([streetLine, cityLine, countryLine].filter(Boolean) as string[]);
   const languageLabels = (item.languages || []).length ? (item.languages || []).map((lang) => lang.toUpperCase()) : ["RO"];
   const dateFormatter = new Intl.DateTimeFormat(lang === "en" ? "en-US" : "ro-RO", {
     day: "numeric",
@@ -816,7 +811,6 @@ function ExperienceDetailPageContent() {
   const serviceFeeTotal = payableSeats * 2;
   const serviceFeeTotalLabel = t("experience_service_fee_total").replace("{{amount}}", String(serviceFeeTotal));
   const selectedParticipants = ticketSelection.reduce((sum, ticketType) => sum + Number(ticketType.quantity || 0), 0);
-  const hasNonCapacityTicketTypes = activeTicketTypes.some((ticketType) => ticketType.countsTowardCapacity === false);
   const bookingDisabled =
     booking ||
     (item.isSeries && (!!selectedSlot && !selectedSlot.bookable)) ||
@@ -826,17 +820,6 @@ function ExperienceDetailPageContent() {
         (usesTicketCategories && availableSeats < ticketCapacityUsed) ||
         (pricingMode === "PER_GROUP" && availableSeats < groupPackageSize)));
   const chatRequiresAuth = !user;
-  const chatDisabledReason = chatRequiresAuth
-    ? t("chat_login_prompt")
-    : bookingLoading
-      ? t("chat_loading_booking")
-      : !bookingInfo
-        ? t("chat_no_booking")
-        : !chatAllowed
-          ? t("chat_requires_payment")
-          : "";
-  const chatActionText = chatAllowed ? t("chat_ready_hint") : chatDisabledReason;
-  const shareActionText = shareNotice || t("share_experience_hint");
   return (
     <div className={styles.page}>
       <div className={styles.hero}>
@@ -1012,10 +995,6 @@ function ExperienceDetailPageContent() {
               <strong>{formatDuration(item.durationMinutes, lang) || "—"}</strong>
             </div>
             <div>
-              <span>{t("experience_type")}</span>
-              <strong>{item.activityType || "INDIVIDUAL"}</strong>
-            </div>
-            <div>
               <span>{t("experience_seats_label")}</span>
               <strong>
                 {item.activityType === "GROUP"
@@ -1029,18 +1008,6 @@ function ExperienceDetailPageContent() {
                       typeof availableSeats === "number" ? ` · ${t("experience_spots_left").replace("{{count}}", String(availableSeats))}` : ""
                     }`
                   : t("experience_single_seat")}
-              </strong>
-            </div>
-            <div>
-              <span>{t("experience_location")}</span>
-              <strong className={styles.address}>
-                {addressLines.length
-                  ? addressLines.map((line) => (
-                      <span key={line} className={styles.addressLine}>
-                        {line}
-                      </span>
-                    ))
-                  : "—"}
               </strong>
             </div>
           </div>
@@ -1068,13 +1035,6 @@ function ExperienceDetailPageContent() {
                         : "Alege câte bilete vrei din fiecare categorie."}
                     </span>
                   </div>
-                  {hasNonCapacityTicketTypes ? (
-                    <p className={styles.ticketPickerNote}>
-                      {lang === "en"
-                        ? "Some categories do not consume capacity. They still appear in the booking summary, but they do not reduce the remaining seats."
-                        : "Unele categorii nu consumă loc. Ele apar în rezumatul rezervării, dar nu reduc locurile rămase."}
-                    </p>
-                  ) : null}
                 </div>
                 {activeTicketTypes.map((ticketType) => {
                   const key = String(ticketType.key || "");
@@ -1193,15 +1153,9 @@ function ExperienceDetailPageContent() {
               {booking ? t("experience_booking") : t("experience_book")}
             </button>
             {!user ? <div className={styles.guestReserveHint}>{t("guest_reserve_hint")}</div> : null}
-          </div>
-          <div className={styles.supportTray}>
-            <div className={styles.supportIntro}>
-              <div className={styles.supportKicker}>{t("experience_support_kicker")}</div>
-              <p className={styles.supportTitle}>{t("experience_support_title")}</p>
-            </div>
             <div className={styles.supportActions}>
               <button
-                className={`${styles.supportCard} ${!chatRequiresAuth && !chatAllowed ? styles.supportCardMuted : ""}`}
+                className={`${styles.supportCard} ${!chatRequiresAuth && (!chatAllowed || bookingLoading) ? styles.supportCardMuted : ""}`}
                 type="button"
                 onClick={() => {
                   trackEvent({
@@ -1218,24 +1172,18 @@ function ExperienceDetailPageContent() {
                     router.replace(`/login?reason=auth&next=${encodeURIComponent(`/experiences/${item?._id}`)}`);
                     return;
                   }
-                  if (bookingInfo?._id && chatAllowed) router.push(`/messages/${bookingInfo._id}`);
+                  if (bookingInfo?._id && chatAllowed && !bookingLoading) router.push(`/messages/${bookingInfo._id}`);
                 }}
-                disabled={!chatRequiresAuth && !chatAllowed}
+                disabled={!chatRequiresAuth && (!chatAllowed || bookingLoading)}
               >
-                <span className={`${styles.supportAccent} ${styles.supportAccentChat}`} aria-hidden="true" />
                 <span className={styles.supportCardLabel}>{t("chat_open")}</span>
-                <span className={styles.supportCardText}>{chatActionText}</span>
               </button>
               <button
                 className={`${styles.supportCard} ${shareNotice ? styles.supportCardSuccess : ""}`}
                 type="button"
                 onClick={handleShare}
               >
-                <span className={`${styles.supportAccent} ${styles.supportAccentShare}`} aria-hidden="true" />
                 <span className={styles.supportCardLabel}>{t("share_experience")}</span>
-                <span className={styles.supportCardText} aria-live="polite">
-                  {shareActionText}
-                </span>
               </button>
             </div>
           </div>

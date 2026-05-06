@@ -5,33 +5,33 @@
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 24px;
-  align-items: stretch;
+  grid-template-columns: minmax(360px, 0.96fr) minmax(420px, 1.04fr);
+  gap: 32px;
+  align-items: start;
   background: #fff;
-  border-radius: 28px;
+  border-radius: 30px;
   border: 1px solid #e6eff2;
-  padding: 26px;
-  box-shadow: var(--shadow);
+  padding: 28px;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.08);
 }
 
 .media {
-  display: grid;
-  gap: 14px;
-  grid-template-rows: auto auto;
-  align-content: stretch;
+  display: block;
   min-width: 0;
 }
 
 .carousel {
   position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #f8fafc;
 }
 
 .carouselTrack {
   display: flex;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  border-radius: 20px;
+  border-radius: 24px;
   scroll-behavior: smooth;
 }
 
@@ -50,15 +50,15 @@
 
 .slide img {
   width: 100%;
-  height: 360px;
+  height: clamp(360px, 34vw, 520px);
   object-fit: cover;
-  border-radius: 20px;
+  border-radius: 24px;
   display: block;
 }
 
 .coverPlaceholder {
-  height: 360px;
-  border-radius: 20px;
+  height: clamp(360px, 34vw, 520px);
+  border-radius: 24px;
   background: linear-gradient(135deg, rgba(var(--brand-rgb), 0.08), #f5fbfb);
 }
 
@@ -90,7 +90,14 @@
   display: flex;
   justify-content: center;
   gap: 8px;
-  margin-top: 10px;
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(14px);
 }
 
 .dot {
@@ -208,14 +215,16 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 100%;
-  gap: 16px;
+  gap: 18px;
+  padding: 4px 4px 0;
 }
 
 .summary h1 {
   font-family: "Sora", "Segoe UI", sans-serif;
-  font-size: 32px;
-  margin: 8px 0 10px;
+  font-size: clamp(34px, 4vw, 54px);
+  line-height: 1.02;
+  letter-spacing: 0;
+  margin: 0;
   text-wrap: balance;
 }
 
@@ -229,9 +238,55 @@
 
 .subtitle {
   color: var(--muted);
-  line-height: 1.62;
-  max-width: 40ch;
-  margin-bottom: 2px;
+  font-size: 18px;
+  line-height: 1.55;
+  max-width: 48ch;
+  margin: 0;
+}
+
+.summaryFacts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.summaryFact {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 82px;
+  padding: 13px 14px;
+  border: 1px solid #e4eff2;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fcfd 100%);
+}
+
+.summaryFact > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.summaryFact > strong {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.summaryFact .hostChip {
+  max-width: 100%;
+  padding: 7px 10px;
+}
+
+.summaryFact .hostName {
+  max-width: 130px;
+}
+
+.summaryBadges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .seriesPicker {
@@ -307,8 +362,16 @@
 .metaGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px 18px;
-  margin: 18px 0 20px;
+  gap: 10px;
+  margin: 0;
+}
+
+.metaGrid > div {
+  min-height: 82px;
+  padding: 14px;
+  border: 1px solid #e4eff2;
+  border-radius: 18px;
+  background: #fff;
 }
 
 .metaGrid span {
@@ -322,6 +385,7 @@
   font-weight: 700;
   margin-top: 6px;
   line-height: 1.35;
+  color: var(--text);
 }
 
 .address {
@@ -342,14 +406,14 @@
 
 .bookingPanel {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   padding: 18px;
-  border-radius: 22px;
+  border-radius: 24px;
   border: 1px solid #e3eef2;
   background:
-    radial-gradient(circle at top right, rgba(var(--brand-rgb), 0.08), transparent 42%),
-    linear-gradient(180deg, #ffffff 0%, #f7fbfd 100%);
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.05);
+    radial-gradient(circle at top right, rgba(var(--brand-rgb), 0.1), transparent 40%),
+    linear-gradient(180deg, #fbfeff 0%, #f6fbfd 100%);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.07);
 }
 
 .serviceFee {
@@ -373,9 +437,9 @@
 
 .ticketPickerIntro {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   padding: 14px 16px;
-  border-radius: 18px;
+  border-radius: 16px;
   border: 1px solid rgba(6, 182, 212, 0.14);
   background: linear-gradient(180deg, rgba(236, 254, 255, 0.9) 0%, rgba(248, 250, 252, 0.96) 100%);
 }
@@ -404,10 +468,10 @@
 .ticketPickerRow {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
   padding: 14px 16px;
-  border-radius: 18px;
+  border-radius: 16px;
   border: 1px solid #e6eff2;
   background: linear-gradient(180deg, #fbfdff 0%, #f7fbfd 100%);
 }
@@ -493,7 +557,7 @@
 }
 
 .price {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
 }
 
@@ -908,10 +972,33 @@
 @media (max-width: 959px) {
   .hero {
     grid-template-columns: 1fr;
+    gap: 22px;
+    padding: 18px;
+    border-radius: 24px;
   }
 
   .slide img {
-    height: 260px;
+    height: 280px;
+  }
+
+  .coverPlaceholder {
+    height: 280px;
+  }
+
+  .summary {
+    padding: 0;
+  }
+
+  .summary h1 {
+    font-size: 34px;
+  }
+
+  .summaryFacts {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryFact {
+    min-height: auto;
   }
 
   .mediaRailHeader {
@@ -934,6 +1021,10 @@
   .metaGrid {
     grid-template-columns: 1fr;
     gap: 12px;
+  }
+
+  .metaGrid > div {
+    min-height: auto;
   }
 
   .ticketPickerRow,

@@ -763,9 +763,6 @@ function ExperienceDetailPageContent() {
     return paragraphs;
   })();
   const hostLabel = item.host?.displayName || item.host?.name || t("experience_host_fallback");
-  const heroPreviewWords = storyText.split(" ").filter(Boolean);
-  const heroPreviewText =
-    heroPreviewWords.length > 22 ? `${heroPreviewWords.slice(0, 22).join(" ")}…` : storyText;
 
   const start = activeExperience?.startsAt || activeExperience?.startDate || item.seriesNextStartsAt || item.startsAt || item.startDate;
   const end = activeExperience?.endsAt || activeExperience?.endDate || item.endsAt;
@@ -902,64 +899,41 @@ function ExperienceDetailPageContent() {
               </div>
             ) : null}
           </div>
-          <div className={styles.mediaRail}>
-            <div className={styles.mediaRailHeader}>
-              <div className={styles.mediaRailCopy}>
-                <div className={styles.mediaRailKicker}>{t("experience_host")}</div>
-                {item.host?._id ? (
-                  <Link href={`/hosts/${item.host._id}`} className={styles.hostChip}>
-                    <span className={styles.hostAvatar}>
-                      {hostAvatarUrl ? (
-                        <img
-                          src={hostAvatarUrl}
-                          alt={hostLabel}
-                        />
-                      ) : (
-                        hostLabel.slice(0, 1).toUpperCase()
-                      )}
-                    </span>
-                    <span className={styles.hostName}>{hostLabel}</span>
-                  </Link>
-                ) : (
-                  <div className={styles.hostChip}>
-                    <span className={styles.hostAvatar}>?</span>
-                    <span className={styles.hostName}>{hostLabel}</span>
-                  </div>
-                )}
-              </div>
-              <div className={styles.mediaFactStack}>
-                <span className={styles.mediaFactValue}>
-                  {lang === "en" ? "Hosted with care" : "Găzduit cu grijă"}
-                </span>
-                <span className={styles.mediaFactLabel}>
-                  {locationLabel || t("experience_location")}
-                </span>
-              </div>
-            </div>
-            {heroPreviewText ? <p className={styles.mediaRailText}>{heroPreviewText}</p> : null}
-            <div className={styles.mediaRailMeta}>
-              <div className={styles.mediaMiniCard}>
-                <span className={styles.mediaMiniLabel}>{t("experience_languages")}</span>
-                <div className={styles.mediaMiniBadges}>
-                  {languageLabels.slice(0, 3).map((langCode) => (
-                    <span key={langCode} className={styles.badge}>{langCode}</span>
-                  ))}
-                </div>
-              </div>
-              <div className={styles.mediaMiniCard}>
-                <span className={styles.mediaMiniLabel}>{t("experience_type")}</span>
-                <strong className={styles.mediaMiniValue}>
-                  {item.activityType || "INDIVIDUAL"}
-                  {item.environment ? ` · ${item.environment}` : ""}
-                </strong>
-              </div>
-            </div>
-          </div>
         </div>
         <div className={styles.summary}>
           <div className={styles.kicker}>{t("experience_kicker")}</div>
           <h1>{item.title}</h1>
           <p className={styles.subtitle}>{item.shortDescription || item.description}</p>
+          <div className={styles.summaryFacts}>
+            <div className={styles.summaryFact}>
+              <span>{t("experience_host")}</span>
+              {item.host?._id ? (
+                <Link href={`/hosts/${item.host._id}`} className={styles.hostChip}>
+                  <span className={styles.hostAvatar}>
+                    {hostAvatarUrl ? <img src={hostAvatarUrl} alt={hostLabel} /> : hostLabel.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className={styles.hostName}>{hostLabel}</span>
+                </Link>
+              ) : (
+                <div className={styles.hostChip}>
+                  <span className={styles.hostAvatar}>?</span>
+                  <span className={styles.hostName}>{hostLabel}</span>
+                </div>
+              )}
+            </div>
+            <div className={styles.summaryFact}>
+              <span>{t("experience_languages")}</span>
+              <div className={styles.summaryBadges}>
+                {languageLabels.slice(0, 3).map((langCode) => (
+                  <span key={langCode} className={styles.badge}>{langCode}</span>
+                ))}
+              </div>
+            </div>
+            <div className={styles.summaryFact}>
+              <span>{t("experience_location")}</span>
+              <strong>{locationLabel || "—"}</strong>
+            </div>
+          </div>
           {item.isSeries ? (
             <div className={styles.seriesPicker}>
               <div className={styles.seriesPickerTitle}>

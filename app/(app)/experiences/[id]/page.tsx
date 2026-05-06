@@ -1013,7 +1013,7 @@ function ExperienceDetailPageContent() {
           </div>
         </div>
         <div className={styles.heroActions}>
-          <div className={styles.bookingPanel}>
+          <div className={`${styles.bookingPanel} ${!usesTicketCategories ? styles.bookingPanelSimple : ""}`}>
             <div className={styles.priceRow}>
               <div className={styles.price}>{priceText}</div>
               {item.rating_avg ? <div className={styles.rating}>⭐ {Number(item.rating_avg).toFixed(1)}</div> : null}

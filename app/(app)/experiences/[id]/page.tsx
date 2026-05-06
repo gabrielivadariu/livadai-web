@@ -882,6 +882,38 @@ function ExperienceDetailPageContent() {
               </div>
             ) : null}
           </div>
+          {!usesTicketCategories ? (
+            <>
+              <div className={styles.simpleMediaFacts}>
+                <div>
+                  <span>{t("experience_duration")}</span>
+                  <strong>{formatDuration(item.durationMinutes, lang) || "—"}</strong>
+                </div>
+                <div>
+                  <span>{t("experience_seats_label")}</span>
+                  <strong>
+                    {item.activityType === "GROUP"
+                      ? `${
+                          pricingMode === "PER_GROUP"
+                            ? lang === "en"
+                              ? `Group package: ${groupPackageSize}`
+                              : `Pachet grup: ${groupPackageSize}`
+                            : formatGroupInfo({ ...item, ...activeExperience }, lang) || "—"
+                        }${
+                          typeof availableSeats === "number" ? ` · ${t("experience_spots_left").replace("{{count}}", String(availableSeats))}` : ""
+                        }`
+                      : t("experience_single_seat")}
+                  </strong>
+                </div>
+              </div>
+              {storyParagraphs[0] ? (
+                <div className={styles.simpleStoryPreview}>
+                  <span>{lang === "en" ? "In short" : "Pe scurt"}</span>
+                  <p>{storyParagraphs[0]}</p>
+                </div>
+              ) : null}
+            </>
+          ) : null}
         </div>
         <div className={styles.summary}>
           <div className={styles.kicker}>{t("experience_kicker")}</div>
@@ -990,26 +1022,30 @@ function ExperienceDetailPageContent() {
               <span>{t("experience_end")}</span>
               <strong>{endLabel || "—"}</strong>
             </div>
-            <div>
-              <span>{t("experience_duration")}</span>
-              <strong>{formatDuration(item.durationMinutes, lang) || "—"}</strong>
-            </div>
-            <div>
-              <span>{t("experience_seats_label")}</span>
-              <strong>
-                {item.activityType === "GROUP"
-                  ? `${
-                      pricingMode === "PER_GROUP"
-                        ? lang === "en"
-                          ? `Group package: ${groupPackageSize}`
-                          : `Pachet grup: ${groupPackageSize}`
-                        : formatGroupInfo({ ...item, ...activeExperience }, lang) || "—"
-                    }${
-                      typeof availableSeats === "number" ? ` · ${t("experience_spots_left").replace("{{count}}", String(availableSeats))}` : ""
-                    }`
-                  : t("experience_single_seat")}
-              </strong>
-            </div>
+            {usesTicketCategories ? (
+              <>
+                <div>
+                  <span>{t("experience_duration")}</span>
+                  <strong>{formatDuration(item.durationMinutes, lang) || "—"}</strong>
+                </div>
+                <div>
+                  <span>{t("experience_seats_label")}</span>
+                  <strong>
+                    {item.activityType === "GROUP"
+                      ? `${
+                          pricingMode === "PER_GROUP"
+                            ? lang === "en"
+                              ? `Group package: ${groupPackageSize}`
+                              : `Pachet grup: ${groupPackageSize}`
+                            : formatGroupInfo({ ...item, ...activeExperience }, lang) || "—"
+                        }${
+                          typeof availableSeats === "number" ? ` · ${t("experience_spots_left").replace("{{count}}", String(availableSeats))}` : ""
+                        }`
+                      : t("experience_single_seat")}
+                  </strong>
+                </div>
+              </>
+            ) : null}
           </div>
           {!usesTicketCategories ? (
             <div className={styles.summaryBooking}>
